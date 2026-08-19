@@ -96,8 +96,9 @@ async function main() {
     ["Jen", "Ayai"],
   ];
 
-  // Agent không tự sort danh sách này - LLM sẽ viết JavaScript để sort, rồi Agent đưa
-  // code đó cho JavaScriptREPLTool chạy.
+  // Agent không tự sort danh sách này:
+  // 1. LLM viết JavaScript để sort.
+  // 2. Agent đưa code đó cho JavaScriptREPLTool chạy.
   const result = await agent.invoke({
     input: `Sort these customers by last name and then first name and print the output: ${JSON.stringify(
       customerList,

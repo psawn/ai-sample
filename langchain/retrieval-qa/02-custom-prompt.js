@@ -52,9 +52,12 @@ async function buildVectorDb() {
   return vectordb;
 }
 
-// Prompt tuỳ chỉnh: ép LLM chỉ trả lời dựa trên context, không tự bịa khi
-// không biết, và luôn trả lời ngắn gọn. Giữ nguyên nội dung tiếng Anh vì đây
-// là chỉ dẫn gửi thẳng cho LLM (giống bản Python), không phải comment giải thích code.
+// Prompt tuỳ chỉnh, ép LLM:
+// - Chỉ trả lời dựa trên context.
+// - Không tự bịa khi không biết.
+// - Luôn trả lời ngắn gọn.
+// Giữ nguyên nội dung tiếng Anh vì đây là chỉ dẫn gửi thẳng cho LLM (giống bản Python),
+// không phải comment giải thích code.
 const qaPromptTemplate = `Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer. Use three sentences maximum. Keep the answer as concise as possible. Always say "thanks for asking!" at the end of the answer.
 {context}
 Question: {input}

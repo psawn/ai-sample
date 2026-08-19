@@ -26,8 +26,9 @@ async function main() {
   const query =
     "Please list all your shirts with sun protection in a table in markdown and summarize each one.";
 
-  // similaritySearch gọi API Gemini để tạo vector cho query, sau đó so sánh
-  // vector này với các vector Document đã lưu trong RAM (bước so sánh xử lý local, không gọi API).
+  // similaritySearch:
+  // 1. Gọi API Gemini để tạo vector cho query.
+  // 2. So sánh vector này với các vector Document đã lưu trong RAM (xử lý local, không gọi API).
   // k = 4: lấy 4 Document có vector giống query nhất.
   const results = await db.similaritySearch(query, 4);
 

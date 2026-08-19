@@ -3,10 +3,10 @@ const path = require("path");
 const { getEncoding } = require("js-tiktoken");
 const { PDFLoader } = require("@langchain/community/document_loaders/fs/pdf");
 
-// Cắt theo số token (đơn vị LLM thực sự tính giới hạn context/chi phí) thay vì theo
-// số ký tự -> phản ánh đúng "sức chứa" thật của LLM hơn CharacterTextSplitter.
-// Tự cài thuật toán này bằng js-tiktoken (chạy local) thay vì dùng TokenTextSplitter
-// có sẵn của LangChain JS, vì mỗi lần gọi nó lại tải bộ mã hoá token qua mạng.
+// - Cắt theo số token (đơn vị LLM thực sự tính giới hạn context/chi phí) thay vì
+//   theo số ký tự, để phản ánh đúng "sức chứa" thật của LLM hơn CharacterTextSplitter.
+// - Tự cài thuật toán này bằng js-tiktoken (chạy local) thay vì dùng TokenTextSplitter
+//   có sẵn của LangChain JS, vì mỗi lần gọi nó lại tải bộ mã hoá token qua mạng.
 function splitTextByToken(text, encoding, { chunkSize, chunkOverlap }) {
   const tokenIds = encoding.encode(text);
   const chunks = [];

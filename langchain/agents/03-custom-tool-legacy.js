@@ -93,7 +93,7 @@ async function main() {
     console.log("\n========== Kết quả (Custom Tool) ==========");
     console.log(result.output);
   } catch (error) {
-    console.log("exception on external access");
+    console.error(error);
   }
 }
 

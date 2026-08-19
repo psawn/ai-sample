@@ -45,8 +45,9 @@ async function main() {
   // Gọi API Gemini để tạo vector cho từng Document, rồi lưu Document + vector vào MemoryVectorStore trong RAM.
   const db = await MemoryVectorStore.fromDocuments(docs, embeddings);
 
-  // Retriever: khi invoke, gọi API Gemini để tạo vector cho query, so sánh với các vector
-  // Document trong RAM (xử lý local) để trả về những document liên quan nhất.
+  // Retriever: khi invoke sẽ:
+  // 1. Gọi API Gemini để tạo vector cho query.
+  // 2. So sánh với các vector Document trong RAM (xử lý local) để trả về những document liên quan nhất.
   const retriever = db.asRetriever({
     k: 4,
   });
@@ -55,7 +56,10 @@ async function main() {
     `{documents} Question: {input}`,
   );
 
-  // Pipeline: lấy document liên quan (gọi API Gemini) -> đưa vào prompt -> gọi API Gemini (LLM) sinh câu trả lời.
+  // Pipeline:
+  // 1. Lấy document liên quan (gọi API Gemini).
+  // 2. Đưa vào prompt.
+  // 3. Gọi API Gemini (LLM) sinh câu trả lời.
   const ragChain = RunnableSequence.from([
     RunnablePassthrough.assign({
       documents: async (input) => {

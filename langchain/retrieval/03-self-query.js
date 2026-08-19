@@ -59,12 +59,13 @@ async function main() {
   const vectordb = await MemoryVectorStore.fromExistingIndex(embeddings);
   await vectordb.addVectors(vectors, splits);
 
-  // Ở file 01, ta phải tự tay viết filter (doc) => boolean.
-  // Self-query retriever thay ta làm việc đó: đưa cho LLM 1 câu hỏi tiếng Anh tự nhiên,
-  // LLM tự tách ra 2 phần:
-  //  - query: phần dùng để tìm vector (vd: "regression")
-  //  - filter: điều kiện lọc metadata (vd: source = Lecture03)
-  // metadataFieldInfo mô tả cho LLM biết mỗi field metadata nghĩa là gì để nó suy luận đúng.
+  // Ở file 01, ta phải tự tay viết filter (doc) => boolean. Self-query retriever thay ta
+  // làm việc đó theo luồng:
+  // 1. Đưa cho LLM 1 câu hỏi tiếng Anh tự nhiên.
+  // 2. LLM tự tách câu hỏi thành 2 phần:
+  //    - query: phần dùng để tìm vector (vd: "regression")
+  //    - filter: điều kiện lọc metadata (vd: source = Lecture03)
+  // 3. metadataFieldInfo mô tả cho LLM biết mỗi field metadata nghĩa là gì để nó suy luận đúng.
   const metadataFieldInfo = [
     new AttributeInfo({
       name: "source",

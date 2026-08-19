@@ -30,10 +30,13 @@ const llm = new ChatGoogleGenerativeAI({
   temperature: 0,
 });
 
-// Nạp + chia nhỏ 3 file PDF bài giảng, rồi embed từng chunk để dựng vectorDB.
-// Bản Python dùng lại Chroma đã lưu sẵn (persist_directory) từ bài trước; ở đây
-// dựng lại MemoryVectorStore trong RAM mỗi lần chạy cho đơn giản, giống các file
-// khác trong thư mục retrieval/.
+// Xây vectorDB theo các bước:
+// 1. Nạp 3 file PDF bài giảng.
+// 2. Chia nhỏ (split) thành từng chunk.
+// 3. Embed từng chunk rồi dựng vectorDB.
+// Bản Python dùng lại Chroma đã lưu sẵn (persist_directory) từ bài trước; ở đây dựng lại
+// MemoryVectorStore trong RAM mỗi lần chạy cho đơn giản, giống các file khác trong thư
+// mục retrieval/.
 async function buildVectorDb() {
   const pdfPaths = [
     path.join(lecturesDir, "MachineLearning-Lecture01.pdf"),
@@ -71,14 +74,18 @@ async function main() {
     `Use the following pieces of context to answer the question.\n\n{context}\n\nQuestion: {input}`,
   );
 
-  // Document Chain kiểu "stuff": nhét toàn bộ chunk tìm được vào 1 prompt duy nhất
-  // rồi gọi LLM sinh câu trả lời. Đây là behavior mặc định của Python's
-  // RetrievalQA.from_chain_type(llm, retriever=...) khi không truyền chain_type.
+  // Document Chain kiểu "stuff":
+  // 1. Nhét toàn bộ chunk tìm được vào 1 prompt duy nhất.
+  // 2. Gọi LLM sinh câu trả lời từ prompt đó.
+  // Đây là behavior mặc định của Python's RetrievalQA.from_chain_type(llm, retriever=...)
+  // khi không truyền chain_type.
   const combineDocsChain = await createStuffDocumentsChain({ llm, prompt });
 
-  // createRetrievalChain nối retriever (tìm chunk liên quan) với combineDocsChain
-  // (gọi LLM trả lời) thành 1 pipeline duy nhất - tương đương RetrievalQAChain
-  // bên Python, chỉ khác là dùng API kiểu LCEL (Runnable) thay vì class dựng sẵn.
+  // createRetrievalChain nối 2 bước thành 1 pipeline duy nhất:
+  // 1. retriever: tìm chunk liên quan tới câu hỏi.
+  // 2. combineDocsChain: gọi LLM trả lời dựa trên chunk tìm được.
+  // Tương đương RetrievalQAChain bên Python, chỉ khác là dùng API kiểu LCEL (Runnable)
+  // thay vì class dựng sẵn.
   const qaChain = await createRetrievalChain({ retriever, combineDocsChain });
 
   const question = "What are major topics for this class?";

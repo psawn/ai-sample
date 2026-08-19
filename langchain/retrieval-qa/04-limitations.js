@@ -69,13 +69,15 @@ async function main() {
   console.log("Q1:", question1);
   console.log("A1:", result1.answer);
 
-  // Câu hỏi 2: "those prerequesites" chỉ có nghĩa nếu model nhớ câu hỏi 1 vừa
-  // nói về "probability". Nhưng mỗi lần invoke() là một lượt hỏi ĐỘC LẬP -
-  // retriever chỉ tìm chunk theo đúng chữ trong question2, không biết "those"
-  // đang ám chỉ điều gì -> câu trả lời thường lạc đề hoặc chung chung.
-  // Đây chính là giới hạn của RetrievalQA: không có bộ nhớ hội thoại (chat history).
-  // Muốn khắc phục phải dùng ConversationalRetrievalChain kết hợp với memory
-  // (xem thêm các ví dụ về memory trong langchain/memory/).
+  // Câu hỏi 2: "those prerequesites" chỉ có nghĩa nếu model nhớ câu hỏi 1 vừa nói về
+  // "probability". Nhưng:
+  // 1. Mỗi lần invoke() là một lượt hỏi ĐỘC LẬP.
+  // 2. retriever chỉ tìm chunk theo đúng chữ trong question2, không biết "those" đang ám
+  //    chỉ điều gì.
+  // -> câu trả lời thường lạc đề hoặc chung chung.
+  // Đây chính là giới hạn của RetrievalQA: không có bộ nhớ hội thoại (chat history). Muốn
+  // khắc phục phải dùng ConversationalRetrievalChain kết hợp với memory (xem thêm các ví
+  // dụ về memory trong langchain/memory/).
   const question2 = "why are those prerequesites needed?";
   const result2 = await qaChain.invoke({ input: question2 });
   console.log("\nQ2:", question2);
