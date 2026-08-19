@@ -33,10 +33,12 @@ async function demoMmrTradeoff() {
   console.log("=== [demo nấm] similaritySearch ===");
   docsSS.forEach((d) => console.log("-", d.pageContent));
 
-  // maxMarginalRelevanceSearch: sau khi chọn kết quả liên quan nhất, MMR né tiếp kết quả
-  // nào GIỐNG kết quả đã chọn -> có thể đổi sang text[2] (nói về độc tính, chả liên quan
-  // gì tới câu hỏi) chỉ vì nó "khác biệt" nhất. Đây là lúc thấy rõ: MMR ưu tiên đa dạng
-  // hơn liên quan, nên kết quả thứ 2 đôi khi lạc đề hoàn toàn.
+  // maxMarginalRelevanceSearch (MMR) chọn kết quả theo 2 bước:
+  // 1. Chọn kết quả liên quan nhất với câu hỏi trước.
+  // 2. Với các kết quả tiếp theo, né những kết quả nào GIỐNG kết quả đã chọn.
+  // -> có thể đổi sang text[2] (nói về độc tính, chả liên quan gì tới câu hỏi) chỉ vì nó
+  // "khác biệt" nhất. Đây là lúc thấy rõ: MMR ưu tiên đa dạng hơn liên quan, nên kết quả
+  // thứ 2 đôi khi lạc đề hoàn toàn.
   const docsMmr = await smalldb.maxMarginalRelevanceSearch(question, {
     k: 2,
     fetchK: 3,

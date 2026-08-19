@@ -52,8 +52,9 @@ async function ask(input) {
   // Lưu câu trả lời của AI
   history.push(new AIMessage(response.content));
 
-  // Giữ lại SystemMessage, xóa dần message cũ nhất (theo thứ tự thời gian)
-  // cho đến khi tổng số token <= MAX_TOKENS
+  // Cắt bớt history cho đến khi tổng token <= MAX_TOKENS:
+  // 1. Giữ lại SystemMessage (không xóa).
+  // 2. Xóa dần message cũ nhất, theo đúng thứ tự thời gian.
   while (countHistoryTokens(history) > MAX_TOKENS && history.length > 1) {
     history.splice(1, 1);
   }

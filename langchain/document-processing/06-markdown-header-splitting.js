@@ -1,9 +1,11 @@
 require("dotenv").config();
 
 // LangChain JS chưa có sẵn splitter tách theo heading Markdown (khác bản Python),
-// nên tự viết hàm nhỏ này: tách văn bản theo dòng heading (#, ##, ###...) và gắn
-// heading hiện tại vào metadata của mỗi chunk. Nhờ vậy LLM biết chunk thuộc mục
-// nào dù nội dung đã bị cắt nhỏ, giúp trả lời chính xác và có ngữ cảnh hơn.
+// nên tự viết hàm nhỏ này:
+// 1. Tách văn bản theo dòng heading (#, ##, ###...).
+// 2. Gắn heading hiện tại vào metadata của mỗi chunk.
+// 3. Nhờ vậy LLM biết chunk thuộc mục nào dù nội dung đã bị cắt nhỏ, giúp trả lời
+//    chính xác và có ngữ cảnh hơn.
 function splitMarkdownByHeaders(text, headersToSplitOn) {
   const activeHeaders = {};
   const chunks = [];

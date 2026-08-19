@@ -39,11 +39,13 @@ async function main() {
   // đoạn văn ("\n\n") với ranh giới từ (" ") -> có thể cắt ngang giữa 1 đoạn văn.
   show("CharacterTextSplitter", await cSplitter.splitText(someText));
 
-  // Cơ chế: chọn 1 separator ưu tiên cao nhất đang có trong text để tách thành các
-  // mảnh (vd ưu tiên "\n\n" trước). Mảnh nào < chunkSize thì gộp chung 1 chunk, gộp
-  // tới khi vượt chunkSize thì cắt sang chunk mới (giữ overlap) -- vẫn dùng separator
-  // đó, KHÔNG đổi separator. Chỉ mảnh nào tự nó đã >= chunkSize (vd 1 đoạn văn quá dài)
-  // mới bị tách tiếp bằng separator ưu tiên thấp hơn ("\n", rồi " ", rồi "").
+  // Cơ chế:
+  // 1. Chọn 1 separator ưu tiên cao nhất đang có trong text để tách thành các mảnh
+  //    (vd ưu tiên "\n\n" trước).
+  // 2. Mảnh nào < chunkSize thì gộp chung 1 chunk, gộp tới khi vượt chunkSize thì
+  //    cắt sang chunk mới (giữ overlap) -- vẫn dùng separator đó, KHÔNG đổi separator.
+  // 3. Chỉ mảnh nào tự nó đã >= chunkSize (vd 1 đoạn văn quá dài) mới bị tách tiếp
+  //    bằng separator ưu tiên thấp hơn ("\n", rồi " ", rồi "").
   show("RecursiveCharacterTextSplitter", await rSplitter.splitText(someText));
 
   // Giảm chunkSize và thêm ". " (kết thúc câu) vào danh sách separator, để mỗi chunk

@@ -9,8 +9,9 @@ const {
 } = require("@langchain/community/document_loaders/fs/notion");
 
 // Document Loading cho RAG (Retrieval Augmented Generation):
-// mỗi loader đọc dữ liệu từ 1 nguồn (PDF, YouTube, web, Notion...) và trả về
-// mảng Document gồm { pageContent, metadata } để dùng ở bước embedding/truy vấn sau này.
+// 1. Mỗi loader đọc dữ liệu từ 1 nguồn (PDF, YouTube, web, Notion...).
+// 2. Trả về mảng Document gồm { pageContent, metadata }.
+// 3. Document này được dùng ở bước embedding/truy vấn (RAG) sau này.
 
 async function loadPdf() {
   console.log("=== PDFLoader ===");

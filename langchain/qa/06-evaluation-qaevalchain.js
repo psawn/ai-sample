@@ -60,8 +60,9 @@ async function main() {
   // Gọi API Gemini để tạo vector cho từng Document, lưu Document + vector vào MemoryVectorStore trong RAM.
   const db = await MemoryVectorStore.fromDocuments(docs, embeddings);
 
-  // Retriever: khi invoke, gọi API Gemini để tạo vector cho câu hỏi, so sánh với các vector
-  // Document trong RAM để tìm ra những đoạn nội dung liên quan nhất làm ngữ cảnh trả lời.
+  // Retriever: khi invoke sẽ:
+  // 1. Gọi API Gemini để tạo vector cho câu hỏi.
+  // 2. So sánh với các vector Document trong RAM để tìm ra những đoạn nội dung liên quan nhất làm ngữ cảnh trả lời.
   const retriever = db.asRetriever({
     k: 4,
   });
@@ -70,7 +71,10 @@ async function main() {
     `{documents}\n\nQuestion: {input}`,
   );
 
-  // RAG chain: tìm document liên quan -> nhét vào prompt -> gọi LLM sinh câu trả lời.
+  // RAG chain:
+  // 1. Tìm document liên quan.
+  // 2. Nhét vào prompt.
+  // 3. Gọi LLM sinh câu trả lời.
   // Đây là hệ thống mà ta muốn kiểm tra độ chính xác.
   const qaChain = RunnableSequence.from([
     RunnablePassthrough.assign({
@@ -99,9 +103,10 @@ async function main() {
     result: results[i],
   }));
 
-  // QAEvalChain.fromLlm dựng sẵn 1 chain giám khảo: đưa vào (câu hỏi, đáp án đúng,
-  // câu trả lời AI sinh ra), gọi LLM để nhận xét 2 câu trả lời có cùng ý nghĩa không,
-  // dù cách diễn đạt khác nhau, rồi trả về CORRECT hoặc INCORRECT.
+  // QAEvalChain.fromLlm dựng sẵn 1 chain giám khảo:
+  // 1. Nhận vào (câu hỏi, đáp án đúng, câu trả lời AI sinh ra).
+  // 2. Gọi LLM để nhận xét 2 câu trả lời có cùng ý nghĩa không, dù cách diễn đạt khác nhau.
+  // 3. Trả về CORRECT hoặc INCORRECT.
   const evalChain = QAEvalChain.fromLlm(llm);
   const gradedOutputs = await evalChain.evaluate(examples, predictions);
 

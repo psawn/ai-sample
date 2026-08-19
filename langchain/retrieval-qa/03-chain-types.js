@@ -72,16 +72,19 @@ async function main() {
 
   const question = "Is probability a class topic?";
 
-  // "stuff": nhét toàn bộ chunk vào 1 prompt duy nhất rồi gọi LLM 1 lần.
+  // "stuff":
+  // 1. Nhét toàn bộ chunk vào 1 prompt duy nhất.
+  // 2. Gọi LLM 1 lần để sinh câu trả lời.
   // Nhanh, rẻ, nhưng nếu chunk quá nhiều/dài sẽ vượt giới hạn context của LLM.
   const stuffAnswer = await askWithChainType("stuff", retriever, question);
   console.log("=== stuff ===");
   console.log(stuffAnswer);
 
-  // "map_reduce": gọi LLM riêng cho từng chunk để tóm tắt (map), sau đó gọi
-  // thêm 1 lần LLM để gộp các tóm tắt đó thành câu trả lời cuối (reduce).
-  // Xử lý được nhiều chunk hơn "stuff", nhưng tốn nhiều lượt gọi LLM hơn và
-  // chạy chậm hơn vì các chunk được xử lý độc lập, không "nhìn thấy" nhau.
+  // "map_reduce":
+  // 1. Map: gọi LLM riêng cho từng chunk để tóm tắt.
+  // 2. Reduce: gọi thêm 1 lần LLM để gộp các tóm tắt đó thành câu trả lời cuối.
+  // Xử lý được nhiều chunk hơn "stuff", nhưng tốn nhiều lượt gọi LLM hơn và chạy chậm
+  // hơn vì các chunk được xử lý độc lập, không "nhìn thấy" nhau.
   const mapReduceAnswer = await askWithChainType(
     "map_reduce",
     retriever,
@@ -90,10 +93,12 @@ async function main() {
   console.log("\n=== map_reduce ===");
   console.log(mapReduceAnswer);
 
-  // "refine": gọi LLM trả lời dựa trên chunk đầu tiên, rồi lần lượt đưa từng
-  // chunk còn lại vào để LLM "tinh chỉnh" (refine) lại câu trả lời trước đó.
-  // Giữ được mạch ngữ cảnh xuyên suốt các chunk (tốt hơn map_reduce), nhưng
-  // chạy tuần tự (không song song được) nên thường là kiểu chậm nhất.
+  // "refine":
+  // 1. Gọi LLM trả lời dựa trên chunk đầu tiên.
+  // 2. Lần lượt đưa từng chunk còn lại vào để LLM "tinh chỉnh" (refine) lại câu trả lời
+  //    trước đó.
+  // Giữ được mạch ngữ cảnh xuyên suốt các chunk (tốt hơn map_reduce), nhưng chạy tuần tự
+  // (không song song được) nên thường là kiểu chậm nhất.
   const refineAnswer = await askWithChainType("refine", retriever, question);
   console.log("\n=== refine ===");
   console.log(refineAnswer);

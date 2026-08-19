@@ -11,10 +11,13 @@ const { ChatPromptTemplate } = require("@langchain/core/prompts");
 //
 //   prompt.pipe(model)
 //
-// nghĩa là: nhận input -> đưa qua prompt để điền biến -> đưa tiếp kết
-// quả đó qua model để gọi API Gemini lấy câu trả lời. Chuỗi các bước nối
-// bằng .pipe() như vậy được gọi là 1 "Runnable", và được chạy bằng
-// chain.invoke({...biến}) (tương đương chain.call() ở bản cũ).
+// nghĩa là:
+// 1. Nhận input.
+// 2. Đưa qua prompt để điền biến.
+// 3. Đưa tiếp kết quả đó qua model để gọi API Gemini lấy câu trả lời.
+//
+// Chuỗi các bước nối bằng .pipe() như vậy được gọi là 1 "Runnable", và được
+// chạy bằng chain.invoke({...biến}) (tương đương chain.call() ở bản cũ).
 //
 // So sánh với cách viết cũ ở file "01-llm-chain-legacy.js".
 // =======================================================

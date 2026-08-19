@@ -80,8 +80,10 @@ async function main() {
   console.log("=== Contextual compression ===");
   prettyPrintDocs(compressedDocs);
 
-  // Kết hợp MMR + compression: MMR chọn kết quả đa dạng (đỡ trùng lặp),
-  // compression cắt bớt phần dư thừa trong từng kết quả đó -> retriever "sạch" hơn.
+  // Kết hợp MMR + compression:
+  // 1. MMR chọn kết quả đa dạng (đỡ trùng lặp).
+  // 2. Compression cắt bớt phần dư thừa trong từng kết quả đó.
+  // -> retriever "sạch" hơn.
   const compressionRetrieverMmr = new ContextualCompressionRetriever({
     baseCompressor: compressor,
     baseRetriever: vectordb.asRetriever({ searchType: "mmr" }),

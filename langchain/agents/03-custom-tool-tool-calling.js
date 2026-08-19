@@ -14,8 +14,9 @@
 //   User → LLM → chọn Tool → Tool thực thi → kết quả → LLM → Final Answer
 //
 // Tool Calling là cách Agent hiện hành hoạt động:
-//   LLM trả về thẳng "gọi Tool nào, tham số gì" dạng JSON (không cần viết text theo
-//   format ReAct), LangChain đọc thẳng JSON đó để gọi Tool - không cần parse text.
+//   1. LLM trả về thẳng "gọi Tool nào, tham số gì" dạng JSON (không cần viết text
+//      theo format ReAct).
+//   2. LangChain đọc thẳng JSON đó để gọi Tool ngay - không cần parse text.
 //
 // => Xem file 03-custom-tool-legacy.js để so sánh với cách cũ (đã deprecated).
 require("dotenv").config();
@@ -73,9 +74,18 @@ const tools = [
   time,
 ];
 
-// Prompt này phải tự viết (bản legacy được thư viện dựng sẵn, ẩn bên trong). "placeholder"
-// là chỗ chèn 1 danh sách message; "agent_scratchpad" là lịch sử tool đã gọi + kết quả
-// (vd: "đã gọi time, kết quả là ..."), giúp model biết nó đã làm gì.
+// Prompt này phải tự viết (bản legacy được thư viện dựng sẵn, ẩn bên trong):
+// - "placeholder": chỗ chèn 1 danh sách message.
+//
+// "agent_scratchpad" = "Trong lần xử lý này, agent đã làm những gì?"
+//   - Để trả lời 1 câu hỏi, agent có thể phải gọi tool nhiều bước (gọi tool -> xem kết
+//     quả -> gọi tiếp hoặc trả lời). Đây là nơi lưu "đã gọi tool nào, kết quả gì".
+//   - Do AgentExecutor tự tạo và xoá sau mỗi lần invoke(), KHÔNG tồn tại giữa các câu hỏi.
+//   - Vd: hỏi "hôm nay ngày mấy?"
+//       1. agent gọi tool "time"
+//       2. nhận về "2026-08-19"
+//       3. lưu bước này vào scratchpad
+//       4. trả lời user
 const prompt = ChatPromptTemplate.fromMessages([
   ["system", "You are a helpful assistant."],
   ["human", "{input}"],
@@ -83,11 +93,16 @@ const prompt = ChatPromptTemplate.fromMessages([
 ]);
 
 async function main() {
+  // agent = LLM được cấu hình để dùng Tools và quyết định action (không tự chạy tool).
   // agent: Ghép LLM + Tools + Prompt thành 1 Agent (Tool Calling).
   const agent = createToolCallingAgent({ llm, tools, prompt });
 
-  // agentExecutor: chạy vòng lặp gọi agent -> nếu agent muốn gọi tool thì tự thực thi ->
-  // đưa kết quả về cho agent -> lặp lại tới khi agent trả lời xong.
+  // agentExecutor = chạy Agent Loop, tự thực thi action của agent cho tới khi có Final Answer.
+  // agentExecutor: chạy vòng lặp xử lý agent:
+  // 1. Gọi agent.
+  // 2. Nếu agent muốn gọi tool thì tự thực thi tool đó.
+  // 3. Đưa kết quả về cho agent.
+  // 4. Lặp lại từ bước 1 tới khi agent trả lời xong.
   //   - handleParsingErrors (true): dù tool-calling trả JSON có cấu trúc, model vẫn có thể
   //     trả tham số sai kiểu hoặc thiếu field bắt buộc - đưa lỗi đó vào quan sát tiếp theo
   //     cho agent tự sửa, thay vì crash chương trình.
@@ -108,7 +123,7 @@ async function main() {
     console.log("\n========== Kết quả (Custom Tool) ==========");
     console.log(result.output);
   } catch (error) {
-    console.log("exception on external access");
+    console.error(error);
   }
 }
 

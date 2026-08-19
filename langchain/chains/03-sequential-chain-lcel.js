@@ -11,11 +11,13 @@ const { RunnableSequence, RunnablePassthrough } = require("@langchain/core/runna
 // chain có thể có nhiều input/output có tên, và chain sau có thể dùng
 // lại output của BẤT KỲ chain nào chạy trước nó (không chỉ chain liền kề).
 //
-// Cách làm: RunnablePassthrough.assign({ tenBien: chainTuongUng }) sẽ
-// chạy chainTuongUng, rồi GỘP kết quả vào object hiện có (thêm key mới,
-// giữ nguyên các key cũ - khác với .pipe() thông thường sẽ THAY THẾ toàn
-// bộ object bằng kết quả mới). Nhờ vậy các biến trung gian (Review,
-// English_Review, summary...) được giữ lại xuyên suốt cả chain.
+// Cách làm: RunnablePassthrough.assign({ tenBien: chainTuongUng })
+// 1. Chạy chainTuongUng.
+// 2. GỘP kết quả vào object hiện có: thêm key mới, giữ nguyên các key cũ
+//    (khác với .pipe() thông thường sẽ THAY THẾ toàn bộ object bằng kết
+//    quả mới).
+// Nhờ vậy các biến trung gian (Review, English_Review, summary...) được
+// giữ lại xuyên suốt cả chain.
 //
 // Ví dụ trong file này: chain 4 (followupChain) không lấy output của
 // chain 3 (languageChain, đứng ngay trước nó), mà lấy output của CẢ

@@ -63,8 +63,9 @@ async function main() {
   // Gọi API Gemini để tạo vector cho từng Document, lưu Document + vector vào MemoryVectorStore trong RAM.
   const db = await MemoryVectorStore.fromDocuments(docs, embeddings);
 
-  // Retriever: khi invoke, gọi API Gemini để tạo vector cho câu hỏi, so sánh với các vector
-  // Document trong RAM để tìm ra những đoạn nội dung liên quan nhất làm ngữ cảnh trả lời.
+  // Retriever: khi invoke sẽ:
+  // 1. Gọi API Gemini để tạo vector cho câu hỏi.
+  // 2. So sánh với các vector Document trong RAM để tìm ra những đoạn nội dung liên quan nhất làm ngữ cảnh trả lời.
   const retriever = db.asRetriever({
     k: 4,
   });
@@ -73,7 +74,10 @@ async function main() {
     `{documents}\n\nQuestion: {input}`,
   );
 
-  // RAG chain: tìm document liên quan -> nhét vào prompt -> gọi LLM sinh câu trả lời.
+  // RAG chain:
+  // 1. Tìm document liên quan.
+  // 2. Nhét vào prompt.
+  // 3. Gọi LLM sinh câu trả lời.
   // Đây là hệ thống mà ta muốn kiểm tra độ chính xác.
   const qaChain = RunnableSequence.from([
     RunnablePassthrough.assign({
@@ -102,10 +106,12 @@ async function main() {
     result: results[i],
   }));
 
-  // Prompt giám khảo: đưa câu hỏi, đáp án đúng và câu trả lời AI sinh ra vào, yêu cầu LLM
-  // nhận xét 2 câu trả lời có cùng ý nghĩa hay không (dù diễn đạt khác nhau) và trả
-  // kết quả dạng JSON. Đây là phần "kiểu mới" - tự viết chain chấm điểm thay vì dùng
-  // 1 chain dựng sẵn, nên có thể tuỳ chỉnh prompt hoặc định dạng kết quả tự do.
+  // Prompt giám khảo:
+  // 1. Đưa câu hỏi, đáp án đúng và câu trả lời AI sinh ra vào.
+  // 2. Yêu cầu LLM nhận xét 2 câu trả lời có cùng ý nghĩa hay không (dù diễn đạt khác nhau)
+  //    và trả kết quả dạng JSON.
+  // Đây là phần "kiểu mới" - tự viết chain chấm điểm thay vì dùng 1 chain dựng sẵn,
+  // nên có thể tuỳ chỉnh prompt hoặc định dạng kết quả tự do.
   const gradePrompt = PromptTemplate.fromTemplate(
     `Bạn là giám khảo chấm bài.
 
@@ -118,6 +124,16 @@ có thể khác nhau. Chỉ trả lời đúng định dạng JSON, không thêm
 {{"grade": "CORRECT"}} hoặc {{"grade": "INCORRECT"}}`,
   );
 
+  // JsonOutputParser lấy câu trả lời dạng TEXT của model rồi JSON.parse()
+  // thành object. Nó chỉ đúng khi model nghe lời dặn trong prompt ("chỉ trả
+  // lời JSON") - nếu model lỡ viết thêm giải thích hoặc bọc ```json``` thì
+  // parse sẽ lỗi.
+  //
+  // Cách này khác với đọc tool_calls (xem functions-tools-agents/03-tagging.js,
+  // 04-extraction.js): tool_calls là dữ liệu có cấu trúc sẵn, do model bị ép
+  // đúng schema khi gọi tool nên đáng tin hơn - còn JsonOutputParser chỉ là
+  // "đoán" JSON từ đoạn văn xuôi tự do.
+  //
   // Chain chấm điểm: prompt -> gọi LLM -> parse kết quả JSON trả về.
   const gradeChain = RunnableSequence.from([
     gradePrompt,
