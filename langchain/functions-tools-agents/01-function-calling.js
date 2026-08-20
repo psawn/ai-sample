@@ -16,6 +16,7 @@
 // - "none": cấm LLM gọi bất kỳ tool nào, kể cả khi câu hỏi cần tool.
 // - "<tên tool>": ép LLM luôn gọi đúng tool đó, bất kể câu hỏi là gì.
 // =======================================================
+require("../_polyfill");
 require("dotenv").config();
 
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");

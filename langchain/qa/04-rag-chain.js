@@ -1,11 +1,12 @@
+require("../_polyfill");
 require("dotenv").config();
 
 const { CSVLoader } = require("@langchain/community/document_loaders/fs/csv");
-const { MemoryVectorStore } = require("langchain/vectorstores/memory");
-const { createRetrievalChain } = require("langchain/chains/retrieval");
+const { MemoryVectorStore } = require("@langchain/classic/vectorstores/memory");
+const { createRetrievalChain } = require("@langchain/classic/chains/retrieval");
 const {
   createStuffDocumentsChain,
-} = require("langchain/chains/combine_documents");
+} = require("@langchain/classic/chains/combine_documents");
 
 const { GoogleGenerativeAIEmbeddings } = require("@langchain/google-genai");
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");

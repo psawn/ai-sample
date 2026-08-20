@@ -1,3 +1,4 @@
+require("../_polyfill");
 require("dotenv").config();
 const {
   RecursiveCharacterTextSplitter,

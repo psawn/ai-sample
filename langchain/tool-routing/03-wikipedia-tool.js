@@ -1,5 +1,6 @@
 // Tool tìm kiếm Wikipedia: gọi thẳng MediaWiki API, lấy 3 trang liên quan nhất rồi tóm tắt
 // phần mở đầu (intro) của mỗi trang.
+require("../_polyfill");
 require("dotenv").config();
 
 const { z } = require("zod");

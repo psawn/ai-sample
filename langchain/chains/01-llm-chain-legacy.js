@@ -1,7 +1,8 @@
+require("../_polyfill");
 require("dotenv").config();
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { ChatPromptTemplate } = require("@langchain/core/prompts");
-const { LLMChain } = require("langchain/chains");
+const { LLMChain } = require("@langchain/classic/chains");
 
 // =======================================================
 // LLMChain (cách viết CŨ, dùng class LLMChain)

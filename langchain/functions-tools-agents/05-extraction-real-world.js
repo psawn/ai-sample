@@ -3,6 +3,7 @@
 // 03-tagging.js, 04-extraction.js) lên nội dung thật của 1 bài blog, thay vì
 // vài câu ví dụ ngắn.
 // =======================================================
+require("../_polyfill");
 require("dotenv").config();
 
 // Node 18 chưa có sẵn global "File" (undici - thư viện fetch bên trong dùng

@@ -18,6 +18,7 @@
 //
 // File này còn thêm memory (nhớ lịch sử hội thoại) để agent trả lời đúng các câu hỏi nối
 // tiếp nhau, vd: "tên tôi là bob" -> "tên tôi là gì?".
+require("../_polyfill");
 require("dotenv").config();
 
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
@@ -27,7 +28,7 @@ const {
 } = require("@langchain/core/prompts");
 const { RunnableWithMessageHistory } = require("@langchain/core/runnables");
 const { InMemoryChatMessageHistory } = require("@langchain/core/chat_history");
-const { AgentExecutor, createToolCallingAgent } = require("langchain/agents");
+const { AgentExecutor, createToolCallingAgent } = require("@langchain/classic/agents");
 const { getCurrentTemperature } = require("./02-weather-tool");
 const { searchWikipedia } = require("./03-wikipedia-tool");
 
@@ -79,6 +80,13 @@ const agentExecutor = new AgentExecutor({
 });
 
 // Mỗi sessionId có 1 lịch sử hội thoại riêng, lưu trong RAM (mất khi tắt chương trình).
+//
+// InMemoryChatMessageHistory = class có sẵn của LangChain, chỉ để lưu 1 danh sách message.
+// getMessageHistory (hàm bên dưới) là hàm TỰ VIẾT, chỉ để nối sessionId với đúng instance
+// InMemoryChatMessageHistory tương ứng - không phải API bắt buộc của LangChain.
+//
+// Có thể đổi logic lưu trữ bên trong (vd: Redis, MongoDB, file...) tuỳ ý, miễn hàm trả về
+// đúng 1 object implement BaseChatMessageHistory.
 const messageHistories = {};
 function getMessageHistory(sessionId) {
   if (!messageHistories[sessionId]) {

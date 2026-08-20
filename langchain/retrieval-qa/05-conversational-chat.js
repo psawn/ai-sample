@@ -1,3 +1,4 @@
+require("../_polyfill");
 require("dotenv").config();
 const path = require("path");
 const { PDFLoader } = require("@langchain/community/document_loaders/fs/pdf");
@@ -6,18 +7,18 @@ const {
   GoogleGenerativeAIEmbeddings,
   ChatGoogleGenerativeAI,
 } = require("@langchain/google-genai");
-const { MemoryVectorStore } = require("langchain/vectorstores/memory");
+const { MemoryVectorStore } = require("@langchain/classic/vectorstores/memory");
 const {
   ChatPromptTemplate,
   MessagesPlaceholder,
 } = require("@langchain/core/prompts");
 const {
   createHistoryAwareRetriever,
-} = require("langchain/chains/history_aware_retriever");
-const { createRetrievalChain } = require("langchain/chains/retrieval");
+} = require("@langchain/classic/chains/history_aware_retriever");
+const { createRetrievalChain } = require("@langchain/classic/chains/retrieval");
 const {
   createStuffDocumentsChain,
-} = require("langchain/chains/combine_documents");
+} = require("@langchain/classic/chains/combine_documents");
 const { HumanMessage, AIMessage } = require("@langchain/core/messages");
 const { embedChunksSafely } = require("../retrieval/util-embed-safely");
 

@@ -1,3 +1,4 @@
+require("../_polyfill");
 require("dotenv").config();
 const path = require("path");
 const { CharacterTextSplitter } = require("@langchain/textsplitters");

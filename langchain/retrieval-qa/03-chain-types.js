@@ -1,3 +1,4 @@
+require("../_polyfill");
 require("dotenv").config();
 
 const path = require("path");
@@ -7,12 +8,12 @@ const {
   GoogleGenerativeAIEmbeddings,
   ChatGoogleGenerativeAI,
 } = require("@langchain/google-genai");
-const { MemoryVectorStore } = require("langchain/vectorstores/memory");
+const { MemoryVectorStore } = require("@langchain/classic/vectorstores/memory");
 // loadQAChain: tạo document chain kiểu cũ (không phải LCEL) nhưng vẫn hỗ trợ
 // đủ 3 chain_type mà bản Python minh hoạ - "stuff", "map_reduce", "refine".
 // Bản LCEL hiện tại (createStuffDocumentsChain) chỉ có sẵn cho "stuff", nên ở
 // đây dùng loadQAChain để giữ đúng tinh thần so sánh 3 chiến lược của bài học.
-const { loadQAChain } = require("langchain/chains");
+const { loadQAChain } = require("@langchain/classic/chains");
 const { embedChunksSafely } = require("../retrieval/util-embed-safely");
 
 const lecturesDir = path.join(__dirname, "../../docs/cs229_lectures");

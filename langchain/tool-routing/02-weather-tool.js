@@ -1,5 +1,6 @@
 // Tool gọi API thật (Open-Meteo) để lấy nhiệt độ hiện tại theo toạ độ - minh hoạ Tool có
 // thể làm bất cứ việc gì bên trong, LLM chỉ cần biết name/description/schema.
+require("../_polyfill");
 require("dotenv").config();
 
 const { z } = require("zod");

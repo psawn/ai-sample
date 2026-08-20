@@ -1,7 +1,8 @@
+require("../_polyfill");
 require("dotenv").config();
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { ChatPromptTemplate } = require("@langchain/core/prompts");
-const { LLMChain, SimpleSequentialChain } = require("langchain/chains");
+const { LLMChain, SimpleSequentialChain } = require("@langchain/classic/chains");
 
 // =======================================================
 // SimpleSequentialChain (cách viết CŨ)

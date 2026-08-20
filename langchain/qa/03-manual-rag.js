@@ -1,7 +1,8 @@
+require("../_polyfill");
 require("dotenv").config();
 
 const { CSVLoader } = require("@langchain/community/document_loaders/fs/csv");
-const { MemoryVectorStore } = require("langchain/vectorstores/memory");
+const { MemoryVectorStore } = require("@langchain/classic/vectorstores/memory");
 const { GoogleGenerativeAIEmbeddings } = require("@langchain/google-genai");
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const path = require("path");

@@ -19,12 +19,13 @@
 //   2. LangChain đọc thẳng JSON đó để gọi Tool ngay - không cần parse text.
 //
 // => Xem file 02-code-agent-legacy.js để so sánh với cách cũ (đã deprecated).
+require("../_polyfill");
 require("dotenv").config();
 
 const vm = require("vm");
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { Tool } = require("@langchain/core/tools");
-const { AgentExecutor, createToolCallingAgent } = require("langchain/agents");
+const { AgentExecutor, createToolCallingAgent } = require("@langchain/classic/agents");
 const { ChatPromptTemplate } = require("@langchain/core/prompts");
 
 // LLM = "bộ não" của Agent, đọc yêu cầu và quyết định cần làm gì.

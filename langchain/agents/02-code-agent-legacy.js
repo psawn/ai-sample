@@ -21,12 +21,13 @@
 //
 // => Xem file 02-code-agent-tool-calling.js để biết cách Tool Calling hiện hành, không
 //    cần LLM viết theo format ReAct như cách cũ.
+require("../_polyfill");
 require("dotenv").config();
 
 const vm = require("vm");
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { Tool } = require("@langchain/core/tools");
-const { initializeAgentExecutorWithOptions } = require("langchain/agents");
+const { initializeAgentExecutorWithOptions } = require("@langchain/classic/agents");
 
 // LLM = "bộ não" của Agent, đọc yêu cầu và quyết định cần làm gì.
 // Trong bài này, LLM sẽ viết JavaScript code để giải quyết yêu cầu (LLM không tự chạy code).

@@ -1,3 +1,4 @@
+require("../_polyfill");
 const { InMemoryChatMessageHistory } = require("@langchain/core/chat_history");
 const { HumanMessage, AIMessage } = require("@langchain/core/messages");
 

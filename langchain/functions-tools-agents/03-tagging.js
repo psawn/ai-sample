@@ -8,6 +8,7 @@
 // 3. Ép model luôn gọi đúng tool này (tool_choice = tên tool) -> model trả
 //    về đúng cấu trúc dữ liệu mong muốn trong tool_calls, không lẫn chữ thừa.
 // =======================================================
+require("../_polyfill");
 require("dotenv").config();
 
 const { z } = require("zod");
