@@ -1,3 +1,4 @@
+require("../_polyfill");
 require("dotenv").config();
 const path = require("path");
 const { PDFLoader } = require("@langchain/community/document_loaders/fs/pdf");
@@ -6,12 +7,12 @@ const {
   GoogleGenerativeAIEmbeddings,
   ChatGoogleGenerativeAI,
 } = require("@langchain/google-genai");
-const { MemoryVectorStore } = require("langchain/vectorstores/memory");
-const { SelfQueryRetriever } = require("langchain/retrievers/self_query");
+const { MemoryVectorStore } = require("@langchain/classic/vectorstores/memory");
+const { SelfQueryRetriever } = require("@langchain/classic/retrievers/self_query");
 const {
   FunctionalTranslator,
-} = require("langchain/retrievers/self_query/functional");
-const { AttributeInfo } = require("langchain/chains/query_constructor");
+} = require("@langchain/classic/retrievers/self_query/functional");
+const { AttributeInfo } = require("@langchain/classic/chains/query_constructor");
 const { embedChunksSafely } = require("./util-embed-safely");
 
 const lecturesDir = path.join(__dirname, "../../docs/cs229_lectures");

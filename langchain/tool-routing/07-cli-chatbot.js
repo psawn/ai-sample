@@ -17,6 +17,7 @@
 // Bản Python gốc dùng thư viện Panel để vẽ giao diện web - ở đây thay bằng vòng lặp
 // readline trên terminal (giống retrieval-qa/06-cli-chatbot.js), vì Panel không có bản
 // tương đương trong Node.js.
+require("../_polyfill");
 require("dotenv").config();
 
 const readline = require("readline");
@@ -29,7 +30,7 @@ const {
 } = require("@langchain/core/prompts");
 const { RunnableWithMessageHistory } = require("@langchain/core/runnables");
 const { InMemoryChatMessageHistory } = require("@langchain/core/chat_history");
-const { AgentExecutor, createToolCallingAgent } = require("langchain/agents");
+const { AgentExecutor, createToolCallingAgent } = require("@langchain/classic/agents");
 const { getCurrentTemperature } = require("./02-weather-tool");
 const { searchWikipedia } = require("./03-wikipedia-tool");
 

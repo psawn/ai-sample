@@ -19,6 +19,7 @@
 //   2. LangChain đọc thẳng JSON đó để gọi Tool ngay - không cần parse text.
 //
 // => Xem file 03-custom-tool-legacy.js để so sánh với cách cũ (đã deprecated).
+require("../_polyfill");
 require("dotenv").config();
 
 const { z } = require("zod");
@@ -28,7 +29,7 @@ const { Calculator } = require("@langchain/community/tools/calculator");
 const {
   WikipediaQueryRun,
 } = require("@langchain/community/tools/wikipedia_query_run");
-const { AgentExecutor, createToolCallingAgent } = require("langchain/agents");
+const { AgentExecutor, createToolCallingAgent } = require("@langchain/classic/agents");
 const { ChatPromptTemplate } = require("@langchain/core/prompts");
 
 // LLM = "bộ não" của Agent, đọc câu hỏi rồi quyết định: trả lời luôn, hay cần gọi Tool

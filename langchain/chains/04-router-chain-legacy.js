@@ -1,6 +1,7 @@
+require("../_polyfill");
 require("dotenv").config();
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
-const { MultiPromptChain } = require("langchain/chains");
+const { MultiPromptChain } = require("@langchain/classic/chains");
 
 // =======================================================
 // RouterChain (cách viết CŨ - MultiPromptChain)

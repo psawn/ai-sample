@@ -1,7 +1,8 @@
+require("../_polyfill");
 require("dotenv").config();
 
 const { CSVLoader } = require("@langchain/community/document_loaders/fs/csv");
-const { MemoryVectorStore } = require("langchain/vectorstores/memory");
+const { MemoryVectorStore } = require("@langchain/classic/vectorstores/memory");
 const {
   GoogleGenerativeAIEmbeddings,
   ChatGoogleGenerativeAI,
@@ -14,7 +15,7 @@ const {
 const { StringOutputParser } = require("@langchain/core/output_parsers");
 // QAEvalChain: chain dựng sẵn của LangChain,
 // đóng vai trò "giám khảo" - gọi LLM để so sánh câu trả lời AI sinh ra với đáp án đúng, rồi chấm CORRECT/INCORRECT.
-const { QAEvalChain } = require("langchain/evaluation");
+const { QAEvalChain } = require("@langchain/classic/evaluation");
 const path = require("path");
 
 // Embedding Model: gọi API Gemini (model gemini-embedding-001) để biến Document / Query thành vector.

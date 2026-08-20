@@ -1,5 +1,6 @@
 // 1 REST API (Swagger Petstore) cũng có thể trở thành Tool cho LLM gọi - chỉ cần khai báo
 // 1 Tool cho mỗi endpoint, trỏ vào đúng URL của nó.
+require("../_polyfill");
 require("dotenv").config();
 
 const { z } = require("zod");

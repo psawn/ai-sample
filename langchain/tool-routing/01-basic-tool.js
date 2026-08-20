@@ -1,5 +1,6 @@
 // Tool = 1 hàm JS bình thường, gắn thêm name/description/schema để LLM biết khi nào nên
 // gọi và gọi với tham số gì.
+require("../_polyfill");
 require("dotenv").config();
 
 const { z } = require("zod");

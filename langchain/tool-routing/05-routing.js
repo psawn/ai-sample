@@ -1,5 +1,6 @@
 // ROUTING: cho model biết nhiều Tool cùng lúc, để nó tự chọn Tool phù hợp với câu hỏi -
 // hoặc trả lời thẳng nếu không cần Tool nào. route() đọc quyết định đó và gọi đúng Tool.
+require("../_polyfill");
 require("dotenv").config();
 
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");

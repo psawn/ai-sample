@@ -1,3 +1,4 @@
+require("../_polyfill");
 require("dotenv").config();
 
 const {
@@ -8,7 +9,7 @@ const { ChatPromptTemplate } = require("@langchain/core/prompts");
 const { StringOutputParser } = require("@langchain/core/output_parsers");
 const { RunnableMap, RunnableLambda } = require("@langchain/core/runnables");
 const { HumanMessage, SystemMessage } = require("@langchain/core/messages");
-const { MemoryVectorStore } = require("langchain/vectorstores/memory");
+const { MemoryVectorStore } = require("@langchain/classic/vectorstores/memory");
 
 const apiKey = process.env.GEMINI_API_KEY;
 

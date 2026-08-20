@@ -3,6 +3,7 @@
 // 1 nhãn cho cả đoạn text, mục tiêu là trích ra NHIỀU mục thông tin có cấu
 // trúc (vd: danh sách người được nhắc tới) từ trong đoạn text.
 // =======================================================
+require("../_polyfill");
 require("dotenv").config();
 
 const { z } = require("zod");

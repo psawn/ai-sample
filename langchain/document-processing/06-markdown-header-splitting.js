@@ -1,3 +1,4 @@
+require("../_polyfill");
 require("dotenv").config();
 
 // LangChain JS chưa có sẵn splitter tách theo heading Markdown (khác bản Python),

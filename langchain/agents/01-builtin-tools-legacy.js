@@ -21,6 +21,7 @@
 //
 // => Xem file 01-builtin-tools-tool-calling.js để biết cách Tool Calling hiện hành, không
 //    cần LLM viết theo format ReAct như cách cũ.
+require("../_polyfill");
 require("dotenv").config();
 
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
@@ -30,7 +31,7 @@ const { Calculator } = require("@langchain/community/tools/calculator");
 const {
   WikipediaQueryRun,
 } = require("@langchain/community/tools/wikipedia_query_run");
-const { initializeAgentExecutorWithOptions } = require("langchain/agents");
+const { initializeAgentExecutorWithOptions } = require("@langchain/classic/agents");
 
 // LLM = "bộ não" của Agent, đọc câu hỏi rồi quyết định: trả lời luôn, hay cần gọi Tool
 // nào trước.

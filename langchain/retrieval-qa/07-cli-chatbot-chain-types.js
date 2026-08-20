@@ -1,3 +1,4 @@
+require("../_polyfill");
 require("dotenv").config();
 const readline = require("readline");
 const path = require("path");
@@ -7,7 +8,7 @@ const {
   GoogleGenerativeAIEmbeddings,
   ChatGoogleGenerativeAI,
 } = require("@langchain/google-genai");
-const { MemoryVectorStore } = require("langchain/vectorstores/memory");
+const { MemoryVectorStore } = require("@langchain/classic/vectorstores/memory");
 const {
   ChatPromptTemplate,
   MessagesPlaceholder,
@@ -17,7 +18,7 @@ const { StringOutputParser } = require("@langchain/core/output_parsers");
 // @deprecated - KHÔNG khuyến khích dùng cho code mới. Chỉ dùng ở đây vì đây là cách
 // duy nhất hỗ trợ sẵn cả 3 chain_type "stuff" / "map_reduce" / "refine" (API mới
 // createStuffDocumentsChain hiện chỉ có bản LCEL cho "stuff").
-const { loadQAChain } = require("langchain/chains");
+const { loadQAChain } = require("@langchain/classic/chains");
 const { HumanMessage, AIMessage } = require("@langchain/core/messages");
 
 // Giống 06-cli-chatbot.js (chatbot hỏi đáp 1 file PDF, chạy trên terminal, không UI),

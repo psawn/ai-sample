@@ -1,3 +1,4 @@
+require("../_polyfill");
 const path = require("path");
 const { PDFLoader } = require("@langchain/community/document_loaders/fs/pdf");
 const { RecursiveCharacterTextSplitter } = require("@langchain/textsplitters");

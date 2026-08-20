@@ -1,3 +1,4 @@
+require("../_polyfill");
 require("dotenv").config();
 const path = require("path");
 const { PDFLoader } = require("@langchain/community/document_loaders/fs/pdf");
@@ -6,13 +7,13 @@ const {
   GoogleGenerativeAIEmbeddings,
   ChatGoogleGenerativeAI,
 } = require("@langchain/google-genai");
-const { MemoryVectorStore } = require("langchain/vectorstores/memory");
+const { MemoryVectorStore } = require("@langchain/classic/vectorstores/memory");
 const {
   ContextualCompressionRetriever,
-} = require("langchain/retrievers/contextual_compression");
+} = require("@langchain/classic/retrievers/contextual_compression");
 const {
   LLMChainExtractor,
-} = require("langchain/retrievers/document_compressors/chain_extract");
+} = require("@langchain/classic/retrievers/document_compressors/chain_extract");
 const { embedChunksSafely } = require("./util-embed-safely");
 
 const lecturesDir = path.join(__dirname, "../../docs/cs229_lectures");

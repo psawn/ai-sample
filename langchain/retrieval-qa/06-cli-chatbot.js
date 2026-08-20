@@ -1,3 +1,4 @@
+require("../_polyfill");
 require("dotenv").config();
 const readline = require("readline");
 const path = require("path");
@@ -7,7 +8,7 @@ const {
   GoogleGenerativeAIEmbeddings,
   ChatGoogleGenerativeAI,
 } = require("@langchain/google-genai");
-const { MemoryVectorStore } = require("langchain/vectorstores/memory");
+const { MemoryVectorStore } = require("@langchain/classic/vectorstores/memory");
 const {
   ChatPromptTemplate,
   MessagesPlaceholder,
@@ -15,7 +16,7 @@ const {
 const { StringOutputParser } = require("@langchain/core/output_parsers");
 const {
   createStuffDocumentsChain,
-} = require("langchain/chains/combine_documents");
+} = require("@langchain/classic/chains/combine_documents");
 const { HumanMessage, AIMessage } = require("@langchain/core/messages");
 
 // Chatbot hỏi đáp trên 1 file PDF cố định, chạy thẳng trên terminal (không có UI):
