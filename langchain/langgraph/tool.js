@@ -1,12 +1,6 @@
-// Search Tool - dùng cho Agent trong bài học này.
-//
-// Gọi thẳng Wikipedia API (MediaWiki), MIỄN PHÍ, KHÔNG cần đăng ký API key. Đây là search
-// THẬT (không phải mock), phù hợp cho các câu hỏi kiến thức tổng quát như trong bài học.
-//
-// Lưu ý: Wikipedia không có dữ liệu thời gian thực (thời tiết, tin tức mới nhất) - nếu cần
-// tra cứu loại đó, cân nhắc dùng TavilySearchResults (cần TAVILY_API_KEY, xem
-// "@langchain/community/tools/tavily_search") - thay thế trực tiếp cho tool ở file này vì
-// cùng interface Tool.
+// Search Tool: Tìm kiếm dữ liệu thật từ Wikipedia API (MediaWiki) - Miễn phí, không cần API Key.
+// Gợi ý: Nếu cần dữ liệu thời gian thực (thời tiết, tin tức), có thể thay thế bằng TavilySearchResults.
+
 require("../_polyfill");
 
 const { z } = require("zod");
@@ -14,7 +8,7 @@ const { tool } = require("@langchain/core/tools");
 
 const WIKI_API = "https://en.wikipedia.org/w/api.php";
 
-// Bước 1: tìm tối đa 3 tiêu đề trang liên quan tới query.
+// 1. Tìm tối đa 3 tiêu đề trang liên quan nhất tới từ khóa (query)
 async function searchTitles(query) {
   const params = new URLSearchParams({
     action: "query",
@@ -31,7 +25,7 @@ async function searchTitles(query) {
   return data.query.search.map((item) => item.title);
 }
 
-// Bước 2: lấy đoạn tóm tắt (intro, không có markup) của 1 trang theo tiêu đề.
+// 2. Lấy nội dung tóm tắt (dạng plain text, bỏ markup HTML) của trang theo tiêu đề
 async function getPageSummary(title) {
   const params = new URLSearchParams({
     action: "query",
@@ -47,16 +41,12 @@ async function getPageSummary(title) {
   }
   const data = await response.json();
   const pages = data.query.pages;
-  // API trả về object keyed theo pageId, không biết trước key nên lấy giá trị đầu tiên.
+  // API trả về Object có key là pageId ngẫu nhiên -> Dùng Object.values để lấy phần tử đầu tiên
   return Object.values(pages)[0]?.extract ?? "";
 }
 
-// Hàm thực thi thật của Tool - đây là nơi mọi việc thật sự xảy ra (gọi API, tổng hợp kết quả).
-//
-// Bọc try/catch quanh toàn bộ hàm: nếu Wikipedia lỗi tạm thời (vd rate limit "429 Too Many
-// Requests"), trả về 1 câu message thay vì để lỗi văng ra ngoài làm crash cả chương trình -
-// để Agent tự đọc message này và quyết định (nên trả lời bằng kiến thức có sẵn thay vì thử
-// lại), giống cách 1 Tool bình thường báo lỗi cho model chứ không phải throw.
+// 3. Hàm xử lý chính: Tìm các trang liên quan và tổng hợp lại tóm tắt.
+//    Bọc try/catch để bắt lỗi kết nối (nếu có) -> Báo lỗi cho Model xử lý thay vì làm crash ứng dụng.
 async function searchWikipedia(query) {
   try {
     const titles = await searchTitles(query);
@@ -71,12 +61,12 @@ async function searchWikipedia(query) {
       ? "No good Wikipedia Search Result was found"
       : summaries.join("\n\n");
   } catch (error) {
+    // Trả về thông báo để Model tự trả lời bằng kiến thức có sẵn thay vì thử lại
     return `Wikipedia search failed (${error.message}). Do not retry - answer using your general knowledge instead.`;
   }
 }
 
-// tool(): bọc searchWikipedia thành 1 Tool chuẩn LangChain, để llm.bindTools() gắn được
-// vào model.
+// 4. Bọc hàm searchWikipedia thành Tool chuẩn LangChain để gộp được vào `model.bindTools()`
 const webSearch = tool(searchWikipedia, {
   name: "web_search",
   description: "Search Wikipedia and get page summaries.",
