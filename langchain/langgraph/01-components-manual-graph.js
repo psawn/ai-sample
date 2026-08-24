@@ -1,9 +1,12 @@
-// Lesson 2: LangGraph Components - bản DỰNG GRAPH BẰNG TAY (StateGraph)
-//
-// Chạy Agent ở agent.js với 3 câu hỏi từ đơn giản (1 tool call) tới phức tạp (nhiều tool
-// call nối tiếp). File này cho thấy RÕ bên trong Agent có gì (Node "llm", Node "action",
-// rẽ nhánh dựa vào tool_calls) - tốt để HỌC cơ chế. Viết nhanh cho việc thật thì xem
-// 02-create-agent.js.
+// LangGraph Components - bản DỰNG GRAPH BẰNG TAY (StateGraph)
+// Mục tiêu:
+//   - Dựng Graph thủ công (StateGraph, addNode, addConditionalEdges) để thấy rõ bên trong
+//     Agent hoạt động thế nào - tốt cho việc HỌC cơ chế.
+//   - Chạy thử Agent ở agent.js với câu hỏi từ đơn giản (1 tool call) tới phức tạp (nhiều
+//     tool call nối tiếp).
+// Lưu ý:
+//   Viết nhanh cho việc thật thì xem bản createAgent ở 01-components-create-agent.js.
+
 require("../_polyfill");
 require("dotenv").config();
 
@@ -15,8 +18,7 @@ const { webSearch } = require("./tool");
 const prompt = `You are a smart research assistant. Use the search engine to look up information. \
 You are allowed to make multiple calls (either together or in sequence). \
 Only look up information when you are sure of what you want. \
-If you need to look up some information before asking a follow up question, you are allowed to do that!
-`;
+If you need to look up some information before asking a follow up question, you are allowed to do that!`;
 
 // In câu trả lời cuối cùng, cách biệt hẳn với log của các Node bên trên cho dễ nhận ra
 // đâu là kết quả, đâu là log debug.
@@ -24,9 +26,9 @@ function printAnswer(result) {
   console.log(`\n>>> KẾT QUẢ CUỐI: ${result.messages.at(-1).content}\n`);
 }
 
+// In sơ đồ graph dạng Mermaid text - dán đoạn text này vào https://mermaid.live để xem
+// hình trực quan (node nào nối node nào, rẽ nhánh ở đâu).
 async function printGraph(agent) {
-  // In sơ đồ graph dạng Mermaid text - dán đoạn text này vào https://mermaid.live để xem
-  // hình trực quan (node nào nối node nào, rẽ nhánh ở đâu).
   const mermaid = await agent.graph.getGraph().drawMermaid();
   console.log(
     "\n----- Sơ đồ Graph (dán vào https://mermaid.live để xem) -----",
@@ -77,9 +79,9 @@ async function main() {
   // console.log(
   //   "\n========== Câu 4: nhiều bước suy luận nối tiếp nhau ==========",
   // );
-  // const query = `Who won the super bowl in 2024? 
-  // In what state is the winning team headquarters located? 
-  // What is the GDP of that state? 
+  // const query = `Who won the super bowl in 2024?
+  // In what state is the winning team headquarters located?
+  // What is the GDP of that state?
   // Answer each question.`;
   // const result4 = await abot.graph.invoke({
   //   messages: [new HumanMessage(query)],
