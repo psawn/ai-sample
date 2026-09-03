@@ -8,7 +8,8 @@ const { StateGraph, END, MessagesAnnotation } = require("@langchain/langgraph");
 const { SystemMessage, ToolMessage } = require("@langchain/core/messages");
 
 // State là "bộ nhớ chung" chảy xuyên suốt qua các Node.
-// MessagesAnnotation là 1 State dựng sẵn của LangGraph, có đúng 1 field "messages" với cơ chế tự nối thêm (append) mỗi khi 1 Node trả về messages mới.
+// MessagesAnnotation là 1 State dựng sẵn của LangGraph, có đúng 1 field "messages" với cơ
+// chế tự nối thêm (append) mỗi khi 1 Node trả về messages mới.
 // Mọi Node khi return { messages: [...] } sẽ tự động được gộp vào mảng messages chung.
 const AgentState = MessagesAnnotation;
 
@@ -55,7 +56,8 @@ class Agent {
     // 2. ĐIỂM BẮT ĐẦU: Khi bắt đầu chạy (.invoke()), Graph luôn vào Node "llm" đầu tiên.
     graph.addEdge("__start__", "llm");
 
-    // 3. RẼ NHÁNH DỰA TRÊN ĐIỀU KIỆN: Chạy xong "llm", gọi hàm existsAction(state) kiểm tra model có yêu cầu gọi Tool không:
+    // 3. RẼ NHÁNH DỰA TRÊN ĐIỀU KIỆN: Chạy xong "llm", gọi hàm existsAction(state) kiểm tra
+    //    model có yêu cầu gọi Tool không:
     //    - Trả về "true"  -> Chuyển sang Node "action" để chạy Tool.
     //    - Trả về "false" -> Đi tới END -> kết thúc Graph và trả về kết quả cuối cùng.
     // Key "true"/"false" ở đây thực chất là STRING (key object JS luôn tự ép thành string,

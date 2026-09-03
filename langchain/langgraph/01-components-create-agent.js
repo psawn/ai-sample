@@ -15,7 +15,8 @@ const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { webSearch } = require("./tool");
 
 // In ra tin nhắn cuối cùng (câu trả lời từ Model).
-// Lưu ý: createAgent đã ẩn toàn bộ log trung gian của từng Node (không xem được từng bước gọi tool như ở file 01).
+// Lưu ý: createAgent đã ẩn toàn bộ log trung gian của từng Node - không xem được từng
+// bước gọi tool như ở 01-components-manual-graph.js.
 function printAnswer(result) {
   console.log(`\n>>> KẾT QUẢ CUỐI: ${result.messages.at(-1).content}\n`);
 }
