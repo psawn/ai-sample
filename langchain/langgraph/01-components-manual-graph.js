@@ -44,6 +44,7 @@ async function main() {
   });
   const abot = new Agent(llm, [webSearch], prompt);
 
+  // Debug: bật dòng dưới nếu muốn xem sơ đồ Graph dạng Mermaid trước khi chạy.
   // await printGraph(abot);
 
   console.log(
@@ -66,6 +67,7 @@ async function main() {
   });
   printAnswer(result2);
 
+  // Câu 3 & 4 tạm tắt cho gọn - bật lại nếu muốn xem (đã bật sẵn ở bản createAgent).
   // console.log("\n========== Câu 3: nhiều tool call cùng lúc ==========");
   // const result3 = await abot.graph.invoke({
   //   messages: [

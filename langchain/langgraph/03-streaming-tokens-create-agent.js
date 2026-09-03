@@ -1,7 +1,7 @@
 // Persistence and Streaming - Phần 2: Streaming từng token (bản createAgent)
-//
-// Cùng bài toán streaming token như 03-streaming-tokens-manual-graph.js, nhưng dùng `createAgent`
-// (giống 02-persistence-create-agent.js) thay vì tự dựng StateGraph thủ công.
+// Mục tiêu:
+//   - Cùng bài toán streaming token như 03-streaming-tokens-manual-graph.js, nhưng dùng
+//     `createAgent` (giống 02-persistence-create-agent.js) thay vì tự dựng StateGraph.
 
 require("../_polyfill");
 require("dotenv").config();

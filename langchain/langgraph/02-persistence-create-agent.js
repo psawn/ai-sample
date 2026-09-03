@@ -52,38 +52,42 @@ async function main() {
   const thread2 = { configurable: { thread_id: "2" } };
 
   console.log("\n========== Thread 1 - Lượt 1: Hỏi thời tiết SF ==========");
-  for await (const event of await agent.stream(
+  const events1 = await agent.stream(
     { messages: [{ role: "user", content: "What is the weather in sf?" }] },
     thread1,
-  )) {
+  );
+  for await (const event of events1) {
     printStepEvent(event);
   }
 
   console.log("\n========== Thread 1 - Lượt 2: Hỏi tiếp về LA (vẫn thread 1) ==========");
-  for await (const event of await agent.stream(
+  const events2 = await agent.stream(
     { messages: [{ role: "user", content: "What about in la?" }] },
     thread1,
-  )) {
+  );
+  for await (const event of events2) {
     printStepEvent(event);
   }
 
   console.log(
     "\n========== Thread 1 - Lượt 3: 'Cái nào ấm hơn?' -> Agent tự nhớ SF & LA nhờ checkpointer ==========",
   );
-  for await (const event of await agent.stream(
+  const events3 = await agent.stream(
     { messages: [{ role: "user", content: "Which one is warmer?" }] },
     thread1,
-  )) {
+  );
+  for await (const event of events3) {
     printStepEvent(event);
   }
 
   console.log(
     "\n========== Thread 2 - Hỏi lại y hệt câu trên nhưng khác thread_id -> KHÔNG có ngữ cảnh cũ ==========",
   );
-  for await (const event of await agent.stream(
+  const events4 = await agent.stream(
     { messages: [{ role: "user", content: "Which one is warmer?" }] },
     thread2,
-  )) {
+  );
+  for await (const event of events4) {
     printStepEvent(event);
   }
 }

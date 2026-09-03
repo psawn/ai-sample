@@ -1,11 +1,11 @@
 // Persistence and Streaming - Phần 2: Streaming từng token của Model
 // Mục tiêu:
-//   - .stream(): stream output/state theo từng bước của Graph.
-//   - .streamEvents(): stream các event chi tiết hơn trong quá trình Agent chạy.
-//   - on_chat_model_stream: bắt được từng chunk khi LLM đang generate câu trả lời.
+//   - .stream(): trả kết quả sau MỖI Node chạy xong.
+//   - .streamEvents(): trả event chi tiết hơn, kể cả lúc Model đang sinh từng chữ.
+//   - "on_chat_model_stream": bắt được từng chunk (mẩu chữ nhỏ) ngay khi Model sinh ra nó.
 // Lưu ý:
-//   Khi Agent đang gọi Tool, thường không có text để stream.
-//   Token/chunk xuất hiện khi LLM bắt đầu generate câu trả lời dạng text.
+//   Khi Agent đang gọi Tool thì chưa có chữ nào để stream. Chunk chỉ xuất hiện khi Model
+//   bắt đầu sinh câu trả lời dạng chữ.
 
 require("../_polyfill");
 require("dotenv").config();
