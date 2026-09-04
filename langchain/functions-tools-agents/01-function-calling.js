@@ -43,12 +43,7 @@ function getCurrentWeather(location, unit = "fahrenheit") {
 // Lưu ý: LLM chỉ đọc mô tả này để quyết định xem "có nên gọi hàm không"
 // và "truyền tham số gì", việc thực thi thực tế vẫn do code đảm nhiệm
 // Note: nếu muốn code an toàn (vừa mô tả cho AI, vừa validate kiểu dữ liệu),
-// có thể dùng Zod + `zodToJsonSchema` (xem agents/03-custom-tool-tool-calling.js). VD
-//   const weatherSchema = z.object({
-//     location: z.string().describe("The city and state, e.g. San Francisco, CA"),
-//     unit: z.enum(["celsius", "fahrenheit"]).optional(),
-//   });
-//   const parameters = zodToJsonSchema(weatherSchema);
+// có thể dùng Zod + `zodToJsonSchema` (xem agents/03-custom-tool-tool-calling.js).
 const tools = [
   {
     type: "function",
@@ -141,11 +136,19 @@ async function fullRoundTrip() {
   try {
     // Bước 4: gọi lại LLM kèm lịch sử hội thoại (có cả ToolMessage) để nó
     // tổng hợp thành câu trả lời cuối cùng bằng ngôn ngữ tự nhiên.
-    // Lưu ý: gemini-3.5-flash yêu cầu mỗi function call trong lịch sử hội
-    // thoại phải kèm "thought_signature", nhưng bản @langchain/google-genai
-    // đang dùng chưa giữ lại field này khi build lại request (lỗi tương tự
-    // cũng gặp ở agents/03-custom-tool-tool-calling.js) - nên bước gọi lại
-    // LLM lần 2 có thể lỗi 400 dù logic round-trip là đúng.
+    //
+    // Có thể gặp lỗi 400 "missing thought_signature" ở đây:
+    // - thought_signature là 1 token Gemini gắn vào mỗi lần model gọi tool,
+    //   đại diện cho suy luận nội bộ dẫn tới lần gọi đó. Lượt hỏi tiếp theo
+    //   phải gửi lại đúng token này kèm function call cũ, thiếu là bị chặn.
+    // - Vì sao lỗi: @langchain/google-genai (bản đang dùng) build lại
+    //   request chỉ từ name + args của tool_calls, không giữ thought_signature
+    //   -> lỗi thư viện, không phải lỗi logic round-trip ở đây (gặp tương tự
+    //   ở agents/03-custom-tool-tool-calling.js).
+    // - Cách né: đổi sang model không yêu cầu field này (vd gemini-2.5-flash),
+    //   hoặc dùng thẳng SDK @google/generative-ai thay vì LangChain cho đoạn
+    //   round-trip này (xem gemini/chat-bot-with-tool.js - không dính lỗi vì
+    //   giữ nguyên content gốc thay vì dựng lại tool_calls).
     const finalResponse = await model.invoke(messages);
     console.log("Câu trả lời cuối cùng:", finalResponse.content);
   } catch (error) {
