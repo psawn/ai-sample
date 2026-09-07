@@ -1,0 +1,489 @@
+[
+  {
+    "id": 1,
+    "title": "Inception",
+    "genres": ["Sci-Fi", "Action", "Thriller"],
+    "description": "A skilled thief enters people's dreams and must plant an idea inside a target's mind."
+  },
+  {
+    "id": 2,
+    "title": "Interstellar",
+    "genres": ["Sci-Fi", "Drama", "Adventure"],
+    "description": "Astronauts travel through a wormhole to search for a new home for humanity as Earth becomes uninhabitable."
+  },
+  {
+    "id": 3,
+    "title": "The Matrix",
+    "genres": ["Sci-Fi", "Action"],
+    "description": "A hacker discovers that reality is a simulation and joins a rebellion against intelligent machines."
+  },
+  {
+    "id": 4,
+    "title": "The Martian",
+    "genres": ["Sci-Fi", "Drama", "Adventure"],
+    "description": "An astronaut stranded alone on Mars uses science and engineering to survive while NASA works to bring him home."
+  },
+  {
+    "id": 5,
+    "title": "Gravity",
+    "genres": ["Sci-Fi", "Thriller", "Drama"],
+    "description": "Two astronauts struggle to survive after a disaster leaves them stranded in orbit around Earth."
+  },
+  {
+    "id": 6,
+    "title": "Arrival",
+    "genres": ["Sci-Fi", "Drama", "Mystery"],
+    "description": "A linguist works to communicate with mysterious alien visitors while humanity struggles to understand their intentions."
+  },
+  {
+    "id": 7,
+    "title": "Blade Runner 2049",
+    "genres": ["Sci-Fi", "Drama", "Mystery"],
+    "description": "A futuristic detective uncovers a secret that could transform the relationship between humans and artificial beings."
+  },
+  {
+    "id": 8,
+    "title": "Dune",
+    "genres": ["Sci-Fi", "Adventure", "Drama"],
+    "description": "A young nobleman becomes involved in a struggle for control of a desert planet and its valuable resources."
+  },
+  {
+    "id": 9,
+    "title": "Mad Max: Fury Road",
+    "genres": ["Action", "Adventure", "Sci-Fi"],
+    "description": "A group of rebels escapes across a brutal desert wasteland while being pursued by a tyrannical warlord."
+  },
+  {
+    "id": 10,
+    "title": "John Wick",
+    "genres": ["Action", "Thriller", "Crime"],
+    "description": "A retired assassin returns to the criminal underworld after an attack forces him to seek revenge."
+  },
+
+  {
+    "id": 11,
+    "title": "The Dark Knight",
+    "genres": ["Action", "Crime", "Drama"],
+    "description": "A masked hero faces a chaotic criminal mastermind who pushes Gotham into a moral crisis."
+  },
+  {
+    "id": 12,
+    "title": "Gladiator",
+    "genres": ["Action", "Drama", "Adventure"],
+    "description": "A betrayed Roman general becomes a gladiator and fights for revenge against the emperor who destroyed his life."
+  },
+  {
+    "id": 13,
+    "title": "Braveheart",
+    "genres": ["Action", "Drama", "History"],
+    "description": "A Scottish warrior leads a rebellion against English rule after personal tragedy changes his life."
+  },
+  {
+    "id": 14,
+    "title": "The Lord of the Rings: The Fellowship of the Ring",
+    "genres": ["Fantasy", "Adventure", "Drama"],
+    "description": "A young hobbit begins a dangerous journey to destroy a powerful ring before its evil owner can reclaim it."
+  },
+  {
+    "id": 15,
+    "title": "Harry Potter and the Sorcerer's Stone",
+    "genres": ["Fantasy", "Adventure", "Family"],
+    "description": "A young orphan discovers that he is a wizard and begins his first year at a magical school."
+  },
+  {
+    "id": 16,
+    "title": "Pirates of the Caribbean: The Curse of the Black Pearl",
+    "genres": ["Adventure", "Fantasy", "Action"],
+    "description": "A pirate captain and a young blacksmith join forces to rescue a kidnapped woman from cursed pirates."
+  },
+  {
+    "id": 17,
+    "title": "Jurassic Park",
+    "genres": ["Adventure", "Sci-Fi", "Thriller"],
+    "description": "Scientists visit an island where genetically engineered dinosaurs escape and threaten everyone in the park."
+  },
+  {
+    "id": 18,
+    "title": "Indiana Jones and the Raiders of the Lost Ark",
+    "genres": ["Adventure", "Action"],
+    "description": "An archaeologist races against the Nazis to find a legendary religious artifact."
+  },
+  {
+    "id": 19,
+    "title": "Avatar",
+    "genres": ["Sci-Fi", "Adventure", "Fantasy"],
+    "description": "A former soldier enters an alien world and becomes caught between a human corporation and the native population."
+  },
+  {
+    "id": 20,
+    "title": "Star Wars: A New Hope",
+    "genres": ["Sci-Fi", "Adventure", "Action"],
+    "description": "A young farm boy joins a rebellion against an evil empire and helps rescue a captured princess."
+  },
+
+  {
+    "id": 21,
+    "title": "The Shawshank Redemption",
+    "genres": ["Drama"],
+    "description": "A banker sentenced to prison builds an unlikely friendship and quietly maintains hope for freedom."
+  },
+  {
+    "id": 22,
+    "title": "Forrest Gump",
+    "genres": ["Drama", "Romance"],
+    "description": "A kind-hearted man experiences major moments in American history while remaining devoted to the woman he loves."
+  },
+  {
+    "id": 23,
+    "title": "The Green Mile",
+    "genres": ["Drama", "Fantasy", "Crime"],
+    "description": "A prison guard develops a deep connection with a mysterious inmate who appears to possess supernatural abilities."
+  },
+  {
+    "id": 24,
+    "title": "A Beautiful Mind",
+    "genres": ["Drama", "Biography"],
+    "description": "A brilliant mathematician struggles with a difficult mental illness while pursuing his work and relationships."
+  },
+  {
+    "id": 25,
+    "title": "Whiplash",
+    "genres": ["Drama", "Music"],
+    "description": "An ambitious young drummer pushes himself to become great under an abusive and demanding music teacher."
+  },
+  {
+    "id": 26,
+    "title": "Good Will Hunting",
+    "genres": ["Drama", "Romance"],
+    "description": "A troubled young janitor with extraordinary mathematical talent begins therapy and learns to confront his past."
+  },
+  {
+    "id": 27,
+    "title": "The Pursuit of Happyness",
+    "genres": ["Drama", "Biography"],
+    "description": "A struggling father works through poverty and hardship while trying to build a better life for his young son."
+  },
+  {
+    "id": 28,
+    "title": "Dead Poets Society",
+    "genres": ["Drama", "Comedy"],
+    "description": "An unconventional teacher inspires students at a strict school to think independently and pursue meaningful lives."
+  },
+  {
+    "id": 29,
+    "title": "The Social Network",
+    "genres": ["Drama", "Biography"],
+    "description": "The creation of a major social networking company leads to ambition, conflict, lawsuits, and broken friendships."
+  },
+  {
+    "id": 30,
+    "title": "Oppenheimer",
+    "genres": ["Drama", "Biography", "History"],
+    "description": "A brilliant physicist leads a secret wartime project to develop the first atomic bomb and later faces political scrutiny."
+  },
+
+  {
+    "id": 31,
+    "title": "The Godfather",
+    "genres": ["Crime", "Drama"],
+    "description": "The son of a powerful crime family becomes increasingly involved in the family's violent business."
+  },
+  {
+    "id": 32,
+    "title": "Pulp Fiction",
+    "genres": ["Crime", "Drama", "Thriller"],
+    "description": "Several interconnected stories follow criminals, hitmen, and unexpected encounters in Los Angeles."
+  },
+  {
+    "id": 33,
+    "title": "Se7en",
+    "genres": ["Crime", "Thriller", "Mystery"],
+    "description": "Two detectives hunt a serial killer whose murders are based on the seven deadly sins."
+  },
+  {
+    "id": 34,
+    "title": "Zodiac",
+    "genres": ["Crime", "Mystery", "Thriller"],
+    "description": "Investigators and journalists become obsessed with identifying a mysterious serial killer who terrorizes San Francisco."
+  },
+  {
+    "id": 35,
+    "title": "The Departed",
+    "genres": ["Crime", "Thriller", "Drama"],
+    "description": "An undercover police officer infiltrates a criminal organization while a criminal secretly works inside the police department."
+  },
+  {
+    "id": 36,
+    "title": "Gone Girl",
+    "genres": ["Mystery", "Thriller", "Drama"],
+    "description": "A man's wife disappears, turning their troubled marriage into a media sensation and a complicated mystery."
+  },
+  {
+    "id": 37,
+    "title": "Prisoners",
+    "genres": ["Crime", "Mystery", "Thriller"],
+    "description": "A desperate father takes matters into his own hands when his young daughter disappears."
+  },
+  {
+    "id": 38,
+    "title": "Shutter Island",
+    "genres": ["Mystery", "Thriller", "Drama"],
+    "description": "A federal marshal investigates a disappearance at an isolated psychiatric hospital and begins questioning reality."
+  },
+  {
+    "id": 39,
+    "title": "The Silence of the Lambs",
+    "genres": ["Crime", "Thriller", "Mystery"],
+    "description": "A young FBI trainee seeks help from an imprisoned serial killer to catch another dangerous murderer."
+  },
+  {
+    "id": 40,
+    "title": "Knives Out",
+    "genres": ["Mystery", "Comedy", "Crime"],
+    "description": "A detective investigates the suspicious death of a wealthy novelist surrounded by his dysfunctional family."
+  },
+
+  {
+    "id": 41,
+    "title": "The Hangover",
+    "genres": ["Comedy"],
+    "description": "Three friends wake up after a wild bachelor party in Las Vegas and try to reconstruct what happened."
+  },
+  {
+    "id": 42,
+    "title": "Superbad",
+    "genres": ["Comedy"],
+    "description": "Two high school friends attempt to attend a party and make the most of their final days before graduation."
+  },
+  {
+    "id": 43,
+    "title": "Groundhog Day",
+    "genres": ["Comedy", "Romance", "Fantasy"],
+    "description": "A cynical weatherman becomes trapped reliving the same day and slowly changes his outlook on life."
+  },
+  {
+    "id": 44,
+    "title": "The Grand Budapest Hotel",
+    "genres": ["Comedy", "Adventure"],
+    "description": "A hotel concierge and his young protégé become involved in a chaotic inheritance dispute in a fictional European country."
+  },
+  {
+    "id": 45,
+    "title": "Back to the Future",
+    "genres": ["Comedy", "Sci-Fi", "Adventure"],
+    "description": "A teenager accidentally travels back in time and must make sure his parents meet before he can return home."
+  },
+  {
+    "id": 46,
+    "title": "Toy Story",
+    "genres": ["Animation", "Comedy", "Adventure"],
+    "description": "Toys secretly come to life and an old favorite struggles to accept a new high-tech toy."
+  },
+  {
+    "id": 47,
+    "title": "Ratatouille",
+    "genres": ["Animation", "Comedy", "Family"],
+    "description": "A talented rat dreams of becoming a chef and secretly helps a young kitchen worker succeed in a Paris restaurant."
+  },
+  {
+    "id": 48,
+    "title": "WALL-E",
+    "genres": ["Animation", "Sci-Fi", "Romance"],
+    "description": "A lonely robot cleaning an abandoned Earth discovers another robot and follows her into space."
+  },
+  {
+    "id": 49,
+    "title": "Up",
+    "genres": ["Animation", "Adventure", "Drama"],
+    "description": "An elderly widower attaches balloons to his house and unexpectedly travels to a mysterious wilderness with a young scout."
+  },
+  {
+    "id": 50,
+    "title": "Coco",
+    "genres": ["Animation", "Fantasy", "Drama"],
+    "description": "A young boy enters the Land of the Dead and discovers his family's history while pursuing his dream of music."
+  },
+
+  {
+    "id": 51,
+    "title": "The Notebook",
+    "genres": ["Romance", "Drama"],
+    "description": "Two young lovers from different social backgrounds struggle to stay together as life pulls them apart."
+  },
+  {
+    "id": 52,
+    "title": "La La Land",
+    "genres": ["Romance", "Drama", "Music"],
+    "description": "A musician and an aspiring actress fall in love while pursuing their dreams in Los Angeles."
+  },
+  {
+    "id": 53,
+    "title": "Before Sunrise",
+    "genres": ["Romance", "Drama"],
+    "description": "Two strangers meet on a train and spend one night walking through Vienna while talking about life and love."
+  },
+  {
+    "id": 54,
+    "title": "Eternal Sunshine of the Spotless Mind",
+    "genres": ["Romance", "Sci-Fi", "Drama"],
+    "description": "A couple undergoes a procedure to erase memories of their relationship but discovers that love remains difficult to forget."
+  },
+  {
+    "id": 55,
+    "title": "Her",
+    "genres": ["Romance", "Sci-Fi", "Drama"],
+    "description": "A lonely writer develops an intimate relationship with an advanced artificial intelligence operating system."
+  },
+  {
+    "id": 56,
+    "title": "500 Days of Summer",
+    "genres": ["Romance", "Comedy", "Drama"],
+    "description": "A young man reflects on a complicated relationship and tries to understand why it ended."
+  },
+  {
+    "id": 57,
+    "title": "Titanic",
+    "genres": ["Romance", "Drama"],
+    "description": "A young couple from different social classes fall in love aboard a famous ocean liner facing disaster."
+  },
+  {
+    "id": 58,
+    "title": "About Time",
+    "genres": ["Romance", "Comedy", "Fantasy"],
+    "description": "A young man discovers he can travel through time and uses the ability to improve his relationships and appreciate ordinary life."
+  },
+  {
+    "id": 59,
+    "title": "Crazy Rich Asians",
+    "genres": ["Romance", "Comedy"],
+    "description": "A young woman travels to Singapore with her boyfriend and discovers his extremely wealthy family and complicated social world."
+  },
+  {
+    "id": 60,
+    "title": "Pride & Prejudice",
+    "genres": ["Romance", "Drama"],
+    "description": "A strong-willed young woman gradually falls in love with a wealthy and initially arrogant gentleman."
+  },
+
+  {
+    "id": 61,
+    "title": "The Conjuring",
+    "genres": ["Horror", "Mystery", "Thriller"],
+    "description": "Paranormal investigators help a family whose isolated farmhouse appears to be haunted by a dangerous supernatural presence."
+  },
+  {
+    "id": 62,
+    "title": "Get Out",
+    "genres": ["Horror", "Mystery", "Thriller"],
+    "description": "A young man visits his girlfriend's family and discovers disturbing secrets hidden beneath their polite behavior."
+  },
+  {
+    "id": 63,
+    "title": "A Quiet Place",
+    "genres": ["Horror", "Sci-Fi", "Thriller"],
+    "description": "A family struggles to survive in a world where mysterious creatures hunt anything that makes a sound."
+  },
+  {
+    "id": 64,
+    "title": "The Exorcist",
+    "genres": ["Horror", "Drama"],
+    "description": "A mother seeks help after her young daughter begins displaying terrifying supernatural behavior."
+  },
+  {
+    "id": 65,
+    "title": "Hereditary",
+    "genres": ["Horror", "Drama", "Mystery"],
+    "description": "A grieving family begins experiencing disturbing supernatural events after the death of their secretive grandmother."
+  },
+  {
+    "id": 66,
+    "title": "The Shining",
+    "genres": ["Horror", "Thriller", "Drama"],
+    "description": "A writer and his family become isolated in a remote hotel where supernatural forces slowly drive him toward violence."
+  },
+  {
+    "id": 67,
+    "title": "Alien",
+    "genres": ["Horror", "Sci-Fi", "Thriller"],
+    "description": "A spaceship crew encounters a deadly alien creature that hunts them one by one inside their vessel."
+  },
+  {
+    "id": 68,
+    "title": "The Thing",
+    "genres": ["Horror", "Sci-Fi", "Mystery"],
+    "description": "Researchers at an isolated Antarctic station face a shape-shifting alien capable of imitating any living creature."
+  },
+  {
+    "id": 69,
+    "title": "Scream",
+    "genres": ["Horror", "Mystery", "Thriller"],
+    "description": "A masked killer targets teenagers while a young woman and her friends try to uncover the killer's identity."
+  },
+  {
+    "id": 70,
+    "title": "Train to Busan",
+    "genres": ["Horror", "Action", "Thriller"],
+    "description": "Passengers on a high-speed train fight to survive a sudden zombie outbreak while traveling across South Korea."
+  },
+
+  {
+    "id": 71,
+    "title": "The Lion King",
+    "genres": ["Animation", "Drama", "Adventure"],
+    "description": "A young lion prince must overcome tragedy and reclaim his rightful place as king."
+  },
+  {
+    "id": 72,
+    "title": "Finding Nemo",
+    "genres": ["Animation", "Adventure", "Family"],
+    "description": "A cautious father crosses the ocean to find his captured son and learns to trust him along the way."
+  },
+  {
+    "id": 73,
+    "title": "Inside Out",
+    "genres": ["Animation", "Comedy", "Drama"],
+    "description": "The emotions inside a young girl's mind struggle to help her adapt after her family moves to a new city."
+  },
+  {
+    "id": 74,
+    "title": "How to Train Your Dragon",
+    "genres": ["Animation", "Fantasy", "Adventure"],
+    "description": "A young Viking befriends a wounded dragon and challenges his village's beliefs about dragons."
+  },
+  {
+    "id": 75,
+    "title": "The Incredibles",
+    "genres": ["Animation", "Action", "Comedy"],
+    "description": "A family of superheroes returns to action while trying to balance extraordinary abilities with ordinary family life."
+  },
+  {
+    "id": 76,
+    "title": "Spirited Away",
+    "genres": ["Animation", "Fantasy", "Adventure"],
+    "description": "A young girl enters a mysterious spirit world and must find a way to save her transformed parents."
+  },
+  {
+    "id": 77,
+    "title": "Princess Mononoke",
+    "genres": ["Animation", "Fantasy", "Adventure"],
+    "description": "A young warrior becomes caught between industrial humans and supernatural forest creatures fighting for survival."
+  },
+  {
+    "id": 78,
+    "title": "Your Name",
+    "genres": ["Animation", "Romance", "Fantasy"],
+    "description": "Two teenagers mysteriously begin switching bodies and develop a deep connection despite being separated by distance and time."
+  },
+  {
+    "id": 79,
+    "title": "The Wind Rises",
+    "genres": ["Animation", "Drama", "Romance"],
+    "description": "A talented aircraft designer pursues his dream of creating beautiful airplanes while living through a turbulent period in history."
+  },
+  {
+    "id": 80,
+    "title": "Grave of the Fireflies",
+    "genres": ["Animation", "Drama", "War"],
+    "description": "Two siblings struggle to survive alone during wartime after losing their home and family."
+  }
+]

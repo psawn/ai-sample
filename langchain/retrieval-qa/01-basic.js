@@ -89,7 +89,7 @@ async function main() {
   // thay vì class dựng sẵn.
   const qaChain = await createRetrievalChain({ retriever, combineDocsChain });
 
-  const question = "What are major topics for this class?";
+  const question = "Tóm tắt cho tôi cách gửi email để hỏi hỗ trợ về bài giảng Machine Learning.";
   const result = await qaChain.invoke({ input: question });
 
   console.log("Question:", question);
