@@ -12,6 +12,7 @@
     "@chroma-core/default-embed": "^0.1.5",
     "@chroma-core/google-gemini": "^0.1.5",
     "@google/generative-ai": "^0.24.1",
+    "@huggingface/inference": "^4.13.28",
     "@langchain/anthropic": "^1.5.6",
     "@langchain/classic": "^1.0.43",
     "@langchain/community": "^1.1.29",
