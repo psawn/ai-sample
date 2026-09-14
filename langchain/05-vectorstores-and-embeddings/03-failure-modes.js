@@ -47,7 +47,7 @@ async function main() {
 
   // === Vấn đề 1: chunk bị trùng lặp ===
   // Vì Lecture01 được load 2 lần, index có 2 vector giống hệt nhau cho cùng 1 đoạn văn
-  // -> tìm kiếm có thể trả về 2 chunk trùng nội dung, làm phí chỗ trong prompt gửi LLM.
+  // -> tìm kiếm có thể trả về 2 chunk trùng nội dung, làm tốn chỗ trong prompt gửi LLM.
   // Lấy top 10 thay vì chỉ 2 kết quả đầu, vì không chắc 2 bản trùng luôn xếp hạng liền kề.
   const question1 = "what did they say about matlab?";
   const results1 = await vectordb.similaritySearch(question1, 10);

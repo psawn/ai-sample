@@ -68,7 +68,7 @@ async function demoManual() {
  * Ví dụ thật: tool-routing/06-agent-executor.js, tool-routing/07-cli-chatbot.js.
  *
  * Khi nào dùng: Cần quản lý nhiều cuộc hội thoại song song (nhiều user, mỗi người 1
- * sessionId riêng) - không phải tự tay truyền đúng lịch sử ứng với đúng user mỗi lần gọi.
+ * sessionId riêng) - khỏi phải tự tay truyền đúng lịch sử ứng với từng user mỗi lần gọi.
  */
 async function demoAuto() {
   const chain = prompt.pipe(model).pipe(new StringOutputParser());

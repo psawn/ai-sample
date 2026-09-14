@@ -5,7 +5,7 @@
 //   - Chạy thử Agent ở agent.js với câu hỏi từ đơn giản (1 tool call) tới phức tạp (nhiều
 //     tool call nối tiếp).
 // Lưu ý:
-//   Viết nhanh cho việc thật thì xem bản createAgent ở 01-components-create-agent.js.
+//   Muốn code nhanh cho dự án thật (production) thì xem bản createAgent ở 01-components-create-agent.js.
 
 require("../_polyfill");
 require("dotenv").config();
@@ -20,7 +20,7 @@ You are allowed to make multiple calls (either together or in sequence). \
 Only look up information when you are sure of what you want. \
 If you need to look up some information before asking a follow up question, you are allowed to do that!`;
 
-// In câu trả lời cuối cùng, cách biệt hẳn với log của các Node bên trên cho dễ nhận ra
+// In câu trả lời cuối cùng, tách biệt rõ với log của các Node bên trên để dễ phân biệt
 // đâu là kết quả, đâu là log debug.
 function printAnswer(result) {
   console.log(`\n>>> KẾT QUẢ CUỐI: ${result.messages.at(-1).content}\n`);

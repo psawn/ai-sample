@@ -40,8 +40,8 @@ const extractionTool = zodToFunctionTool(
 // - "any": model bắt buộc phải gọi 1 trong các tool được truyền vào.
 // - "none": cấm model gọi bất kỳ tool nào.
 // - "<tên tool>" (như "Information" ở đây): ép model luôn gọi đúng tool đó.
-//   Đây chỉ là 1 chuỗi thường, phải gõ khớp tay với extractionTool.function.name
-//   Có thể dùng extractionTool.function.name để tránh gõ lệch
+//   Đây chỉ là 1 chuỗi thường nên phải gõ khớp tay với extractionTool.function.name -
+//   có thể dùng thẳng extractionTool.function.name thay vì gõ tay để tránh gõ lệch.
 const extractionModel = model.withConfig({
   tools: [extractionTool],
   tool_choice: "Information",

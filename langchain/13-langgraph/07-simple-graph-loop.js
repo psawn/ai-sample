@@ -91,7 +91,7 @@ async function demoStateHistoryAndSetup(graph, thread) {
 // Dùng để: debug bước bị lỗi, làm "undo", hoặc so sánh nhiều nhánh từ cùng 1 mốc (A/B test).
 async function demoTimeTravel(graph, states) {
   // Chọn một checkpoint cũ để thử chạy lại từ quá khứ.
-  // Ở ví dụ này checkpoint được chọn là sau lần đầu Node1 chạy.
+  // Ở đây, checkpoint được chọn là ngay sau lần đầu Node1 chạy.
   const early = states[states.length - 3];
   console.log(
     "\n-> Checkpoint được chọn để time-travel: count =",

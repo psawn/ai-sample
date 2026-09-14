@@ -4,7 +4,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const apiKey = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey);
 
-// 1. Mock Danh Sách Sản Phẩm
+// 1. Danh sách sản phẩm mẫu (mock)
 const PRODUCT_CATALOG = {
   "smartx pro phone": {
     category: "Smartphones",
@@ -51,7 +51,7 @@ const PRODUCT_CATALOG = {
   },
 };
 
-// Hàm gọi Gemini chuẩn theo cấu trúc của bạn
+// Hàm dùng chung để gọi Gemini API
 async function callGemini(prompt, systemInstruction = "") {
   try {
     const modelConfig = {
@@ -189,7 +189,7 @@ async function processUserMessage(userInput, allMessages = [], debug = true) {
   }
 }
 
-// Chạy thử nghiệm Demo
+// Chạy demo
 async function runDemo() {
   const userInput =
     "Can you recommend me a good computer for work? I want to buy a computer that is good for work, but I don't want to spend too much money. Can you recommend me a good computer for work that is also affordable?";

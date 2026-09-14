@@ -120,7 +120,7 @@ class Agent {
 
   // Gọi LLM với toàn bộ lịch sử messages hiện có.
   //
-  // Có thử gọi lại tối đa 3 lần nếu content rỗng - phòng khi có lỗi tạm thời (vd: mạng
+  // Thử gọi lại tối đa 3 lần nếu content rỗng - phòng khi có lỗi tạm thời (vd: mạng
   // chập chờn). Nguyên nhân chính gây content rỗng (thinking) đã tắt ở trên rồi, nên bình
   // thường sẽ thành công ngay từ lần gọi đầu tiên.
   async execute() {

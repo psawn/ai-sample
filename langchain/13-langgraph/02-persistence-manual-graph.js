@@ -25,7 +25,7 @@ Only look up information when you are sure of what you want. \
 If you need to look up some information before asking a follow up question, you are allowed to do that!`;
 
 // In gọn từng bước stream: tên Node vừa chạy xong + nội dung message mới nhất.
-// stepCount dùng để đánh số + đánh dấu rõ ràng điểm BẮT ĐẦU của mỗi step khi stream chạy.
+// stepCount dùng để đánh số thứ tự, giúp thấy rõ điểm BẮT ĐẦU của mỗi step khi stream chạy.
 let stepCount = 0;
 function printStepEvent(event) {
   stepCount += 1;

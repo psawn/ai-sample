@@ -19,11 +19,11 @@ const triageRules = {
     "Direct questions from team members, meeting requests, critical bug reports",
 };
 
-// Cố tình để chỉ dẫn chung chung để thấy agent có thể dùng Tool quá tay.
-// Với questionEmail, agent có thể tự gọi schedule_meeting dù câu hỏi có thể
-// trả lời trực tiếp qua email. Đây không phải lỗi code mà do prompt chưa đủ ràng buộc.
+// Cố tình viết instructions mơ hồ để minh hoạ agent có thể lạm dụng Tool.
+// Với questionEmail, agent có thể tự gọi schedule_meeting dù câu hỏi trả lời được
+// ngay qua email - đây là hạn chế của prompt, không phải lỗi code.
 //
-// Muốn agent ưu tiên trả lời email, cần thêm rule rõ ràng, ví dụ:
+// Muốn agent ưu tiên trả lời qua email, cần thêm rule rõ ràng, ví dụ:
 // "Prefer answering directly via write_email; only use schedule_meeting when the
 // sender explicitly asks for a meeting or the issue cannot be resolved by email alone."
 const agentInstructions =

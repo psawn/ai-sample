@@ -28,8 +28,8 @@ const model = new ChatGoogleGenerativeAI({
   temperature: 0,
 });
 
-// Hàm giả lập lấy thời tiết - trong thực tế đây có thể là API backend/API
-// bên thứ 3. LLM không tự chạy được hàm này, nó chỉ chọn "nên gọi hàm nào,
+// Hàm giả lập lấy thời tiết - trong thực tế đây có thể là API backend hoặc
+// API bên thứ 3. LLM không tự chạy được hàm này, nó chỉ chọn "nên gọi hàm nào,
 // tham số gì", việc thực thi thật sự vẫn do code JS đảm nhiệm.
 function getCurrentWeather(location, unit = "fahrenheit") {
   return JSON.stringify({

@@ -101,6 +101,8 @@ const EmailAgentState = Annotation.Root({
 //   - update: cập nhật State theo reducer của từng field.
 //   - resume: cung cấp giá trị để tiếp tục Graph tại chỗ interrupt() đang tạm dừng.
 async function triageRouterNode(state) {
+  console.log("\n📍 Node: triage_router - đang phân loại email...");
+
   const { author, to, subject, emailThread } = state.emailInput;
 
   const systemPrompt = buildTriageSystemPrompt({
@@ -123,6 +125,8 @@ async function triageRouterNode(state) {
     { role: "system", content: systemPrompt },
     { role: "user", content: userPrompt },
   ]);
+
+  console.log(`🧠 Reasoning: ${result.reasoning}`);
 
   if (result.classification === "respond") {
     console.log("📧 Classification: RESPOND - This email requires a response");
@@ -153,6 +157,8 @@ async function triageRouterNode(state) {
 
 // Node "response_agent": chuyển tiếp messages hiện tại cho Agent có Tool ở bước 2 xử lý.
 async function responseAgentNode(state) {
+  console.log("\n📍 Node: response_agent - đang gọi Agent xử lý (tool call)...");
+
   const result = await responseAgent.invoke({ messages: state.messages });
   return { messages: result.messages };
 }

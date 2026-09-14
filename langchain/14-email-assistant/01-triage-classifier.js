@@ -57,7 +57,18 @@ async function runTriage(emailInput) {
   ]);
 
   console.log(`\n========== Email: "${subject}" ==========`);
-  console.log(result);
+
+  console.log(`🧠 Reasoning: ${result.reasoning}`);
+
+  if (result.classification === "respond") {
+    console.log("📧 Classification: RESPOND - This email requires a response");
+  } else if (result.classification === "ignore") {
+    console.log("🚫 Classification: IGNORE - This email can be safely ignored");
+  } else {
+    console.log(
+      "🔔 Classification: NOTIFY - This email contains important information",
+    );
+  }
 }
 
 async function main() {

@@ -15,8 +15,8 @@ const {
 // chủ yếu trên dữ liệu tiếng Anh nên khả năng hiểu tiếng Việt khá hạn chế.
 //
 // Test thực tế: query tiếng Việt như "ảnh con mèo" cho kết quả kém,
-// các distance khá sát nhau và khó phân biệt. Cùng ý đó bằng tiếng Anh
-// thì kết quả rõ ràng hơn.
+// các distance khá sát nhau và khó phân biệt. Cùng nội dung đó nhưng
+// hỏi bằng tiếng Anh thì kết quả rõ ràng hơn.
 //
 // Nếu cần hỗ trợ tiếng Việt tốt hơn, có thể:
 // - Dùng CLIP đa ngôn ngữ
@@ -37,7 +37,7 @@ async function loadClipModels() {
   if (!tokenizer) {
     tokenizer = await AutoTokenizer.from_pretrained(CLIP_MODEL);
     processor = await AutoProcessor.from_pretrained(CLIP_MODEL);
-    // CLIP dùng 2 model riêng nhưng cho ra vector cùng không gian, so được với nhau:
+    // CLIP dùng 2 model riêng nhưng cho ra vector cùng không gian, nên so sánh được với nhau:
     // - Text model: text → text embedding
     // - Vision model: image → image embedding
     // Độ dài vector 2 bên có thể khác nhau nên phải normalize()

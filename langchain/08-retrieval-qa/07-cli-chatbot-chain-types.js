@@ -100,7 +100,7 @@ async function loadDb(file, k, chainType = "stuff") {
 async function askQuestion(qa, query, chatHistory) {
   const { retriever, rephraseChain, answerChain } = qa;
 
-  // Chưa có lịch sử chat thì dùng thẳng câu hỏi gốc, có lịch sử mới cần viết lại thành Standalone Question.
+  // Chưa có lịch sử chat thì dùng thẳng câu hỏi gốc, còn có lịch sử thì cần viết lại thành Standalone Question.
   const generatedQuestion =
     chatHistory.length === 0
       ? query

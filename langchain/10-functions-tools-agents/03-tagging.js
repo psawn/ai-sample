@@ -47,8 +47,8 @@ const prompt = ChatPromptTemplate.fromMessages([
 // - "any": model bắt buộc phải gọi 1 trong các tool được truyền vào.
 // - "none": cấm model gọi bất kỳ tool nào.
 // - "<tên tool>" (như "Tagging" ở đây): ép model luôn gọi đúng tool đó.
-//   Đây chỉ là 1 chuỗi thường, phải gõ khớp tay với taggingTool.function.name
-//   Có thể dùng taggingTool.function.name để tránh gõ lệch
+//   Đây chỉ là 1 chuỗi thường nên phải gõ khớp tay với taggingTool.function.name -
+//   có thể dùng thẳng taggingTool.function.name thay vì gõ tay để tránh gõ lệch.
 const modelWithTagging = model.withConfig({
   tools: [taggingTool],
   tool_choice: "Tagging",

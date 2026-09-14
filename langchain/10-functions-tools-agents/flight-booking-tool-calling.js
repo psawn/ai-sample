@@ -70,8 +70,8 @@ function normalizeDestination(destination) {
   return String(destination).trim().toLowerCase();
 }
 
-// Hàm giả lập tra cứu chuyến bay - trong thực tế đây có thể là API backend/API
-// bên thứ 3. LLM không tự chạy được hàm này, nó chỉ chọn "nên gọi hàm nào,
+// Hàm giả lập tra cứu chuyến bay - trong thực tế đây có thể là API backend hoặc
+// API bên thứ 3. LLM không tự chạy được hàm này, nó chỉ chọn "nên gọi hàm nào,
 // tham số gì", việc thực thi thật sự vẫn do code JS đảm nhiệm.
 function getFlightInfo(destination) {
   const flight = MOCK_FLIGHTS[normalizeDestination(destination)];

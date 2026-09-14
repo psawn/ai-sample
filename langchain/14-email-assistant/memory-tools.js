@@ -1,9 +1,9 @@
-// 2 Tool để LLM tự quản lý bộ nhớ dài hạn: manage_memory (lưu) và search_memory (tra cứu).
-// Cả 2 đọc/ghi chung 1 InMemoryStore của @langchain/langgraph.
+// 2 tool để Agent quản lý memory:
+// - manage_memory: lưu, cập nhật, xoá.
+// - search_memory: tìm memory.
 //
-// getStore(config) lấy đúng Store đã được gắn cho Agent/Graph lúc invoke() (qua option
-// `store` khi tạo agent hoặc compile graph) - nhờ vậy Tool không cần nhận Store qua tham
-// số riêng, LLM chỉ cần gọi tool với đúng input là dùng được ngay.
+// Cả 2 dùng chung một InMemoryStore.
+// getStore(config) lấy Store được gắn vào Agent/Graph.
 
 require("../_polyfill");
 
@@ -12,10 +12,10 @@ const { z } = require("zod");
 const { tool } = require("@langchain/core/tools");
 const { getStore } = require("@langchain/langgraph");
 
-// Namespace có thể chứa placeholder "{langgraph_user_id}" - hàm này thay nó bằng user id
-// thật lấy từ config.configurable của lượt invoke() hiện tại, để mỗi user có vùng nhớ riêng.
+// Thay placeholder bằng user id từ config.
 function resolveNamespace(namespaceTemplate, config) {
   const userId = config?.configurable?.langgraph_user_id ?? "default";
+
   return namespaceTemplate.map((part) =>
     part === "{langgraph_user_id}" ? userId : part,
   );
@@ -26,26 +26,48 @@ function createManageMemoryTool(namespaceTemplate) {
     async ({ content, action = "create", id }, config) => {
       const store = getStore(config);
       const namespace = resolveNamespace(namespaceTemplate, config);
+
       console.log(
         `[manage_memory] action=${action} id=${id ?? "(new)"} namespace=${namespace.join("/")} content=${content}`,
       );
 
-      if (action === "delete") {
-        if (!id) return "Cần cung cấp `id` để xoá memory.";
-        await store.delete(namespace, id);
-        return `Deleted memory ${id}`;
-      }
+      // Bọc try/catch: lỗi Store (mất kết nối, embedding API lỗi...) trả về
+      // thành message cho LLM đọc, thay vì throw làm crash cả Agent.
+      // switch khớp 1-1 với 3 giá trị của enum action - thêm action mới sẽ
+      // buộc phải thêm case tương ứng, khó bỏ sót hơn if-chain.
+      try {
+        switch (action) {
+          case "delete": {
+            if (!id) return "Cần cung cấp `id` để xoá memory.";
 
-      // Không có id -> tạo memory mới với id ngẫu nhiên; có id -> ghi đè memory cũ (update).
-      const key = id ?? randomUUID();
-      await store.put(namespace, key, { content });
-      return `${action === "create" ? "Created" : "Updated"} memory ${key}: ${content}`;
+            await store.delete(namespace, id);
+
+            return `Deleted memory ${id}`;
+          }
+
+          case "update": {
+            if (!id) return "Cần cung cấp `id` để cập nhật memory đã có.";
+
+            await store.put(namespace, id, { content });
+
+            return `Updated memory ${id}: ${content}`;
+          }
+
+          case "create": {
+            const key = id ?? randomUUID();
+
+            await store.put(namespace, key, { content });
+
+            return `Created memory ${key}: ${content}`;
+          }
+        }
+      } catch (error) {
+        return `Thao tác memory thất bại: ${error.message}`;
+      }
     },
     {
       name: "manage_memory",
       description:
-        // Không dùng chữ "persistent": InMemoryStore chỉ tồn tại trong RAM của tiến trình
-        // hiện tại, mất hết khi restart - "persistent" dễ khiến hiểu nhầm là lưu vĩnh viễn.
         "Create, update, or delete a memory that can be reused across conversations in " +
         "this run. Omit `id` when creating a new memory; include it to update or delete " +
         "an existing one.",
@@ -67,24 +89,32 @@ function createSearchMemoryTool(namespaceTemplate) {
       const store = getStore(config);
       const namespace = resolveNamespace(namespaceTemplate, config);
 
-      const results = await store.search(namespace, { query, limit });
-      console.log(
-        `[search_memory] query="${query}" namespace=${namespace.join("/")} -> ${results.length} kết quả`,
-      );
-      if (results.length === 0) return "No memories found.";
+      try {
+        const results = await store.search(namespace, { query, limit });
 
-      // Nói rõ đây đã là top kết quả liên quan nhất, để LLM không gọi lại tool này nhiều
-      // lần với các từ khóa khác nhau cho "chắc" (nguyên nhân gây GraphRecursionError khi
-      // xử lý followUpEmail - xem lịch sử debug ở 04-memory-agent.js).
-      const list = results.map((item) => `- [${item.key}] ${item.value.content}`).join("\n");
-      return `Most relevant memories found (no need to retry with other keywords):\n${list}`;
+        console.log(
+          `[search_memory] query="${query}" namespace=${namespace.join("/")} -> ${results.length} kết quả`,
+        );
+
+        if (results.length === 0) return "No memories found.";
+
+        // Kết quả đã được xếp theo độ liên quan - không gọi lại tool này nữa
+        // trong cùng 1 email, dù kết quả rỗng hay chưa ưng ý.
+        const list = results
+          .map((item) => `- [${item.key}] ${item.value.content}`)
+          .join("\n");
+
+        return `Most relevant memories found:\n${list}`;
+      } catch (error) {
+        return `Tìm memory thất bại: ${error.message}`;
+      }
     },
     {
       name: "search_memory",
       description:
         "Search your long-term memories for information relevant to the current context. " +
-        "Returns the most relevant matches in a single call - retrying with different " +
-        "keywords won't surface better results.",
+        "Results are ranked by relevance - call this tool at most once per email and use " +
+        "whatever it returns as final.",
       schema: z.object({
         query: z.string().describe("Nội dung cần tìm trong memory"),
         limit: z.number().optional().describe("Số lượng kết quả tối đa"),
@@ -93,4 +123,7 @@ function createSearchMemoryTool(namespaceTemplate) {
   );
 }
 
-module.exports = { createManageMemoryTool, createSearchMemoryTool };
+module.exports = {
+  createManageMemoryTool,
+  createSearchMemoryTool,
+};
