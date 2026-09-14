@@ -47,7 +47,7 @@ class Agent {
     this.graph = graph.compile({ checkpointer, interruptBefore: ["action"] });
   }
 
-  // Kiểm tra nếu Message cuối cùng từ Model có chứa các yêu cầu tool_calls
+  // Kiểm tra xem Message cuối cùng từ Model có chứa tool_calls hay không
   existsAction(state) {
     const lastMessage = state.messages[state.messages.length - 1];
     return lastMessage.tool_calls?.length ? "true" : "false";

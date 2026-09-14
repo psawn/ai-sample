@@ -1,5 +1,5 @@
 // LangGraph Components
-// Thay vì viết vòng lặp manually (gọi LLM -> chạy Tool -> lặp lại), bài này dựng luồng
+// Thay vì tự viết vòng lặp thủ công (gọi LLM -> chạy Tool -> lặp lại), bài này dựng luồng
 // xử lý đó thành 1 GRAPH (Đồ thị) để LangGraph tự động điều phối State và vòng lặp.
 
 require("../_polyfill");
@@ -131,7 +131,7 @@ class Agent {
     for (const call of toolCalls) {
       console.log(`  -> Đang gọi: ${call.name}(${JSON.stringify(call.args)})`);
 
-      // Xử lý an toàn: Nếu Model đoán sai tên Tool không có sẵn
+      // Xử lý an toàn: Nếu Model gọi nhầm tên Tool không tồn tại
       if (!this.tools[call.name]) {
         console.log(
           `  -> LỖI: Tool "${call.name}" không tồn tại trong hệ thống`,

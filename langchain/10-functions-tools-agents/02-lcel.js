@@ -120,7 +120,7 @@ Question: {question}
 // model.withConfig({ tools }) (thay cho .bind() đã deprecated, cùng cách dùng):
 // 1. Tạo ra 1 Runnable mới đã gắn sẵn danh sách tools vào model.
 // 2. Mọi invoke sau này tự động kèm theo tools đó, không cần truyền lại.
-// Format tools giống file test/01-function-calling.js.
+// Format tools giống file 01-function-calling.js.
 async function bindDemo() {
   const prompt = ChatPromptTemplate.fromMessages([["human", "{input}"]]);
 
@@ -252,7 +252,8 @@ async function fallbacksDemo() {
   // 3. .pipe() không tự tạo input mới cho bước đầu chain, nên bước biến đổi đó
   //    phải là RunnableLambda.from((text) => [...]), rồi mới .pipe(model) tiếp.
   //
-  // RunnableLambda.from((text) -> "text" là input string ban đầu (biến challenge)
+  // "text" trong RunnableLambda.from((text) => [...]) bên dưới chính là input
+  // string ban đầu (biến challenge).
   const strictJsonChain = RunnableLambda.from((text) => [
     new SystemMessage(
       "Only output raw JSON. Do not wrap it in markdown code fences and do not add any explanation.",

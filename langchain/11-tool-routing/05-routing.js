@@ -26,7 +26,7 @@ const chain = prompt.pipe(modelWithTools);
 
 // route(): đọc aiMessage.tool_calls để quyết định bước tiếp theo.
 // - Không có tool_calls -> model đã trả lời thẳng -> trả về content luôn.
-// - Có tool_calls -> tra trong map "tools", gọi đúng Tool với đúng tham số model chọn.
+// - Có tool_calls -> tra trong map "toolsByName", gọi đúng Tool với đúng tham số model chọn.
 async function route(aiMessage) {
   console.log("aiMessage:", aiMessage);
 

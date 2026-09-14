@@ -32,6 +32,8 @@ async function main() {
     systemPrompt,
   });
 
+  console.log("\n📍 Agent đang xử lý (tool call)...");
+
   // Câu hỏi này khớp mô tả của tool "check_calendar_availability" -> LLM sẽ tự chọn gọi
   // đúng tool đó thay vì bịa ra câu trả lời.
   const response = await agent.invoke({
