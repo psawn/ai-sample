@@ -1,3 +1,18 @@
+// =======================================================================
+// RETRIEVAL - BƯỚC 3: SELF-QUERY RETRIEVER
+//
+// Để LLM tự viết filter, thay vì viết tay như file 02.
+//
+// Flow:
+// 1. Đưa câu hỏi tự nhiên cho LLM.
+// 2. LLM tách thành 2 phần:
+//    - query: phần dùng để tìm vector (vd: "regression").
+//    - filter: điều kiện lọc metadata (vd: source = Lecture03).
+// 3. Tìm vector theo query, chỉ trong các chunk thỏa filter.
+//
+// metadataFieldInfo: mô tả ý nghĩa từng field metadata, để LLM suy ra filter đúng.
+// =======================================================================
+
 require("../_polyfill");
 require("dotenv").config();
 const path = require("path");
@@ -17,19 +32,20 @@ const { embedChunksSafely } = require("./util-embed-safely");
 
 const lecturesDir = path.join(__dirname, "../../docs/cs229_lectures");
 
-// Embedding Model: gọi API Gemini để biến Document / Query thành vector.
+// Model embedding: đổi Document và câu hỏi thành vector.
 const embeddings = new GoogleGenerativeAIEmbeddings({
   apiKey: process.env.GEMINI_API_KEY,
   model: "gemini-embedding-001",
 });
 
-// LLM: đọc câu hỏi tiếng Anh tự nhiên và tự tách ra query + filter metadata.
+// LLM: đọc câu hỏi tự nhiên, tách ra query + filter metadata.
 const llm = new ChatGoogleGenerativeAI({
   apiKey: process.env.GEMINI_API_KEY,
   model: "gemini-3.5-flash",
   temperature: 0,
 });
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
   const pdfPaths = [
     path.join(lecturesDir, "MachineLearning-Lecture01.pdf"),
@@ -40,8 +56,8 @@ async function main() {
   let docs = [];
   for (const pdfPath of pdfPaths) {
     const pages = await new PDFLoader(pdfPath).load();
-    // PDFLoader trả metadata.source là đường dẫn tuyệt đối (khác nhau tuỳ máy).
-    // Đổi về tên file cho gọn, để khớp với mô tả filter khai báo bên dưới.
+    // metadata.source mặc định là đường dẫn tuyệt đối (khác nhau tùy máy).
+    // Đổi về tên file để khớp với mô tả trong metadataFieldInfo bên dưới.
     pages.forEach((p) => {
       p.metadata.source = path.basename(pdfPath);
     });
@@ -54,19 +70,13 @@ async function main() {
   });
   const splits = await textSplitter.splitDocuments(docs);
 
-  // Embed từng chunk an toàn (tự retry khi lỗi) rồi mới đưa vào vectorstore.
-  // Xem lý do trong util-embed-safely.js.
+  // Embed có retry khi lỗi, rồi mới đưa vào vectorstore.
+  // Lý do: util-embed-safely.js.
   const vectors = await embedChunksSafely(embeddings, splits);
   const vectordb = await MemoryVectorStore.fromExistingIndex(embeddings);
   await vectordb.addVectors(vectors, splits);
 
-  // Ở file 01, ta phải tự tay viết filter (doc) => boolean. Self-query retriever thay ta
-  // làm việc đó theo luồng:
-  // 1. Đưa cho LLM 1 câu hỏi tiếng Anh tự nhiên.
-  // 2. LLM tự tách câu hỏi thành 2 phần:
-  //    - query: phần dùng để tìm vector (vd: "regression")
-  //    - filter: điều kiện lọc metadata (vd: source = Lecture03)
-  // 3. metadataFieldInfo mô tả cho LLM biết mỗi field metadata nghĩa là gì để nó suy luận đúng.
+  // Mô tả các field metadata cho LLM. Mô tả càng rõ, filter LLM sinh ra càng đúng.
   const metadataFieldInfo = [
     new AttributeInfo({
       name: "source",
@@ -86,12 +96,13 @@ async function main() {
     vectorStore: vectordb,
     documentContents: "Lecture notes",
     attributeInfo: metadataFieldInfo,
-    // FunctionalTranslator: chuyển filter LLM sinh ra thành hàm (doc) => boolean
-    // để chạy trên MemoryVectorStore (mỗi loại vectorstore cần 1 translator riêng).
+    // Đổi filter LLM sinh ra thành hàm (doc) => boolean cho MemoryVectorStore.
+    // Mỗi loại vectorstore cần 1 translator riêng.
     structuredQueryTranslator: new FunctionalTranslator(),
-    verbose: true, // in ra query + filter mà LLM suy luận được, để dễ kiểm tra
+    verbose: true, // In query + filter LLM suy ra, để dễ kiểm tra
   });
 
+  // Kỳ vọng: chỉ trả chunk thuộc MachineLearning-Lecture03.pdf.
   const question = "what did they say about regression in the third lecture?";
   const results = await selfQueryRetriever.invoke(question);
 

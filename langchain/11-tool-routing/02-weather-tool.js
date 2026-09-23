@@ -1,5 +1,11 @@
-// Tool gọi API thật (Open-Meteo) để lấy nhiệt độ hiện tại theo toạ độ - minh hoạ Tool có
-// thể làm bất cứ việc gì bên trong, LLM chỉ cần biết name/description/schema.
+// =======================================================================
+// TOOL ROUTING - BƯỚC 2: TOOL GỌI API THẬT (OPEN-METEO - THỜI TIẾT)
+//
+// Tool gọi API Open-Meteo, lấy nhiệt độ hiện tại theo tọa độ.
+// Bên trong Tool làm gì cũng được (gọi API, tính toán...).
+// LLM chỉ cần biết name / description / schema.
+// =======================================================================
+
 require("../_polyfill");
 require("dotenv").config();
 
@@ -7,14 +13,15 @@ const { z } = require("zod");
 const { tool } = require("@langchain/core/tools");
 const { convertToOpenAIFunction } = require("@langchain/core/utils/function_calling");
 
-// LLM phải tự suy ra latitude/longitude từ tên địa điểm (vd: "San Francisco" -> 37.77,
-// -122.41) rồi mới gọi được Tool này.
+// Schema tham số: Tool nhận tọa độ, không nhận tên địa điểm.
+// LLM phải tự đổi tên -> tọa độ trước khi gọi.
+// Vd: "San Francisco" -> latitude 37.77, longitude -122.41.
 const OpenMeteoInput = z.object({
   latitude: z.number().describe("Latitude of the location to fetch weather data for"),
   longitude: z.number().describe("Longitude of the location to fetch weather data for"),
 });
 
-// Hàm thực thi thật của Tool - đây là nơi mọi việc thật sự xảy ra (gọi API, tính toán).
+// Hàm thực thi của Tool: gọi API, trả nhiệt độ dạng text.
 async function fetchCurrentTemperature({ latitude, longitude }) {
   const BASE_URL = "https://api.open-meteo.com/v1/forecast";
   const params = new URLSearchParams({
@@ -30,7 +37,7 @@ async function fetchCurrentTemperature({ latitude, longitude }) {
   }
   const results = await response.json();
 
-  // API trả về nhiệt độ theo từng giờ trong ngày - cần tìm mốc giờ gần với hiện tại nhất.
+  // API trả nhiệt độ theo từng giờ trong ngày -> lấy mốc giờ gần hiện tại nhất.
   const currentUtcTime = new Date();
   const timeList = results.hourly.time.map((t) => new Date(t));
   const temperatureList = results.hourly.temperature_2m;
@@ -50,24 +57,26 @@ async function fetchCurrentTemperature({ latitude, longitude }) {
   return result;
 }
 
-// tool(fn, options) chỉ "gắn nhãn" cho fetchCurrentTemperature, không thay đổi cách nó
-// chạy - .invoke(args) sau này sẽ gọi lại đúng fetchCurrentTemperature(args).
+// tool(fn, options): chỉ gắn name / description / schema cho fn, không đổi cách fn chạy.
+// .invoke(args) -> gọi fetchCurrentTemperature(args).
 const getCurrentTemperature = tool(fetchCurrentTemperature, {
   name: "get_current_temperature",
   description: "Fetch current temperature for given coordinates.",
   schema: OpenMeteoInput,
 });
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
   console.log("name:", getCurrentTemperature.name);
   console.log("description:", getCurrentTemperature.description);
 
-  // convertToOpenAIFunction: xem schema function-calling thật sự được gửi cho LLM.
+  // convertToOpenAIFunction: xem Tool dưới dạng function schema, đúng format gửi cho LLM.
   console.log(
     "\nOpenAI function schema:",
     JSON.stringify(convertToOpenAIFunction(getCurrentTemperature), null, 2),
   );
 
+  // Gọi thẳng Tool, không qua LLM, với 1 tọa độ bất kỳ.
   try {
     const result = await getCurrentTemperature.invoke({ latitude: 13, longitude: 14 });
     console.log("\nresult:", result);
@@ -76,9 +85,8 @@ async function main() {
   }
 }
 
-// require.main === module kiểm tra file này có phải là file gốc đang được thực thi hay không.
-// - Đúng (chạy trực tiếp `node file.js`): Gọi main().
-// - Sai (file khác require() file này): Bỏ qua main() để chỉ xuất module ra ngoài.
+// Chỉ chạy main() khi chạy trực tiếp `node 02-weather-tool.js`.
+// File khác require() file này (05, 06, 07) -> không chạy main(), chỉ lấy Tool.
 if (require.main === module) {
   main();
 }

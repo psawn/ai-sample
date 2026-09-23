@@ -1,3 +1,14 @@
+// =======================================================================
+// LANGCHAIN BASICS - PROMPT TEMPLATE
+//
+// Prompt template: prompt có chỗ trống {biến}. Viết 1 lần, dùng lại nhiều lần
+// bằng cách điền giá trị khác nhau qua formatMessages().
+//
+// Flow:
+// 1. formatMessages({ biến }) -> mảng messages.
+// 2. model.invoke(messages) -> AIMessage.
+// =======================================================================
+
 require("../_polyfill");
 require("dotenv").config();
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
@@ -11,17 +22,20 @@ const model = new ChatGoogleGenerativeAI({
   temperature: 0,
 });
 
+// Template có 2 biến: {text} và {language}.
 const prompt = ChatPromptTemplate.fromTemplate(
   `Translate "{text}" to {language}.`,
 );
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
+  // Điền giá trị vào các biến -> mảng messages.
   const messages = await prompt.formatMessages({
     text: "Hello",
     language: "Vietnamese",
   });
 
-  // Gọi API Gemini với messages đã điền để lấy câu trả lời.
+  // Gửi messages đã điền cho Gemini.
   const response = await model.invoke(messages);
 
   console.log(response.content);

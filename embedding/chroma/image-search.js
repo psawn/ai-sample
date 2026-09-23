@@ -1,3 +1,17 @@
+// =======================================================================
+// CHROMA - TÌM ẢNH BẰNG MÔ TẢ TEXT (CLIP)
+//
+// 1. CLIP embed được cả ảnh và text vào cùng 1 không gian vector.
+// 2. Index: embed từng ảnh trong thư mục images/, lưu vào Chroma.
+// 3. Search: embed câu mô tả -> tìm ảnh có vector gần nhất.
+//
+// Tìm ảnh bằng ý nghĩa, không cần gắn tag hay đặt tên file.
+// CLIP chạy local (@huggingface/transformers), không gọi API. Lần đầu tải model về máy.
+//
+// Cần chạy Chroma server trước:
+//   docker run -d --name chroma -p 8000:8000 chromadb/chroma
+// =======================================================================
+
 require("dotenv").config();
 const fs = require("fs");
 const path = require("path");
@@ -11,16 +25,13 @@ const {
   RawImage,
 } = require("@huggingface/transformers");
 
-/// LƯU Ý: CLIP_MODEL ("Xenova/clip-vit-base-patch32") được huấn luyện
-// chủ yếu trên dữ liệu tiếng Anh nên khả năng hiểu tiếng Việt khá hạn chế.
+// Lưu ý: CLIP_MODEL chủ yếu học từ dữ liệu tiếng Anh -> hiểu tiếng Việt kém.
+// Vd: "ảnh con mèo" cho các distance sát nhau, khó phân biệt.
+// Hỏi bằng tiếng Anh ("a photo of a cat") cho kết quả rõ hơn nhiều.
 //
-// Test thực tế: query tiếng Việt như "ảnh con mèo" cho kết quả kém,
-// các distance khá sát nhau và khó phân biệt. Cùng nội dung đó nhưng
-// hỏi bằng tiếng Anh thì kết quả rõ ràng hơn.
-//
-// Nếu cần hỗ trợ tiếng Việt tốt hơn, có thể:
-// - Dùng CLIP đa ngôn ngữ
-// - Hoặc dịch query tiếng Việt → tiếng Anh trước khi embed
+// Muốn hỗ trợ tiếng Việt tốt hơn:
+// - Dùng CLIP đa ngôn ngữ.
+// - Hoặc dịch query sang tiếng Anh trước khi embed.
 const CLIP_MODEL = "Xenova/clip-vit-base-patch32";
 const IMAGES_DIR = path.join(__dirname, "..", "..", "images");
 const COLLECTION_NAME = "image-search";
@@ -31,28 +42,35 @@ const client = new ChromaClient({
   port: Number(process.env.CHROMA_PORT) || 8000,
 });
 
+// Model CLIP load 1 lần, dùng lại cho các lần gọi sau.
+// - tokenizer: text -> token id cho text model.
+// - processor: resize + chuẩn hóa ảnh cho vision model.
 let tokenizer, processor, textModel, visionModel;
 
+// Load model CLIP (chỉ load ở lần gọi đầu tiên, các lần sau bỏ qua).
 async function loadClipModels() {
   if (!tokenizer) {
     tokenizer = await AutoTokenizer.from_pretrained(CLIP_MODEL);
     processor = await AutoProcessor.from_pretrained(CLIP_MODEL);
-    // CLIP dùng 2 model riêng nhưng cho ra vector cùng không gian, nên so sánh được với nhau:
-    // - Text model: text → text embedding
-    // - Vision model: image → image embedding
-    // Độ dài vector 2 bên có thể khác nhau nên phải normalize()
+    // CLIP có 2 model riêng nhưng vector ra cùng không gian -> so sánh được:
+    // - Text model: text -> vector.
+    // - Vision model: ảnh -> vector.
+    // Độ lớn (norm) vector 2 bên có thể khác nhau -> normalize() trước khi so.
     textModel = await CLIPTextModelWithProjection.from_pretrained(CLIP_MODEL);
     visionModel =
       await CLIPVisionModelWithProjection.from_pretrained(CLIP_MODEL);
   }
 }
 
-// Đưa vector về độ dài 1, để so sánh chỉ còn dựa vào hướng (dot product = cosine similarity).
+// Đưa vector về độ dài 1. Khi đó so sánh chỉ còn dựa vào hướng
+// (dot product = cosine similarity).
+// Array.from: đổi Float32Array (output của model) thành mảng thường cho Chroma.
 function normalize(vector) {
   const norm = Math.sqrt(vector.reduce((sum, v) => sum + v * v, 0));
   return Array.from(vector, (v) => v / norm);
 }
 
+// Ảnh -> vector (đã normalize).
 async function embedImage(imagePath) {
   await loadClipModels();
   const image = await RawImage.read(imagePath);
@@ -61,6 +79,7 @@ async function embedImage(imagePath) {
   return normalize(image_embeds.data);
 }
 
+// Text -> vector (đã normalize).
 async function embedText(text) {
   await loadClipModels();
   const textInputs = tokenizer([text], { padding: true, truncation: true });
@@ -68,6 +87,7 @@ async function embedText(text) {
   return normalize(text_embeds.data);
 }
 
+// Lấy danh sách file ảnh trong thư mục images/.
 function listImageFiles() {
   if (!fs.existsSync(IMAGES_DIR)) {
     return [];
@@ -79,6 +99,9 @@ function listImageFiles() {
     );
 }
 
+// Lấy collection, đo khoảng cách bằng cosine: distance = 1 - cosine similarity,
+// càng nhỏ càng giống. Mặc định Chroma dùng l2 (khoảng cách Euclid).
+// Không gắn embeddingFunction: code tự embed bằng CLIP rồi truyền vector vào.
 async function getCollection() {
   return client.getOrCreateCollection({
     name: COLLECTION_NAME,
@@ -86,6 +109,9 @@ async function getCollection() {
   });
 }
 
+// Index các ảnh chưa có trong Chroma. Ảnh đã index thì bỏ qua.
+// Dùng tên file làm id để biết ảnh nào đã index.
+// Lưu ý: sửa nội dung ảnh nhưng giữ tên file -> không index lại.
 async function indexImages() {
   const collection = await getCollection();
   const existing = await collection.get();
@@ -112,6 +138,8 @@ async function indexImages() {
   return collection;
 }
 
+// Tìm nResults ảnh gần với câu mô tả nhất.
+// query() trả mảng lồng (mỗi câu hỏi 1 mảng) -> lấy [0] vì chỉ có 1 câu hỏi.
 async function searchByText(collection, query, nResults = 3) {
   const queryEmbedding = await embedText(query);
   const result = await collection.query({
@@ -125,6 +153,8 @@ async function searchByText(collection, query, nResults = 3) {
   }));
 }
 
+// ===== KỊCH BẢN MINH HỌA =====
+// Index ảnh -> mở CLI cho user gõ mô tả để tìm ảnh.
 async function main() {
   if (listImageFiles().length === 0) {
     console.error(

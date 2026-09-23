@@ -1,26 +1,21 @@
-// File này minh hoạ cách CŨ (đã deprecated) để tạo Agent.
+// =======================================================================
+// AGENTS - BƯỚC 3: TỰ VIẾT TOOL (CUSTOM TOOL) - CÁCH CŨ (ReAct)
 //
-// Agent = LLM + Tools
-//
-// LLM:
-//   - Đọc câu hỏi
-//   - Quyết định cần làm gì
-//   - Chọn Tool nếu cần
-//
-// Tool:
-//   - Thực hiện công việc mà LLM yêu cầu
+// Ngoài Tool dựng sẵn, có thể tự viết Tool từ 1 hàm JS thường.
+// Ví dụ: Tool "time" trả về ngày hôm nay. LLM không tự biết ngày hiện tại,
+// nên phải hỏi Tool.
 //
 // Flow:
-//   User → LLM → chọn Tool → Tool thực thi → kết quả → LLM → Final Answer
+// 1. LLM đọc câu hỏi, chọn Tool (dựa vào name + description).
+// 2. Tool chạy, trả kết quả cho LLM.
+// 3. LLM dùng kết quả để trả lời -> Final Answer.
 //
-// ReAct là cách Agent cũ hoạt động:
-//   Thought → Action → Observation → Final Answer
+// ReAct: LLM viết text theo format Thought -> Action -> Observation -> Final Answer.
+// LangChain parse text đó để biết gọi Tool nào. Sai format -> lỗi parse.
 //
-// Với cách này, LLM phải viết output theo 1 format cố định, LangChain phải parse output đó
-// để biết cần gọi Tool nào, input là gì. Nếu LLM viết sai format → có thể lỗi parse.
-//
-// => Xem file 03-custom-tool-tool-calling.js để biết cách Tool Calling hiện hành, không
-//    cần LLM viết theo format ReAct như cách cũ.
+// Cách mới (Tool Calling): 03-custom-tool-tool-calling.js.
+// =======================================================================
+
 require("../_polyfill");
 require("dotenv").config();
 
@@ -33,26 +28,21 @@ const {
 } = require("@langchain/community/tools/wikipedia_query_run");
 const { initializeAgentExecutorWithOptions } = require("@langchain/classic/agents");
 
-// LLM = "bộ não" của Agent, đọc câu hỏi rồi quyết định: trả lời luôn, hay cần gọi Tool
-// nào trước.
+// LLM: "bộ não" của Agent, quyết định gọi Tool nào.
 const llm = new ChatGoogleGenerativeAI({
   apiKey: process.env.GEMINI_API_KEY,
   model: "gemini-3.5-flash",
   temperature: 0,
 });
 
-// tool(): hàm dựng sẵn của LangChain JS, biến 1 hàm JS bình thường thành 1 Tool mà agent
-// có thể gọi - tương tự Calculator/WikipediaQueryRun, chỉ khác là tool này tự viết. Cần
-// khai báo rõ name/description/schema vì đó là thứ agent đọc để biết khi nào nên gọi.
-//
-// Tool "time" có nhiệm vụ duy nhất:
-//   → trả về ngày hôm nay
+// tool(hàm, { name, description, schema }): biến hàm JS thành Tool.
+// - name + description: LLM đọc để quyết định khi nào gọi.
+// - schema: kiểu tham số LLM phải truyền.
 const time = tool(
-  // Hàm không nhận tham số, dù schema bên dưới khai báo input là string - tool() bắt
-  // buộc phải có schema kể cả khi không cần input. Model truyền gì vào cũng bị bỏ qua,
-  // vì tool này luôn trả về đúng 1 kết quả: ngày hôm nay.
+  // Hàm không cần tham số. tool() bắt buộc có schema nên vẫn khai báo z.string(),
+  // LLM truyền gì cũng bị bỏ qua.
   async () => {
-    // Trả về ngày hôm nay, định dạng YYYY-MM-DD.
+    // Ngày hôm nay, dạng YYYY-MM-DD.
     return new Date().toISOString().slice(0, 10);
   },
   {
@@ -66,7 +56,7 @@ const time = tool(
   },
 );
 
-// Tool có sẵn mà Agent được phép dùng khi cần, ghép thêm tool "time" tự viết ở trên.
+// Tool dựng sẵn + tool "time" tự viết. Agent dùng chung, không phân biệt.
 const tools = [
   new Calculator(),
   new WikipediaQueryRun({
@@ -76,19 +66,19 @@ const tools = [
   time,
 ];
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
-  // agent: Tạo Agent kiểu ReAct từ LLM + Tools.
-  //   - handleParsingErrors (true): nếu LLM viết sai format, đưa lỗi đó lại cho LLM tự sửa
-  //     thay vì crash ngay.
-  //   - verbose (true): in log chi tiết LLM nghĩ gì -> chọn Tool nào -> Tool trả kết quả gì.
+  // Agent kiểu ReAct, prompt do thư viện dựng sẵn.
+  // - handleParsingErrors: LLM viết sai format -> gửi lỗi lại cho LLM tự sửa.
+  // - verbose: in log từng bước: LLM nghĩ gì, gọi Tool nào, Tool trả gì.
   const agent = await initializeAgentExecutorWithOptions(tools, llm, {
     agentType: "chat-zero-shot-react-description",
     handleParsingErrors: true,
     verbose: true,
   });
 
-  // Lưu ý: agent đôi khi suy luận sai (vd: tự đoán bừa 1 ngày thay vì gọi tool "time").
-  // Nếu gặp lỗi hoặc kết quả sai, hãy thử chạy lại.
+  // Hỏi ngày hôm nay -> kỳ vọng gọi tool "time".
+  // Lưu ý: đôi khi LLM đoán bừa 1 ngày thay vì gọi "time". Sai thì chạy lại.
   try {
     const result = await agent.invoke({ input: "whats the date today?" });
     console.log("\n========== Kết quả (Custom Tool) ==========");

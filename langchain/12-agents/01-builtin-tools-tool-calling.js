@@ -1,30 +1,26 @@
-// File này minh hoạ cách HIỆN HÀNH (khuyến nghị) để tạo Agent.
+// =======================================================================
+// AGENTS - BƯỚC 1: TOOL DỰNG SẴN (CALCULATOR, WIKIPEDIA) - CÁCH MỚI (TOOL CALLING)
 //
-// Agent = LLM + Tools
-//
-// LLM:
-//   - Đọc câu hỏi
-//   - Quyết định cần làm gì
-//   - Chọn Tool nếu cần
-//
-// Tool:
-//   - Thực hiện công việc mà LLM yêu cầu
+// Agent = LLM + Tools:
+// - LLM: đọc câu hỏi, quyết định trả lời luôn hay gọi Tool nào.
+// - Tool: làm đúng 1 việc LLM yêu cầu, không tự quyết định.
 //
 // Flow:
-//   User → LLM → chọn Tool → Tool thực thi → kết quả → LLM → Final Answer
+// 1. LLM đọc câu hỏi, chọn Tool.
+// 2. Tool chạy, trả kết quả cho LLM.
+// 3. Lặp lại tới khi LLM đủ thông tin -> Final Answer.
 //
-// Tool Calling là cách Agent hiện hành hoạt động:
-//   1. LLM trả về thẳng "gọi Tool nào, tham số gì" dạng JSON (không cần viết text
-//      theo format ReAct).
-//   2. LangChain đọc thẳng JSON đó để gọi Tool ngay - không cần parse text.
+// Tool Calling (cách hiện hành, khuyến nghị):
+// - LLM trả JSON: tên Tool + tham số.
+// - LangChain đọc JSON để gọi Tool, không cần parse text như ReAct.
 //
-// => Xem file 01-builtin-tools-legacy.js để so sánh với cách cũ (đã deprecated).
+// Cách cũ (ReAct, deprecated): 01-builtin-tools-legacy.js.
+// =======================================================================
+
 require("../_polyfill");
 require("dotenv").config();
 
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
-// Calculator và WikipediaQueryRun là Tool dựng sẵn - mỗi Tool chỉ làm đúng 1 việc, không
-// tự quyết định gì. LLM mới là bên quyết định khi nào cần gọi Tool nào.
 const { Calculator } = require("@langchain/community/tools/calculator");
 const {
   WikipediaQueryRun,
@@ -32,15 +28,16 @@ const {
 const { AgentExecutor, createToolCallingAgent } = require("@langchain/classic/agents");
 const { ChatPromptTemplate } = require("@langchain/core/prompts");
 
-// LLM = "bộ não" của Agent, đọc câu hỏi rồi quyết định: trả lời luôn, hay cần gọi Tool
-// nào trước.
+// LLM: "bộ não" của Agent, quyết định gọi Tool nào.
 const llm = new ChatGoogleGenerativeAI({
   apiKey: process.env.GEMINI_API_KEY,
   model: "gemini-3.5-flash",
   temperature: 0,
 });
 
-// Tool có sẵn mà Agent được phép dùng khi cần.
+// Tool dựng sẵn Agent được dùng:
+// - Calculator: tính biểu thức toán.
+// - WikipediaQueryRun: tra Wikipedia. Lấy 1 bài, tối đa 2000 ký tự.
 const tools = [
   new Calculator(),
   new WikipediaQueryRun({
@@ -49,43 +46,30 @@ const tools = [
   }),
 ];
 
-// Prompt này phải tự viết (bản legacy được thư viện dựng sẵn, ẩn bên trong):
+// Prompt phải tự viết. Bản ReAct dùng prompt thư viện dựng sẵn.
 // - "placeholder": chỗ chèn 1 danh sách message.
-//
-// "agent_scratchpad" = "Trong lần xử lý này, agent đã làm những gì?"
-//   - Để trả lời 1 câu hỏi, agent có thể phải gọi tool nhiều bước (gọi tool -> xem kết
-//     quả -> gọi tiếp hoặc trả lời). Đây là nơi lưu "đã gọi tool nào, kết quả gì".
-//   - Do AgentExecutor tự tạo và xoá sau mỗi lần invoke(), KHÔNG tồn tại giữa các câu hỏi.
-//   - Vd: hỏi "75 nhân 12 là bao nhiêu?"
-//       1. agent gọi Calculator
-//       2. nhận về "900"
-//       3. lưu bước này vào scratchpad
-//       4. trả lời user
+// - agent_scratchpad: các Tool đã gọi + kết quả, trong lần invoke() hiện tại.
+//   AgentExecutor tự điền, reset mỗi lần invoke().
+//   Vd: "25% của 300?" -> gọi Calculator -> "75" -> vào scratchpad -> LLM trả lời.
 const prompt = ChatPromptTemplate.fromMessages([
   ["system", "You are a helpful assistant."],
   ["human", "{input}"],
   ["placeholder", "{agent_scratchpad}"],
 ]);
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
-  // agent: Ghép LLM + Tools + Prompt thành 1 Agent (Tool Calling), chỉ quyết định action
-  // chứ không tự chạy tool.
-  // 1. Bên trong, hàm này gọi llm.bindTools(tools) để báo cho Gemini biết trước danh sách
-  //    tool.
-  // 2. Nhờ vậy khi cần, Gemini trả lời ngay bằng tên tool + tham số dạng JSON, không cần
-  //    LangChain đoán qua text.
+  // agent: LLM + Tools + Prompt. Chỉ quyết định bước tiếp theo, không tự chạy Tool.
+  // Bên trong gọi llm.bindTools(tools) -> Gemini trả tên Tool + tham số dạng JSON.
   const agent = createToolCallingAgent({ llm, tools, prompt });
 
-  // agentExecutor: chạy Agent Loop, tự thực thi action của agent cho tới khi có Final
-  // Answer:
-  // 1. Gọi agent.
-  // 2. Nếu agent muốn gọi tool (vd: Calculator) thì tự thực thi tool đó.
-  // 3. Đưa kết quả về cho agent.
-  // 4. Lặp lại từ bước 1 tới khi agent trả lời xong.
-  //   - handleParsingErrors (true): dù tool-calling trả JSON có cấu trúc, model vẫn có thể
-  //     trả tham số sai kiểu hoặc thiếu field bắt buộc - đưa lỗi đó vào quan sát tiếp theo
-  //     cho agent tự sửa, thay vì crash chương trình.
-  //   - verbose (true): in log chi tiết LLM nghĩ gì -> chọn Tool nào -> Tool trả kết quả gì.
+  // agentExecutor: vòng lặp chạy agent.
+  // 1. Gọi agent -> nhận Tool cần gọi.
+  // 2. Chạy Tool, đưa kết quả vào scratchpad.
+  // 3. Lặp lại tới khi agent trả Final Answer.
+  // - handleParsingErrors: tham số sai kiểu/thiếu field -> gửi lỗi lại cho agent
+  //   tự sửa, không crash.
+  // - verbose: in log từng bước: LLM nghĩ gì, gọi Tool nào, Tool trả gì.
   const agentExecutor = new AgentExecutor({
     agent,
     tools,
@@ -93,12 +77,14 @@ async function main() {
     verbose: true,
   });
 
+  // Câu 1: tính toán -> kỳ vọng gọi Calculator.
   const mathResult = await agentExecutor.invoke({
     input: "What is the 25% of 300?",
   });
   console.log("\n========== Kết quả (Calculator) ==========");
   console.log(mathResult.output);
 
+  // Câu 2: hỏi về 1 người -> kỳ vọng gọi Wikipedia.
   const question =
     "Tom M. Mitchell is an American computer scientist \
 and the Founders University Professor at Carnegie Mellon University (CMU) \

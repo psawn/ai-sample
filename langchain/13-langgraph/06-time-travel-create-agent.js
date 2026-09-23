@@ -1,24 +1,24 @@
-// Human in the Loop - Bản dùng createAgent (Time Travel qua Checkpoint & Branching)
+// =======================================================================
+// LANGGRAPH - BƯỚC 6: TIME TRAVEL (QUAY LẠI CHECKPOINT CŨ, RẼ NHÁNH) - BẢN createAgent
 //
-// File này dùng `humanInTheLoopMiddleware` để BỊ CHẶN trước khi gọi Tool - giống hệt hành
-// vi `interruptBefore` ở bản manual-graph, chỉ khác cơ chế resume:
-//   - Bản manual-graph: chạy tiếp bằng `stream(null, config)`.
-//   - Bản createAgent:  phải chạy tiếp bằng `Command({ resume: { decisions } })` với quyết
-//     định approve/edit/reject (xem thêm ở 04-human-approval-create-agent.js).
+// Checkpointer lưu state sau mỗi bước. Ta quay lại 1 checkpoint cũ và chạy tiếp
+// theo nhiều cách khác nhau -> mỗi cách tạo 1 nhánh (branch) lịch sử riêng.
 //
-// Điểm khác biệt khác so với bản manual-graph:
-//   - Bản manual-graph: Node gọi Tool có tên là "action".
-//   - Bản createAgent:  Node gọi Tool có tên là "tools" (do createAgent tự đặt). Lúc bị
-//     chặn, `next` là ["HumanInTheLoopMiddleware.after_model"] chứ không phải ["tools"].
+// Các branch (2, 3, 4 đều rẽ ra từ cùng 1 checkpoint đang chờ duyệt):
+// 1. Original: chạy lần đầu, bị chặn trước khi gọi tool.
+// 2. Replay: duyệt (approve), chạy tiếp như cũ.
+// 3. Edit: duyệt kèm sửa query (decision "edit").
+// 4. Inject mock: tự chèn kết quả tool giả, bỏ qua middleware.
 //
-// Sơ đồ các Branch được tạo ra (đều rẽ từ cùng 1 checkpoint đang chờ duyệt):
-// Branch 1 (Original) : Chạy ban đầu -> Bị chặn trước khi gọi Tool (Interrupt).
-//  ├──> Branch 2 (Replay)      : Duyệt (approve) rồi chạy tiếp nguyên bản.
-//  ├──> Branch 3 (Edit Call)   : Duyệt kèm sửa query (decision "edit").
-//  └──> Branch 4 (Inject Mock) : Tự chèn kết quả Tool, bỏ qua middleware.
+// Model có thể gọi tool nhiều lần, lần nào cũng bị chặn.
+// -> Mỗi branch phải lặp resume tới khi state.next rỗng.
 //
-// Lưu ý: Model có thể gọi Tool nhiều lần liên tiếp, mỗi lần đều bị middleware chặn lại
-// -> mỗi Branch phải LẶP resume tới khi thực sự xong (state.next rỗng), không chỉ 1 lần.
+// Cùng bài toán với 06-time-travel-manual-graph.js. Khác biệt:
+// - Chặn bằng humanInTheLoopMiddleware, không bằng interruptBefore.
+// - Chạy tiếp bằng Command({ resume: { decisions } }), không bằng stream(null, config).
+// - Node chạy tool tên "tools" (createAgent tự đặt), không phải "action".
+// - Lúc bị chặn, next là ["HumanInTheLoopMiddleware.after_model"], không phải ["tools"].
+// =======================================================================
 
 require("../_polyfill");
 require("dotenv").config();
@@ -29,15 +29,17 @@ const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { ToolMessage } = require("@langchain/core/messages");
 const { webSearch } = require("./tool");
 
+// System prompt: trợ lý nghiên cứu, được gọi tool nhiều lần.
 const prompt = `You are a smart research assistant. Use the search engine to look up information. \
 You are allowed to make multiple calls (either together or in sequence). \
 Only look up information when you are sure of what you want. \
 If you need to look up some information before asking a follow up question, you are allowed to do that!`;
 
+// In dữ liệu trả về sau mỗi node chạy xong.
 function printStepEvent(event) {
   for (const [node, value] of Object.entries(event)) {
-    // Khi Graph bị middleware chặn lại, stream() bắn thêm 1 event phụ "__interrupt__"
-    // không chứa messages - bỏ qua, không phải Node thật (giống hệt bản manual-graph).
+    // Lúc bị middleware chặn, stream() trả thêm event phụ "__interrupt__".
+    // Event này không có messages, không phải node thật -> bỏ qua.
     if (!value?.messages) continue;
 
     const lastMessage = value.messages.at(-1);
@@ -45,12 +47,10 @@ function printStepEvent(event) {
   }
 }
 
-// Resume từ `config` tới khi THỰC SỰ xong (state.next rỗng).
-// - Lần đầu: dùng `firstInput` (Command với decision cụ thể, hoặc `null`) - nhắm đúng
-//   checkpoint `config`, tức điểm rẽ nhánh.
-// - Các lần lặp sau (Model gọi Tool thêm lần nữa): PHẢI dùng `thread` (không kèm checkpoint
-//   cụ thể) để lấy checkpoint MỚI NHẤT của nhánh vừa tạo.
-// Nếu cứ dùng lại `config` cũ, graph sẽ resume lặp lại mãi từ đúng điểm đó -> treo vô hạn.
+// Chạy tiếp từ config tới khi xong (state.next rỗng).
+// - Lần đầu: dùng firstInput + config -> chạy từ đúng checkpoint rẽ nhánh.
+// - Lần sau: dùng thread (không kèm checkpoint) -> chạy từ checkpoint mới nhất.
+// Nếu dùng lại config cũ, graph cứ chạy lại từ cùng 1 điểm -> lặp vô hạn.
 async function resumeUntilDone(agent, config, firstInput, thread) {
   let events = await agent.stream(firstInput, config);
   for await (const event of events) {
@@ -72,6 +72,7 @@ async function resumeUntilDone(agent, config, firstInput, thread) {
   return state;
 }
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
   const llm = new ChatGoogleGenerativeAI({
     apiKey: process.env.GEMINI_API_KEY,
@@ -81,8 +82,8 @@ async function main() {
 
   const memory = new MemorySaver();
 
-  // interruptOn: { web_search: true } -> mỗi lần Model gọi Tool "web_search" đều bị chặn
-  // lại chờ duyệt, tương đương interruptBefore: ["action"] ở bản manual-graph.
+  // Mỗi lần Model gọi tool "web_search" đều bị chặn chờ duyệt.
+  // Tương đương interruptBefore: ["action"] ở bản manual-graph.
   const hitlMiddleware = humanInTheLoopMiddleware({
     interruptOn: { web_search: true },
   });
@@ -97,9 +98,7 @@ async function main() {
 
   const thread = { configurable: { thread_id: "1" } };
 
-  // ============================================================
-  // BRANCH 1 (NHÁNH GỐC): Chạy lượt đầu tiên, dừng lại chờ duyệt Tool
-  // ============================================================
+  // Branch 1 (gốc): chạy lần đầu, dừng chờ duyệt tool.
   console.log(
     "\n========== [BRANCH 1] Chạy lần đầu (Bị chặn trước khi gọi Tool) ==========",
   );
@@ -111,35 +110,32 @@ async function main() {
     printStepEvent(event);
   }
 
-  // stream() không trả thẳng interrupt request như invoke() - phải getState() để đọc.
+  // stream() không trả interrupt request như invoke() -> đọc qua getState().
   const firstState = await agent.graph.getState(thread);
   console.log(
     "-> Đang chờ duyệt:",
     firstState.tasks[0].interrupts[0].value.actionRequests,
   );
 
-  // Lấy lịch sử tất cả các snapshot checkpoint (từ mới nhất -> cũ nhất)
+  // Lấy toàn bộ checkpoint, từ mới nhất tới cũ nhất.
   const states = [];
   for await (const snapshot of agent.graph.getStateHistory(thread)) {
     states.push(snapshot);
   }
   console.log(`\n-> Có ${states.length} checkpoint trong lịch sử.`);
 
-  // Tìm checkpoint đang chờ duyệt (message cuối có tool_calls) để làm "Gốc phân nhánh".
-  // Không dùng next.includes("tools") như bản manual-graph, vì middleware pause TẠI
-  // "HumanInTheLoopMiddleware.after_model", không phải ngay trước Node "tools".
+  // Điểm rẽ nhánh: checkpoint đang chờ duyệt (message cuối có tool_calls).
+  // Không tìm theo next.includes("tools") như bản manual-graph,
+  // vì middleware dừng tại "HumanInTheLoopMiddleware.after_model", không phải trước "tools".
   const toReplay = states.find((snapshot) => snapshot.values.messages?.at(-1)?.tool_calls?.length);
   console.log("-> Checkpoint được chọn để làm điểm rẽ nhánh. Node sắp chạy:", toReplay.next);
 
-  // ============================================================
-  // BRANCH 2: Duyệt (approve) rồi chạy tiếp nguyên bản
-  // ============================================================
+  // Branch 2 (replay): duyệt rồi chạy tiếp như cũ.
   console.log("\n========== [BRANCH 2] Replay: Duyệt rồi chạy tiếp nguyên bản ==========");
 
-  // Command({ resume }) chạy tiếp Graph đang bị interrupt() tạm dừng, thay cho
-  // stream(null, config) ở bản manual-graph (xem giải thích đầy đủ ở
-  // 04-human-approval-create-agent.js). `resume` ở đây là `decisions` cho middleware biết
-  // cách xử lý Tool call đang chờ.
+  // resume mang decisions cho middleware biết xử lý tool call đang chờ thế nào.
+  // Thay cho stream(null, config) ở bản manual-graph.
+  // Giải thích Command xem 04-human-approval-create-agent.js.
   const branch2State = await resumeUntilDone(
     agent,
     toReplay.config,
@@ -148,15 +144,13 @@ async function main() {
   );
   console.log(">>> [Branch 2] Kết quả:", branch2State.values.messages.at(-1).content);
 
-  // ============================================================
-  // BRANCH 3: Duyệt kèm sửa Tool Call (decision "edit")
-  // ============================================================
+  // Branch 3 (edit): duyệt kèm sửa tool call.
   console.log("\n========== [BRANCH 3] Edit: Duyệt kèm sửa Tool Call ==========");
 
   const originalAction = toReplay.values.messages.at(-1).tool_calls[0];
 
-  // decision "edit": middleware tự lo việc thay Tool call - không cần tự mutate message
-  // hay gọi updateState() thủ công như bản manual-graph.
+  // decision "edit": middleware tự thay tool call.
+  // Không cần tự sửa message hay gọi updateState() như bản manual-graph.
   const branch3State = await resumeUntilDone(
     agent,
     toReplay.config,
@@ -177,9 +171,7 @@ async function main() {
   );
   console.log(">>> [Branch 3] Kết quả:", branch3State.values.messages.at(-1).content);
 
-  // ============================================================
-  // BRANCH 4: Tự chèn kết quả Tool, bỏ qua middleware
-  // ============================================================
+  // Branch 4 (inject mock): tự chèn kết quả tool giả, bỏ qua middleware.
   console.log("\n========== [BRANCH 4] Inject: Tự chèn ToolMessage giả lập ==========");
 
   const finalToolCallId = toReplay.values.messages.at(-1).tool_calls[0].id;
@@ -193,8 +185,8 @@ async function main() {
     ],
   };
 
-  // updateState + asNode: "tools" ghi thẳng vào checkpoint, KHÔNG đi qua middleware/Command
-  // - Graph coi như Tool đã chạy xong thật, tự tính next là "model_request".
+  // updateState với asNode "tools": ghi thẳng vào checkpoint, không qua middleware.
+  // Graph coi như node "tools" đã chạy xong -> node kế tiếp là "model_request".
   const branch4Config = await agent.graph.updateState(toReplay.config, stateUpdate, "tools");
   console.log(
     "-> Kết quả Tool giả lập đã chèn:",

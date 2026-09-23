@@ -1,3 +1,16 @@
+// =======================================================================
+// EMBEDDING - BƯỚC 2: GỢI Ý PHIM THEO MÔ TẢ
+//
+// 1. Đọc vector phim đã tạo sẵn ở embed-movies.js.
+// 2. Embed mô tả của user thành vector.
+// 3. Tính cosine similarity với từng phim, lấy TOP_K phim giống nhất.
+//
+// Tìm theo ý nghĩa, không cần trùng từ khóa.
+// Vd: "phim về vũ trụ" vẫn tìm được phim có mô tả "space".
+//
+// Phải dùng cùng embedding model với embed-movies.js. Khác model -> vector không so sánh được.
+// =======================================================================
+
 require("dotenv").config();
 const fs = require("fs");
 const path = require("path");
@@ -11,7 +24,9 @@ const EMBEDDINGS_FILE = path.join(__dirname, "movie-embeddings.json");
 const EMBEDDING_MODEL = "gemini-embedding-001";
 const TOP_K = 5;
 
-// Đo độ giống nhau giữa 2 vector embedding, càng gần 1 càng giống
+// Cosine similarity: đo góc giữa 2 vector, không phụ thuộc độ dài vector.
+// Kết quả từ -1 tới 1, càng gần 1 càng giống.
+// = dot(a, b) / (|a| * |b|).
 function cosineSimilarity(a, b) {
   let dot = 0;
   let normA = 0;
@@ -24,6 +39,8 @@ function cosineSimilarity(a, b) {
   return dot / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
+// Chấm điểm từng phim so với câu hỏi, sắp xếp giảm dần, lấy topK phim đầu.
+// So sánh với mọi phim (brute force): ổn với vài trăm phim. Dữ liệu lớn -> dùng vector DB (xem ../chroma/).
 function findTopMovies(movies, queryEmbedding, topK) {
   return movies
     .map((movie) => ({
@@ -34,6 +51,7 @@ function findTopMovies(movies, queryEmbedding, topK) {
     .slice(0, topK);
 }
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
   if (!fs.existsSync(EMBEDDINGS_FILE)) {
     console.error(
@@ -64,11 +82,10 @@ async function main() {
       }
 
       try {
-        // Bước 1: chuyển input của user thành embedding vector
+        // Bước 1: đổi mô tả của user thành vector.
         const { embedding } = await embeddingModel.embedContent(trimmed);
         const queryEmbedding = embedding.values;
-        // Bước 2: so sánh query vector với vector của từng phim bằng cosine similarity,
-        // rồi lấy TOP_K phim có độ tương đồng cao nhất
+        // Bước 2: so với vector từng phim, lấy TOP_K phim giống nhất.
         const topMovies = findTopMovies(movies, queryEmbedding, TOP_K);
 
         console.log("");

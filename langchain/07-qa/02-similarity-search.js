@@ -1,3 +1,10 @@
+// =======================================================================
+// QA - BƯỚC 2: SIMILARITY SEARCH TRÊN CATALOG
+//
+// Tìm sản phẩm liên quan tới câu hỏi bằng similarity search.
+// Đây là bước "Retrieval" trong RAG: chỉ tìm tài liệu, chưa gọi LLM trả lời.
+// =======================================================================
+
 require("../_polyfill");
 require("dotenv").config();
 const { CSVLoader } = require("@langchain/community/document_loaders/fs/csv");
@@ -5,8 +12,7 @@ const { MemoryVectorStore } = require("@langchain/classic/vectorstores/memory");
 const { GoogleGenerativeAIEmbeddings } = require("@langchain/google-genai");
 const path = require("path");
 
-// Khởi tạo mô hình Embedding của Gemini (model: gemini-embedding-001),
-// dùng để gọi API Gemini, chuyển Document / Query thành vector.
+// Model embedding: đổi Document và câu hỏi thành vector.
 const embeddings = new GoogleGenerativeAIEmbeddings({
   apiKey: process.env.GEMINI_API_KEY,
   model: "gemini-embedding-001",
@@ -15,20 +21,21 @@ const embeddings = new GoogleGenerativeAIEmbeddings({
 const filePath = path.join(__dirname, "OutdoorClothingCatalog_1000.csv");
 const loader = new CSVLoader(filePath);
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
   const docs = await loader.load();
   console.log("Đã tải thành công số lượng documents:", docs.length);
 
-  // Gọi API Gemini để tạo vector cho từng Document, rồi lưu các vector đó vào RAM (MemoryVectorStore).
+  // Embed từng Document (gọi Gemini), lưu vector vào RAM.
   const db = await MemoryVectorStore.fromDocuments(docs, embeddings);
 
   const query =
     "Please list all your shirts with sun protection in a table in markdown and summarize each one.";
 
   // similaritySearch:
-  // 1. Gọi API Gemini để tạo vector cho query.
-  // 2. So sánh vector này với các vector Document đã lưu trong RAM (xử lý local, không gọi API).
-  // k = 4: lấy 4 Document có vector giống query nhất.
+  // 1. Embed câu hỏi (gọi Gemini).
+  // 2. So với vector đã lưu trong RAM (chạy local, không gọi API).
+  // k = 4: lấy 4 Document gần nghĩa nhất.
   const results = await db.similaritySearch(query, 4);
 
   console.log("\nSố lượng kết quả tìm thấy:", results.length);

@@ -1,11 +1,12 @@
-// LangGraph Components - Bản dùng createAgent (API cấp cao, khuyến nghị cho Production)
-// Mục tiêu:
-//   - Giải quyết cùng bài toán với 01-components-manual-graph.js nhưng không cần tự dựng
-//     StateGraph.
-//   - `createAgent` tự động dựng toàn bộ Graph (Node, Edge, Loop) bên trong, giúp tối giản code.
-// Lưu ý:
-//   Muốn xem rõ cơ chế Graph hoạt động bên trong thế nào thì xem bản manual ở
-//   01-components-manual-graph.js.
+// =======================================================================
+// LANGGRAPH - BƯỚC 1: COMPONENTS (BẢN createAgent)
+//
+// Agent nghiên cứu: trả lời câu hỏi, cần thì gọi tool web_search để tra cứu.
+// createAgent tự dựng graph bên trong (node, edge, vòng lặp) -> code gọn, hợp cho dự án thật.
+//
+// Cùng bài toán với 01-components-manual-graph.js.
+// Bản đó tự dựng graph bằng StateGraph, xem để hiểu graph chạy bên trong thế nào.
+// =======================================================================
 
 require("../_polyfill");
 require("dotenv").config();
@@ -14,19 +15,20 @@ const { createAgent } = require("langchain");
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { webSearch } = require("./tool");
 
-// In ra tin nhắn cuối cùng (câu trả lời từ Model).
-// Lưu ý: createAgent đã ẩn toàn bộ log trung gian của từng Node - không xem được từng
-// bước gọi tool như ở 01-components-manual-graph.js.
+// In câu trả lời cuối (message cuối của Model).
+// createAgent không log từng node, nên không thấy từng bước gọi tool như bản manual.
 function printAnswer(result) {
   console.log(`\n>>> KẾT QUẢ CUỐI: ${result.messages.at(-1).content}\n`);
 }
 
+// System prompt: trợ lý nghiên cứu, được gọi tool nhiều lần (song song hoặc nối tiếp).
 const prompt = `You are a smart research assistant. Use the search engine to look up information. \
 You are allowed to make multiple calls (either together or in sequence). \
 Only look up information when you are sure of what you want. \
 If you need to look up some information before asking a follow up question, you are allowed to do that!
 `;
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
   const llm = new ChatGoogleGenerativeAI({
     apiKey: process.env.GEMINI_API_KEY,
@@ -34,14 +36,15 @@ async function main() {
     temperature: 0,
   });
 
-  // createAgent: Tự động gộp Model + Tools + System Prompt thành 1 Graph hoàn chỉnh.
-  // Không cần khai báo StateGraph, addNode hay addConditionalEdges thủ công.
+  // Gộp Model + tools + system prompt thành 1 graph hoàn chỉnh.
+  // Không cần StateGraph, addNode, addConditionalEdges.
   const agent = createAgent({
     model: llm,
     tools: [webSearch],
     systemPrompt: prompt,
   });
 
+  // Câu 1: kiến thức phổ thông -> Model tự trả lời, không gọi tool.
   console.log(
     "\n========== Câu 1: Câu hỏi phổ thông - Model tự trả lời ngay, KHÔNG gọi Tool ==========",
   );
@@ -50,6 +53,7 @@ async function main() {
   });
   printAnswer(result1);
 
+  // Câu 2: thông tin chi tiết, ít phổ biến -> Model gọi 1 tool.
   console.log(
     "\n========== Câu 2: Câu hỏi tra cứu chi tiết - Model cần gọi 1 Tool ==========",
   );
@@ -63,6 +67,7 @@ async function main() {
   });
   printAnswer(result2);
 
+  // Câu 3: 2 câu hỏi độc lập -> Model gọi nhiều tool cùng lúc.
   console.log("\n========== Câu 3: Câu hỏi song song - Model gọi nhiều Tool cùng lúc ==========");
   const result3 = await agent.invoke({
     messages: [
@@ -74,6 +79,8 @@ async function main() {
   });
   printAnswer(result3);
 
+  // Câu 4: câu sau cần kết quả câu trước -> Model tra cứu nối tiếp qua nhiều vòng.
+  // Thứ tự: đội thắng -> bang của đội -> GDP của bang.
   console.log("\n========== Câu 4: Câu hỏi chuỗi - Model chạy vòng lặp tra cứu qua nhiều bước ==========");
   const query =
     "Who won the super bowl in 2024? In what state is the winning team headquarters " +

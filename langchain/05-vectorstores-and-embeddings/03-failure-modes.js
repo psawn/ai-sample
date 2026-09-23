@@ -1,3 +1,16 @@
+// =======================================================================
+// VECTORSTORE - BƯỚC 3: CÁC TRƯỜNG HỢP SIMILARITY SEARCH THẤT BẠI
+//
+// Similarity search không phải lúc nào cũng tốt:
+// 1. Chunk trùng lặp: dữ liệu trùng -> kết quả trùng, phí chỗ trong prompt.
+// 2. Lẫn nguồn tài liệu: hỏi "lecture thứ 3" nhưng nhận cả chunk lecture khác,
+//    vì search chỉ so nghĩa, không hiểu điều kiện lọc.
+//
+// Cách khắc phục: 06-retrieval/
+// - Trùng lặp -> MMR (01-similarity-vs-mmr.js).
+// - Lẫn nguồn -> metadata filter (02-metadata-filter.js), self-query (03-self-query.js).
+// =======================================================================
+
 require("../_polyfill");
 require("dotenv").config();
 const fs = require("fs");
@@ -9,16 +22,15 @@ const { MemoryVectorStore } = require("@langchain/classic/vectorstores/memory");
 
 const lecturesDir = path.join(__dirname, "../../docs/cs229_lectures");
 
-// Khởi tạo mô hình Embedding của Gemini (model: gemini-embedding-001),
-// dùng để gọi API Gemini, chuyển Document / Query thành vector.
+// Model embedding: đổi chunk và câu hỏi thành vector.
 const embeddings = new GoogleGenerativeAIEmbeddings({
   apiKey: process.env.GEMINI_API_KEY,
   model: "gemini-embedding-001",
 });
 
+// Load các file lecture PDF có trong thư mục. File nào thiếu thì bỏ qua.
 async function loadDocs() {
-  // Cố ý load file Lecture01 2 lần để tạo dữ liệu trùng lặp, xem nó ảnh hưởng
-  // thế nào tới kết quả tìm kiếm ở phần bên dưới.
+  // Cố ý load Lecture01 2 lần để tạo dữ liệu trùng lặp (vấn đề 1).
   const pdfPaths = [
     path.join(lecturesDir, "MachineLearning-Lecture01.pdf"),
     path.join(lecturesDir, "MachineLearning-Lecture01.pdf"),
@@ -34,6 +46,7 @@ async function loadDocs() {
   return docs;
 }
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
   const docs = await loadDocs();
 
@@ -45,10 +58,10 @@ async function main() {
 
   const vectordb = await MemoryVectorStore.fromDocuments(splits, embeddings);
 
-  // === Vấn đề 1: chunk bị trùng lặp ===
-  // Vì Lecture01 được load 2 lần, index có 2 vector giống hệt nhau cho cùng 1 đoạn văn
-  // -> tìm kiếm có thể trả về 2 chunk trùng nội dung, làm tốn chỗ trong prompt gửi LLM.
-  // Lấy top 10 thay vì chỉ 2 kết quả đầu, vì không chắc 2 bản trùng luôn xếp hạng liền kề.
+  // Vấn đề 1: chunk bị trùng lặp.
+  // Lecture01 load 2 lần -> 2 vector giống hệt cho cùng 1 đoạn văn
+  // -> kết quả có thể chứa 2 chunk trùng, phí chỗ trong prompt.
+  // Lấy top 10 vì 2 bản trùng không chắc luôn xếp liền nhau.
   const question1 = "what did they say about matlab?";
   const results1 = await vectordb.similaritySearch(question1, 10);
   const duplicatePair = results1.find((doc, i) =>
@@ -61,9 +74,10 @@ async function main() {
       : "Không có chunk trùng trong top 10 (bản duplicate xếp hạng thấp hơn).",
   );
 
-  // === Vấn đề 2: tìm kiếm lẫn nội dung giữa các lecture ===
-  // similaritySearch chỉ so nghĩa câu hỏi với từng chunk, không hiểu "lecture thứ 3"
-  // nghĩa là gì -> kết quả có thể lẫn chunk từ lecture khác dù câu hỏi chỉ nói về 1 lecture.
+  // Vấn đề 2: lẫn nội dung giữa các lecture.
+  // Search chỉ so nghĩa, không hiểu "lecture thứ 3" là điều kiện lọc
+  // -> kết quả có thể chứa chunk từ lecture khác. Xem metadata.source để kiểm tra.
+  // Cần ít nhất 2 file khác nhau mới thấy được vấn đề này.
   const uniqueSources = new Set(docs.map((d) => d.metadata.source));
   if (uniqueSources.size > 1) {
     const question2 =

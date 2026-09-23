@@ -1,3 +1,10 @@
+// =======================================================================
+// LANGCHAIN BASICS - model.invoke() vs chain.invoke()
+//
+// 1. model.invoke(): tự format prompt -> gọi model -> tự lấy .content.
+// 2. chain.invoke(): nối các bước bằng .pipe(), chỉ cần truyền biến của prompt.
+// =======================================================================
+
 require("../_polyfill");
 require("dotenv").config();
 
@@ -15,26 +22,21 @@ const prompt = ChatPromptTemplate.fromTemplate(
   `Trả lời trong đúng 1 câu: thủ đô của {country} là gì?`,
 );
 
-/**
- * 1. model.invoke() — Gọi trực tiếp model.
- *
- * Model không tự nhận object { country: "Việt Nam" } để điền vào prompt.
- * Ta phải tự format prompt thành messages trước, rồi truyền messages cho model.
- *
- * Flow:
- * { country } → prompt.formatMessages() → messages → model.invoke() → AIMessage
- *
- * Output của model là AIMessage, nên nội dung text nằm trong aiMessage.content.
- *
- * Khi nào dùng: gọi model 1 lần với input đã chuẩn bị sẵn, không cần ghép nhiều bước.
- */
+// ===== CÁCH 1: model.invoke() - GỌI TRỰC TIẾP MODEL =====
+// Model không nhận object { country }, phải tự format thành messages trước.
+// Flow:
+// 1. { country } -> prompt.formatMessages() -> messages.
+// 2. messages -> model.invoke() -> AIMessage.
+// 3. Lấy text từ aiMessage.content.
+//
+// Khi nào dùng: gọi model 1 lần với input đã chuẩn bị sẵn.
 async function demoModelInvoke() {
-  // Thay {country} bằng giá trị thực để tạo messages.
+  // Thay {country} bằng giá trị thật để tạo messages.
   const messages = await prompt.formatMessages({
     country: "Việt Nam",
   });
 
-  // Gọi trực tiếp model với messages đã được format.
+  // Gọi trực tiếp model với messages đã format.
   const aiMessage = await model.invoke(messages);
 
   console.log("=== model.invoke ===");
@@ -42,24 +44,15 @@ async function demoModelInvoke() {
   console.log("Output: AIMessage →", aiMessage.content);
 }
 
-/**
- * 2. chain.invoke() — Nối nhiều bước thành một pipeline.
- *
- * Thay vì tự format prompt → gọi model → lấy content,
- * LangChain cho phép nối các bước bằng .pipe().
- *
- * Pipeline:
- * { country } → prompt → model → StringOutputParser → string
- *
- * Vì pipeline đã biết cách xử lý từng bước nên khi invoke(),
- * ta chỉ cần truyền object chứa các biến của prompt.
- *
- * Khi nào dùng: hầu hết trường hợp thực tế, vì ngắn gọn và tự động hoá các bước lặp lại.
- */
+// ===== CÁCH 2: chain.invoke() - NỐI CÁC BƯỚC THÀNH PIPELINE =====
+// Pipeline: { country } -> prompt -> model -> StringOutputParser -> string.
+// Chain tự lo từng bước, chỉ cần truyền object chứa biến của prompt.
+//
+// Khi nào dùng: hầu hết trường hợp thực tế, vì ngắn gọn, tự động.
 async function demoChainInvoke() {
   const chain = prompt.pipe(model).pipe(new StringOutputParser());
 
-  // Chain tự format prompt → gọi model → chuyển AIMessage thành string.
+  // Chain tự format prompt -> gọi model -> đổi AIMessage thành string.
   const answer = await chain.invoke({
     country: "Nhật Bản",
   });
@@ -69,6 +62,7 @@ async function demoChainInvoke() {
   console.log("Output: string →", answer);
 }
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
   await demoModelInvoke();
   await demoChainInvoke();

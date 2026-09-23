@@ -1,8 +1,12 @@
-// =======================================================
-// Extraction: giống Tagging, cũng dùng function calling, nhưng thay vì gắn
-// 1 nhãn cho cả đoạn text, mục tiêu là trích ra NHIỀU mục thông tin có cấu
-// trúc (vd: danh sách người được nhắc tới) từ trong đoạn text.
-// =======================================================
+// =======================================================================
+// FUNCTIONS, TOOLS & AGENTS - BƯỚC 4: EXTRACTION (TRÍCH XUẤT THÔNG TIN)
+//
+// Cùng kỹ thuật với Tagging (bước 3), khác mục đích:
+// - Tagging: gắn nhãn cho cả đoạn text (1 kết quả).
+// - Extraction: trích nhiều mục có cấu trúc từ text.
+//   Vd: danh sách người được nhắc tới.
+// =======================================================================
+
 require("../_polyfill");
 require("dotenv").config();
 
@@ -18,56 +22,50 @@ const model = new ChatGoogleGenerativeAI({
   temperature: 0,
 });
 
-// Thông tin về 1 người.
+// Thông tin 1 người. age optional: text không nói tuổi thì bỏ trống.
 const personSchema = z.object({
   name: z.string().describe("person's name"),
   age: z.number().optional().describe("person's age"),
 });
 
-// Thông tin cần trích ra: 1 danh sách người.
+// Thông tin cần trích: 1 danh sách người.
 const informationSchema = z.object({
   people: z.array(personSchema).describe("List of info about people"),
 });
 
+// Đổi schema thành function tool tên "Information".
 const extractionTool = zodToFunctionTool(
   "Information",
   "Information to extract.",
   informationSchema,
 );
 
-// tool_choice: điều khiển model có bắt buộc gọi tool hay không.
-// - "auto": model tự quyết định có cần gọi tool hay không.
-// - "any": model bắt buộc phải gọi 1 trong các tool được truyền vào.
-// - "none": cấm model gọi bất kỳ tool nào.
-// - "<tên tool>" (như "Information" ở đây): ép model luôn gọi đúng tool đó.
-//   Đây chỉ là 1 chuỗi thường nên phải gõ khớp tay với extractionTool.function.name -
-//   có thể dùng thẳng extractionTool.function.name thay vì gõ tay để tránh gõ lệch.
+// Ép model luôn gọi tool "Information" (các option tool_choice: 03-tagging.js).
 const extractionModel = model.withConfig({
   tools: [extractionTool],
   tool_choice: "Information",
 });
 
-// RunnableLambda lấy args của tool_call đầu tiên -> trả thẳng ra object JSON
-// đã trích được, thay vì cả 1 AIMessage.
+// Lấy args của tool_call đầu tiên -> ra thẳng object đã trích, thay vì cả AIMessage.
 const extractFirstToolArgs = RunnableLambda.from(
   (aiMessage) => aiMessage.tool_calls[0].args,
 );
 
-// RunnableLambda lấy tiếp field "people" ra khỏi kết quả trên -> chỉ còn lại
-// đúng mảng người, không kèm theo các field khác của object args.
+// Lấy tiếp field "people" -> chỉ còn mảng người.
 const extractPeopleField = RunnableLambda.from((args) => args.people);
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
-  // Gọi model trực tiếp, không qua prompt template - model vẫn tự nhận ra
-  // 2 người trong câu ("Joe" và "his mom is Martha").
+  // Case 1: gọi model trực tiếp, không qua prompt
+  // -> model vẫn nhận ra 2 người ("Joe" và "Martha").
   const directResult = await extractionModel.invoke(
     "Joe is 30, his mom is Martha",
   );
   console.log("\n=== 1. extractionModel.invoke trực tiếp (raw tool_calls) ===");
   console.log(directResult.tool_calls);
 
-  // Dặn model không được tự bịa thông tin nếu văn bản không nói rõ, và vẫn
-  // trích những phần thông tin có thể trích được (partial info).
+  // Prompt dặn model: không đoán thông tin text không nói rõ, nhưng vẫn trích phần có được.
+  // Vd: text không nói tuổi Martha -> bỏ trống age, không đoán.
   const prompt = ChatPromptTemplate.fromMessages([
     [
       "system",
@@ -77,18 +75,21 @@ async function main() {
   ]);
   const extractionChain = prompt.pipe(extractionModel);
 
+  // Case 2: qua prompt -> xem tool_calls thô.
   const chainResult = await extractionChain.invoke({
     input: "Joe is 30, his mom is Martha",
   });
   console.log("\n=== 2. extractionChain.invoke (raw tool_calls) ===");
   console.log(chainResult.tool_calls);
 
+  // Case 3: thêm parser -> chỉ lấy args ({ people: [...] }).
   const argsOnly = await extractionChain
     .pipe(extractFirstToolArgs)
     .invoke({ input: "Joe is 30, his mom is Martha" });
   console.log("\n=== 3. extractionChain + parser (chỉ lấy args) ===");
   console.log(argsOnly);
 
+  // Case 4: thêm 1 parser nữa -> chỉ còn mảng people.
   const peopleOnly = await extractionChain
     .pipe(extractFirstToolArgs)
     .pipe(extractPeopleField)

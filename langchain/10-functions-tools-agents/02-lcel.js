@@ -1,3 +1,17 @@
+// =======================================================================
+// FUNCTIONS, TOOLS & AGENTS - BƯỚC 2: LCEL (LangChain Expression Language)
+//
+// LCEL nối các bước (prompt, model, parser, retriever...) thành chain bằng .pipe().
+// Mỗi bước là 1 Runnable: nhận input, trả output cho bước sau.
+//
+// 5 demo (bật/tắt trong main()):
+// 1. Simple chain: prompt -> model -> parser.
+// 2. Chain phức tạp: RunnableMap + retriever (RAG cơ bản).
+// 3. Bind: gắn sẵn tools vào model.
+// 4. Fallbacks: chain chính lỗi -> tự chạy chain dự phòng.
+// 5. Interface: invoke / batch / stream.
+// =======================================================================
+
 require("../_polyfill");
 require("dotenv").config();
 
@@ -19,13 +33,12 @@ const model = new ChatGoogleGenerativeAI({
   temperature: 0.7,
 });
 
-// ============================
-// 1. Simple Chain
-// ============================
-// Luồng xử lý (prompt.pipe(model).pipe(outputParser)):
-// 1. prompt: điền {topic} vào template có sẵn.
-// 2. model: gửi prompt cho LLM, nhận về AIMessage.
-// 3. outputParser: lấy phần text từ AIMessage.content, bỏ phần metadata.
+// ===== DEMO 1: SIMPLE CHAIN =====
+
+// prompt.pipe(model).pipe(outputParser):
+// 1. prompt: điền {topic} vào template.
+// 2. model: gửi prompt cho LLM, nhận AIMessage.
+// 3. outputParser: lấy text từ AIMessage.content, bỏ metadata.
 async function simpleChainDemo() {
   const prompt = ChatPromptTemplate.fromTemplate(
     "tell me a short joke about {topic}",
@@ -39,31 +52,28 @@ async function simpleChainDemo() {
   console.log(result);
 }
 
-// ============================
-// 2. More complex chain (RunnableMap + retriever)
-// ============================
-// Luồng RAG cơ bản:
-// 1. RunnableMap: chạy song song nhiều nhánh, mỗi nhánh nhận cùng 1 input.
-// 2. retriever tìm đoạn context liên quan tới câu hỏi.
-// 3. Gom context + question lại thành 1 object, đưa vào prompt.
-// 4. prompt -> model -> outputParser: LLM trả lời dựa trên context vừa tìm được.
+// ===== DEMO 2: CHAIN PHỨC TẠP (RunnableMap + retriever) =====
+
+// RAG cơ bản:
+// 1. RunnableMap: từ input { question }, tạo { context, question }.
+// 2. retriever: tìm đoạn văn bản liên quan câu hỏi -> context.
+// 3. prompt -> model -> outputParser: LLM trả lời chỉ dựa trên context.
 async function complexChainDemo() {
-  // MemoryVectorStore: lưu embedding trong RAM. embeddings gọi API Gemini để
-  // biến từng câu thành vector.
+  // embeddings: đổi câu thành vector. MemoryVectorStore: lưu vector trong RAM.
   const embeddings = new GoogleGenerativeAIEmbeddings({
     apiKey,
     model: "gemini-embedding-001",
   });
   const vectorstore = await MemoryVectorStore.fromTexts(
     ["harrison worked at kensho", "bears like to eat honey"],
-    // metadata cho từng câu text ở trên (theo đúng thứ tự) - để trống khi
-    // không cần lọc / gắn thêm thông tin gì cho đoạn text.
+    // Metadata cho từng câu, đúng thứ tự. Để trống khi không cần lọc.
     [{}, {}],
     embeddings,
   );
+  // retriever: nhận câu hỏi -> trả các đoạn gần nghĩa nhất.
   const retriever = vectorstore.asRetriever();
 
-  // retriever.invoke(): embed câu hỏi rồi tìm các đoạn văn bản gần nghĩa nhất.
+  // Thử retriever riêng trước khi ghép vào chain.
   const docs1 = await retriever.invoke("where did harrison work?");
   console.log("\n=== 2a. retriever.invoke: harrison worked at ===");
   console.log(docs1.map((d) => d.pageContent));
@@ -72,8 +82,7 @@ async function complexChainDemo() {
   console.log("\n=== 2b. retriever.invoke: bears like to eat ===");
   console.log(docs2.map((d) => d.pageContent));
 
-  // Gộp các đoạn văn bản liên quan thành 1 chuỗi text trước khi đưa vào prompt,
-  // vì {context} trong prompt cần là text chứ không phải object.
+  // Gộp các document thành 1 chuỗi, vì {context} trong prompt phải là text.
   function formatDocuments(docs) {
     return docs.map((doc) => doc.pageContent).join("\n\n");
   }
@@ -86,9 +95,9 @@ Question: {question}
   const prompt = ChatPromptTemplate.fromTemplate(template);
   const outputParser = new StringOutputParser();
 
-  // RunnableMap.from({...}): mỗi key tự tính giá trị từ input gốc ({ question }):
-  // - context: gọi retriever (bất đồng bộ) lấy đoạn liên quan, gộp thành text.
-  // - question: lấy nguyên input.question.
+  // RunnableMap: mỗi key tự tính giá trị từ input gốc { question }, chạy song song.
+  // - context: gọi retriever, gộp kết quả thành text.
+  // - question: giữ nguyên input.question.
   const chain = RunnableMap.from({
     context: async (x) => formatDocuments(await retriever.invoke(x.question)),
     question: (x) => x.question,
@@ -101,8 +110,7 @@ Question: {question}
   console.log("\n=== 2c. Complex chain (RunnableMap -> prompt -> model) ===");
   console.log(answer);
 
-  // Có thể dùng riêng RunnableMap để xem trước context/question được gom ra sao,
-  // trước khi đưa vào prompt.
+  // Chạy riêng RunnableMap để xem object { context, question } trước khi vào prompt.
   const inputs = RunnableMap.from({
     context: async (x) => formatDocuments(await retriever.invoke(x.question)),
     question: (x) => x.question,
@@ -114,16 +122,16 @@ Question: {question}
   console.log(mappedInputs);
 }
 
-// ============================
-// 3. Bind (gắn sẵn tools cho model)
-// ============================
-// model.withConfig({ tools }) (thay cho .bind() đã deprecated, cùng cách dùng):
-// 1. Tạo ra 1 Runnable mới đã gắn sẵn danh sách tools vào model.
-// 2. Mọi invoke sau này tự động kèm theo tools đó, không cần truyền lại.
-// Format tools giống file 01-function-calling.js.
+// ===== DEMO 3: BIND (GẮN SẴN TOOLS VÀO MODEL) =====
+
+// model.withConfig({ tools }) (thay .bind() đã deprecated):
+// - Tạo Runnable mới, gắn sẵn tools.
+// - Mọi lần invoke sau tự kèm tools, không cần truyền lại.
+// Format tools giống 01-function-calling.js.
 async function bindDemo() {
   const prompt = ChatPromptTemplate.fromMessages([["human", "{input}"]]);
 
+  // Tool tra thời tiết theo mã sân bay.
   const weatherTools = [
     {
       type: "function",
@@ -143,6 +151,7 @@ async function bindDemo() {
       },
     },
   ];
+  // Tool tra tin thể thao theo tên đội.
   const sportTools = [
     {
       type: "function",
@@ -163,6 +172,7 @@ async function bindDemo() {
     },
   ];
 
+  // 3a. Gắn 1 tool (weather_search), hỏi thời tiết -> kỳ vọng gọi tool này.
   const modelWithWeatherTool = model.withConfig({ tools: weatherTools });
   const runnable = prompt.pipe(modelWithWeatherTool);
 
@@ -172,7 +182,7 @@ async function bindDemo() {
   console.log("\n=== 3a. Bind: 1 tool (weather_search) ===");
   console.log("tool_calls:", weatherResponse.tool_calls);
 
-  // Gắn thêm 1 tool nữa (sports_search) - model tự chọn tool phù hợp với câu hỏi.
+  // 3b. Gắn cả 2 tool, hỏi thể thao -> kỳ vọng model chọn sports_search.
   const multiTools = [...weatherTools, ...sportTools];
 
   const modelWithMultiTools = model.withConfig({ tools: multiTools });
@@ -184,8 +194,7 @@ async function bindDemo() {
   console.log("\n=== 3b. Bind: 2 tools (weather_search + sports_search) ===");
   console.log("tool_calls:", sportsResponse.tool_calls);
 
-  // Câu hỏi không liên quan tới tool nào -> model tự trả lời bằng chữ, không
-  // gọi tool (tool_calls rỗng).
+  // 3c. Câu hỏi không liên quan tool -> model trả lời bằng chữ, tool_calls rỗng.
   const chatResponse = await runnableMultiTools.invoke({
     input: "hi, how are you?",
   });
@@ -194,25 +203,20 @@ async function bindDemo() {
   console.log("content:", chatResponse.content);
 }
 
-// ============================
-// 4. Fallbacks
-// ============================
-// withFallbacks: nếu chain chính lỗi (throw), tự động thử chain dự phòng theo
-// thứ tự khai báo, thay vì crash luôn. Demo dưới đây:
-// 1. simpleChain: không dặn model về format -> hay bọc JSON trong ```json```
-//    (markdown) -> JSON.parse() lỗi.
+// ===== DEMO 4: FALLBACKS (CHAIN DỰ PHÒNG) =====
+
+// withFallbacks: chain chính throw -> tự thử chain dự phòng, không crash.
+// 1. simpleChain: không dặn format -> model hay bọc JSON trong ```json``` -> parse lỗi.
 // 2. strictJsonChain: dặn rõ chỉ trả JSON thuần -> parse ổn định hơn.
-// 3. finalChain: chạy simpleChain trước, nếu lỗi thì tự động fallback qua strictJsonChain.
+// 3. finalChain: chạy simpleChain trước, lỗi thì chuyển sang strictJsonChain.
 async function fallbacksDemo() {
   const challenge =
     "write three poems in a json blob, where each poem is a json blob of a title, author, and first line";
 
-  // So sánh RunnableMap vs RunnableLambda
-  // - Cả 2 đều là Runnable, .pipe() được vào chain:
-  // - RunnableMap.from({ key1: fn1, key2: fn2 }): chạy NHIỀU nhánh SONG SONG
-  //   trên cùng 1 input, gộp kết quả thành 1 object nhiều key.
-  // - RunnableLambda.from(fn): bọc 1 hàm DUY NHẤT, 1 input -> 1 output.
-  // Ví dụ minh hoạ:
+  // RunnableMap vs RunnableLambda (đều .pipe() được vào chain):
+  // - RunnableMap: nhiều nhánh song song trên cùng input -> object nhiều key.
+  // - RunnableLambda: bọc 1 hàm, 1 input -> 1 output.
+  // Vd:
   //   await RunnableMap.from({
   //     upper: (s) => s.toUpperCase(),
   //     length: (s) => s.length,
@@ -220,8 +224,7 @@ async function fallbacksDemo() {
   //
   //   await RunnableLambda.from((s) => s.toUpperCase()).invoke("hi"); // -> "HI"
 
-  // Chain đơn giản: không dặn model về format, JSON.parse() dễ lỗi nếu model
-  // trả kèm markdown code fence hoặc lời giải thích.
+  // Chain chính: không dặn format -> JSON.parse() dễ lỗi nếu model kèm markdown.
   const simpleChain = model
     .pipe(new StringOutputParser())
     .pipe(RunnableLambda.from((text) => JSON.parse(text)));
@@ -236,24 +239,12 @@ async function fallbacksDemo() {
     console.log("Lỗi JSON.parse:", error.message);
   }
 
-  // Chain dự phòng: thêm SystemMessage dặn model chỉ trả JSON thuần, không
-  // markdown, không giải thích thêm -> parse ổn định hơn.
+  // Chain dự phòng: thêm SystemMessage dặn chỉ trả JSON thuần.
   //
-  // RunnableLambda.from(fn): bọc 1 hàm JS bình thường thành 1 Runnable, để
-  // .pipe() được vào chain. Ví dụ:
-  //   const double = RunnableLambda.from((x) => x * 2);
-  //   await double.invoke(3); // -> 6
-  //
-  // Vì sao chain này bắt đầu bằng RunnableLambda.from thay vì model.pipe như
-  // simpleChain:
-  // 1. simpleChain gọi model trực tiếp bằng string -> chỉ cần .pipe() nối tiếp.
-  // 2. Chain này cần model nhận thêm 1 SystemMessage dặn dò -> phải biến input
-  //    (string) thành mảng [SystemMessage, HumanMessage] TRƯỚC khi vào model.
-  // 3. .pipe() không tự tạo input mới cho bước đầu chain, nên bước biến đổi đó
-  //    phải là RunnableLambda.from((text) => [...]), rồi mới .pipe(model) tiếp.
-  //
-  // "text" trong RunnableLambda.from((text) => [...]) bên dưới chính là input
-  // string ban đầu (biến challenge).
+  // Vì sao mở đầu bằng RunnableLambda, không phải model.pipe như simpleChain?
+  // - Cần đổi input string thành [SystemMessage, HumanMessage] trước khi vào model.
+  // - Bước đổi đó phải là 1 Runnable -> RunnableLambda.from((text) => [...]).
+  // - "text" là input ban đầu (biến challenge).
   const strictJsonChain = RunnableLambda.from((text) => [
     new SystemMessage(
       "Only output raw JSON. Do not wrap it in markdown code fences and do not add any explanation.",
@@ -264,7 +255,7 @@ async function fallbacksDemo() {
     .pipe(new StringOutputParser())
     .pipe(RunnableLambda.from((text) => JSON.parse(text)));
 
-  // finalChain: thử simpleChain trước, nếu lỗi thì tự động chạy strictJsonChain.
+  // Thử simpleChain trước, lỗi thì chạy strictJsonChain.
   const finalChain = simpleChain.withFallbacks([strictJsonChain]);
 
   const finalResult = await finalChain.invoke(challenge);
@@ -272,13 +263,12 @@ async function fallbacksDemo() {
   console.log(finalResult);
 }
 
-// ============================
-// 5. Interface (invoke / batch / stream)
-// ============================
-// Mọi Runnable trong LCEL đều có chung 1 bộ method để chạy chain:
-// 1. invoke: chạy 1 input, đợi kết quả trả về đầy đủ.
-// 2. batch: chạy nhiều input song song, trả về mảng kết quả theo đúng thứ tự.
-// 3. stream: nhận kết quả từng phần ngay khi model sinh ra, không cần đợi xong hết.
+// ===== DEMO 5: INTERFACE (invoke / batch / stream) =====
+
+// Mọi Runnable đều có 3 method chung:
+// 1. invoke: 1 input -> đợi kết quả đầy đủ.
+// 2. batch: nhiều input chạy song song -> mảng kết quả, đúng thứ tự input.
+// 3. stream: nhận từng phần ngay khi model sinh ra.
 async function interfaceDemo() {
   const prompt = ChatPromptTemplate.fromTemplate(
     "Tell me a short joke about {topic}",
@@ -297,7 +287,7 @@ async function interfaceDemo() {
   console.log("\n=== 5b. chain.batch ===");
   console.log(batchResult);
 
-  // In từng chunk ngay khi nhận được - hữu ích khi hiển thị real-time cho người dùng.
+  // In từng chunk ngay khi nhận -> người dùng thấy chữ hiện dần, không phải chờ.
   console.log("\n=== 5c. chain.stream ===");
   for await (const chunk of await chain.stream({ topic: "bears" })) {
     process.stdout.write(chunk);
@@ -305,6 +295,8 @@ async function interfaceDemo() {
   console.log();
 }
 
+// ===== KỊCH BẢN MINH HỌA =====
+// Bỏ comment demo muốn chạy.
 async function main() {
   // await simpleChainDemo();
   // await complexChainDemo();

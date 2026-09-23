@@ -1,26 +1,19 @@
-// =======================================================
-// Function Calling: cho phép LLM tự quyết định có cần gọi 1 hàm bên ngoài
-// (tool) hay không, thay vì tự bịa câu trả lời. Nếu cần, LLM sẽ trả về
-// đúng tên hàm và tham số dạng JSON để code gọi hàm đó giúp nó.
+// =======================================================================
+// FUNCTIONS, TOOLS & AGENTS - BÀI TẬP: FUNCTION CALLING ĐẶT VÉ MÁY BAY
 //
-// Các bước xử lý:
-// 1. Khai báo trước danh sách tool mà LLM được phép dùng.
-// 2. Gửi câu hỏi kèm danh sách tool đó cho LLM.
-// 3. LLM trả về tool_calls (tên hàm + tham số) thay vì tự chạy hàm.
-// 4. Code JS đọc tool_calls đó và thực thi hàm thật.
-// 5. (Tuỳ chọn) Gửi kết quả của hàm ngược lại cho LLM để nó tổng hợp
-//    thành câu trả lời cuối cùng bằng ngôn ngữ tự nhiên.
+// Bản "đặt vé máy bay" của 01-function-calling.js: giữ cấu trúc demo,
+// đổi tool và dữ liệu. Điểm mới: 2 tool phối hợp với nhau.
+// - get_flight_info: tra cứu chuyến bay.
+// - book_flight: đặt vé.
 //
-// tool_choice: tham số điều khiển LLM có bắt buộc gọi tool hay không.
-// - "auto" (mặc định): LLM tự quyết định có cần gọi tool hay không.
-// - "none": cấm LLM gọi bất kỳ tool nào, kể cả khi câu hỏi cần tool.
-// - "<tên tool>": ép LLM luôn gọi đúng tool đó, bất kể câu hỏi là gì.
+// Flow fullRoundTrip():
+// 1. LLM tra cứu chuyến bay.
+// 2. Dựa vào kết quả, LLM tự quyết định có đặt vé không.
+// 3. LLM viết câu trả lời cuối.
 //
-// Bản này là phiên bản domain "đặt vé máy bay" của 01-function-calling.js
-// (giữ nguyên cấu trúc demo, chỉ đổi tool/mock data), dùng 2 tool phối hợp:
-// get_flight_info (tra cứu) và book_flight (đặt vé) để fullRoundTrip() demo
-// được chuỗi "tra cứu rồi đặt vé".
-// =======================================================
+// Các bước function calling và tool_choice: xem 01-function-calling.js.
+// =======================================================================
+
 require("dotenv").config();
 
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
@@ -32,7 +25,9 @@ const model = new ChatGoogleGenerativeAI({
   temperature: 0,
 });
 
-// Dữ liệu chuyến bay giả lập, key là địa điểm đến (viết thường).
+// ===== DỮ LIỆU & HÀM GIẢ LẬP =====
+
+// Chuyến bay giả lập. Key: điểm đến, viết thường.
 const MOCK_FLIGHTS = {
   "đà nẵng": {
     flightNumber: "VN204",
@@ -66,13 +61,13 @@ const MOCK_FLIGHTS = {
   },
 };
 
+// Chuẩn hóa tên điểm đến để tra MOCK_FLIGHTS. Vd: "  Đà Nẵng " -> "đà nẵng".
 function normalizeDestination(destination) {
   return String(destination).trim().toLowerCase();
 }
 
-// Hàm giả lập tra cứu chuyến bay - trong thực tế đây có thể là API backend hoặc
-// API bên thứ 3. LLM không tự chạy được hàm này, nó chỉ chọn "nên gọi hàm nào,
-// tham số gì", việc thực thi thật sự vẫn do code JS đảm nhiệm.
+// Giả lập tra cứu chuyến bay. Thực tế có thể là API backend / bên thứ 3.
+// Không tìm thấy -> trả found: false (không throw), để LLM đọc và báo lại cho user.
 function getFlightInfo(destination) {
   const flight = MOCK_FLIGHTS[normalizeDestination(destination)];
   if (!flight) {
@@ -84,7 +79,7 @@ function getFlightInfo(destination) {
   return JSON.stringify({ found: true, destination, ...flight });
 }
 
-// Hàm giả lập đặt vé máy bay tới địa điểm đã cho.
+// Giả lập đặt vé, trả mã đặt chỗ (bookingId).
 function bookFlight(destination, date, passengerName) {
   const flight = MOCK_FLIGHTS[normalizeDestination(destination)];
   if (!flight) {
@@ -105,11 +100,12 @@ function bookFlight(destination, date, passengerName) {
   });
 }
 
-// Khai báo tool cho LLM dưới dạng JSON Schema chuẩn (Function Calling)
-// Lưu ý: LLM chỉ đọc mô tả này để quyết định xem "có nên gọi hàm không"
-// và "truyền tham số gì", việc thực thi thực tế vẫn do code đảm nhiệm
-// Note: nếu muốn code an toàn (vừa mô tả cho AI, vừa validate kiểu dữ liệu),
-// có thể dùng Zod + `zodToJsonSchema` (xem ../12-agents/03-custom-tool-tool-calling.js).
+// ===== KHAI BÁO TOOL CHO LLM =====
+
+// Khai báo tool bằng JSON Schema.
+// LLM đọc để quyết định: có gọi hàm không, truyền tham số gì.
+// Muốn vừa mô tả cho LLM vừa kiểm tra kiểu dữ liệu -> dùng Zod
+// (xem util-zod-to-tool.js và ../12-agents/03-custom-tool-tool-calling.js).
 const tools = [
   {
     type: "function",
@@ -149,9 +145,8 @@ const tools = [
   },
 ];
 
-// Gửi câu hỏi cho LLM để kiểm tra quyết định gọi tool (xem có cần gọi không,
-// gọi tool nào và tham số gì). Ở đây chỉ dừng lại ở việc nhận yêu cầu từ LLM,
-// chưa thực thi tool và chưa gửi kết quả trả ngược lại.
+// Hỏi LLM, in quyết định gọi tool: có gọi không, tool nào, tham số gì.
+// Chỉ xem quyết định, không chạy tool, không gửi kết quả lại.
 async function ask(label, question, toolChoice) {
   const messages = [new HumanMessage(question)];
   const callOptions = toolChoice
@@ -167,10 +162,7 @@ async function ask(label, question, toolChoice) {
   return response;
 }
 
-// Tham khảo: nếu muốn tái sử dụng câu hỏi này với nhiều địa điểm khác nhau,
-// có thể thay new HumanMessage(...) bằng ChatPromptTemplate - 1 KHUÔN prompt
-// có chỗ trống ({city}), điền biến vào lúc gọi .formatMessages() thay vì viết
-// chết nội dung như HumanMessage:
+// Tham khảo: hỏi nhiều điểm đến -> thay HumanMessage bằng ChatPromptTemplate:
 //
 //   const { ChatPromptTemplate } = require("@langchain/core/prompts");
 //   const flightPrompt = ChatPromptTemplate.fromMessages([
@@ -178,18 +170,12 @@ async function ask(label, question, toolChoice) {
 //   ]);
 //   const messages = await flightPrompt.formatMessages({ city: "Đà Nẵng" });
 //
-// Khác nhau giữa HumanMessage và ChatPromptTemplate.fromMessages:
-// - new HumanMessage("..."): tạo thẳng 1 message với nội dung cố định,
-//   dùng 1 lần cho đúng câu đó.
-// - ChatPromptTemplate.fromMessages([...]): tạo 1 khuôn có biến, dùng lại
-//   được nhiều lần với giá trị khác nhau - gọi .formatMessages({ city })
-//   thì mới ra message thật (kết quả cũng là 1 HumanMessage như cách viết tay).
+// So sánh HumanMessage vs ChatPromptTemplate: xem 01-function-calling.js.
 
-// Vòng lặp tool calling đầy đủ, demo chuỗi 2 tool phối hợp:
-// 1. LLM tra cứu thông tin chuyến bay (get_flight_info).
-// 2. Dựa trên kết quả tra cứu, LLM tự quyết định có đặt vé tiếp không
-//    (book_flight).
-// 3. LLM tổng hợp câu trả lời cuối cùng.
+// Vòng tool calling đầy đủ, 2 tool phối hợp:
+// 1. LLM tra cứu chuyến bay (get_flight_info).
+// 2. Dựa vào kết quả, LLM tự quyết định có đặt vé không (book_flight).
+// 3. LLM viết câu trả lời cuối.
 async function fullRoundTrip() {
   const messages = [
     new HumanMessage(
@@ -199,18 +185,18 @@ async function fullRoundTrip() {
 
   console.log("\n=== 7. Round-trip đầy đủ: tra cứu chuyến bay rồi đặt vé ===");
 
-  // Bước 1: hỏi LLM, ép nó phải tra cứu thông tin chuyến bay trước.
+  // Bước 1: hỏi LLM, ép tra cứu chuyến bay trước.
   const firstResponse = await model.invoke(messages, {
     tools,
     tool_choice: "get_flight_info",
   });
   messages.push(firstResponse);
 
-  // Bước 2: lấy tham số LLM đưa ra và thực thi hàm thật.
+  // Bước 2: lấy tham số LLM chọn, chạy hàm.
   const [infoCall] = firstResponse.tool_calls;
   const infoResult = getFlightInfo(infoCall.args.destination);
 
-  // Bước 3: đóng gói kết quả thành ToolMessage rồi thêm vào lịch sử hội thoại.
+  // Bước 3: gói kết quả thành ToolMessage, thêm vào lịch sử.
   messages.push(
     new ToolMessage({
       content: infoResult,
@@ -220,33 +206,23 @@ async function fullRoundTrip() {
   );
 
   try {
-    // Bước 4: gọi lại LLM kèm tools (không ép tool_choice) để nó tự quyết
-    // định có nên gọi tiếp book_flight hay không, dựa trên kết quả tra cứu.
+    // Bước 4: gọi lại LLM kèm tools, không ép tool_choice
+    // -> LLM tự quyết định có gọi book_flight không.
     //
-    // Có thể gặp lỗi 400 "missing thought_signature" ở đây (và ở bước cuối
-    // nếu đi tiếp tới book_flight):
-    // - thought_signature là 1 token Gemini gắn vào mỗi lần model gọi tool,
-    //   đại diện cho suy luận nội bộ dẫn tới lần gọi đó. Lượt hỏi tiếp theo
-    //   phải gửi lại đúng token này kèm function call cũ, thiếu là bị chặn.
-    // - Vì sao lỗi: @langchain/google-genai (bản đang dùng) build lại
-    //   request chỉ từ name + args của tool_calls, không giữ thought_signature
-    //   -> lỗi thư viện, không phải lỗi logic round-trip ở đây (gặp tương tự
-    //   ở ../12-agents/03-custom-tool-tool-calling.js).
-    // - Cách né: đổi sang model không yêu cầu field này (vd gemini-2.5-flash),
-    //   hoặc dùng thẳng SDK @google/generative-ai thay vì LangChain cho đoạn
-    //   round-trip này (xem ../../gemini/chat-bot-with-tool.js - không dính lỗi vì
-    //   giữ nguyên content gốc thay vì dựng lại tool_calls).
+    // Lưu ý: có thể gặp lỗi 400 "missing thought_signature" (ở đây và bước cuối).
+    // Nguyên nhân + cách né: xem Bước 4 trong 01-function-calling.js.
     const secondResponse = await model.invoke(messages, { tools });
     messages.push(secondResponse);
 
+    // LLM không gọi book_flight (vd: không có chuyến bay) -> in luôn câu trả lời.
     const [bookCall] = secondResponse.tool_calls ?? [];
     if (!bookCall) {
       console.log("Câu trả lời cuối cùng:", secondResponse.content);
       return;
     }
 
-    // Bước 5: LLM chọn gọi tiếp book_flight -> thực thi hàm thật, đóng gói
-    // kết quả rồi hỏi lại LLM lần cuối để tổng hợp câu trả lời tự nhiên.
+    // Bước 5: LLM gọi book_flight -> chạy hàm, gói kết quả,
+    // hỏi LLM lần cuối để viết câu trả lời.
     const bookResult = bookFlight(
       bookCall.args.destination,
       bookCall.args.date,
@@ -267,47 +243,48 @@ async function fullRoundTrip() {
   }
 }
 
+// ===== KỊCH BẢN MINH HỌA =====
+// Case 1-6 đang tắt (giống 01-function-calling.js), bỏ comment để chạy.
 async function main() {
-  // 1. Câu hỏi cần tool, tool_choice mặc định (auto) -> LLM tự chọn gọi tool.
+  // Case 1: câu hỏi cần tool, tool_choice mặc định (auto) -> LLM tự gọi tool.
   // await ask(
   //   "1. Hỏi thông tin chuyến bay (tool_choice mặc định)",
   //   "Chuyến bay tới Đà Nẵng thế nào?",
   // );
 
-  // // 2. Câu hỏi không liên quan -> LLM không gọi tool nào.
+  // // Case 2: câu hỏi không liên quan -> LLM không gọi tool.
   // await ask("2. Câu hỏi không liên quan tool", "hi!");
 
-  // // 3. Giống trên nhưng ép tool_choice = "auto" tường minh -> kết quả tương tự.
+  // // Case 3: giống case 2, ghi rõ tool_choice = "auto" -> kết quả như nhau.
   // await ask(
   //   "3. Câu hỏi không liên quan, ép tool_choice = 'auto'",
   //   "hi!",
   //   "auto",
   // );
 
-  // // 4. tool_choice = "none" -> LLM bị cấm gọi tool, dù câu hỏi không cần tool.
+  // // Case 4: tool_choice = "none", câu hỏi không cần tool -> LLM trả lời bằng chữ.
   // await ask(
   //   "4. tool_choice = 'none' với câu hỏi không cần tool",
   //   "hi!",
   //   "none",
   // );
 
-  // // 5. Câu hỏi cần tool nhưng tool_choice = "none" -> LLM buộc phải trả lời
-  // // bằng chữ, dù không có dữ liệu chuyến bay thật.
+  // // Case 5: câu hỏi cần tool nhưng tool_choice = "none"
+  // // -> LLM buộc trả lời bằng chữ, dù không có dữ liệu chuyến bay thật.
   // await ask(
   //   "5. Câu hỏi cần tool nhưng tool_choice = 'none'",
   //   "Chuyến bay tới Tokyo giá bao nhiêu?",
   //   "none",
   // );
 
-  // // 6. Ép LLM luôn gọi đúng tool "get_flight_info", kể cả khi câu hỏi
-  // // ("hi!") không liên quan gì đến chuyến bay.
+  // // Case 6: ép gọi "get_flight_info", dù câu hỏi ("hi!") không liên quan.
   // await ask(
   //   "6. Ép buộc gọi 1 tool cụ thể (tool_choice = tên tool)",
   //   "hi!",
   //   "get_flight_info",
   // );
 
-  // 7. Chạy full vòng lặp thực tế: tra cứu chuyến bay rồi đặt vé.
+  // Case 7: chạy đủ vòng: tra cứu chuyến bay rồi đặt vé.
   await fullRoundTrip();
 }
 

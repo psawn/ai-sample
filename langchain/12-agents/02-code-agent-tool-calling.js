@@ -1,24 +1,22 @@
-// File này minh hoạ cách HIỆN HÀNH (khuyến nghị) để tạo Agent.
+// =======================================================================
+// AGENTS - BƯỚC 2: CODE AGENT (LLM VIẾT CODE, TOOL CHẠY CODE) - CÁCH MỚI (TOOL CALLING)
 //
-// Agent = LLM + Tools
-//
-// LLM:
-//   - Đọc yêu cầu
-//   - Quyết định cần làm gì
-//   - Chọn Tool nếu cần
-//
-// Tool:
-//   - Thực hiện công việc mà LLM yêu cầu
+// Code Agent: LLM không tự tính kết quả, mà viết code rồi nhờ Tool chạy.
+// Hợp với việc LLM dễ làm sai khi "nhẩm": sort, đếm, tính toán nhiều bước.
 //
 // Flow:
-//   User → LLM → chọn Tool → Tool thực thi → kết quả → LLM → Final Answer
+// 1. LLM đọc yêu cầu, viết code JavaScript.
+// 2. Tool chạy code, trả output cho LLM.
+// 3. Code lỗi -> LLM đọc lỗi, sửa code, chạy lại.
+// 4. Có output đúng -> Final Answer.
 //
-// Tool Calling là cách Agent hiện hành hoạt động:
-//   1. LLM trả về thẳng "gọi Tool nào, tham số gì" dạng JSON (không cần viết text
-//      theo format ReAct).
-//   2. LangChain đọc thẳng JSON đó để gọi Tool ngay - không cần parse text.
+// Tool Calling (cách hiện hành, khuyến nghị):
+// - LLM trả JSON: tên Tool + tham số (ở đây tham số là đoạn code).
+// - LangChain đọc JSON để gọi Tool, không cần parse text như ReAct.
 //
-// => Xem file 02-code-agent-legacy.js để so sánh với cách cũ (đã deprecated).
+// Cách cũ (ReAct, deprecated): 02-code-agent-legacy.js.
+// =======================================================================
+
 require("../_polyfill");
 require("dotenv").config();
 
@@ -28,28 +26,29 @@ const { Tool } = require("@langchain/core/tools");
 const { AgentExecutor, createToolCallingAgent } = require("@langchain/classic/agents");
 const { ChatPromptTemplate } = require("@langchain/core/prompts");
 
-// LLM = "bộ não" của Agent, đọc yêu cầu và quyết định cần làm gì.
-// Trong bài này, LLM sẽ viết JavaScript code để giải quyết yêu cầu (LLM không tự chạy code).
+// LLM: viết code JavaScript, không tự chạy code.
 const llm = new ChatGoogleGenerativeAI({
   apiKey: process.env.GEMINI_API_KEY,
   model: "gemini-3.5-flash",
   temperature: 0,
 });
 
-// Tool này: chạy 1 đoạn code JavaScript, trả về output của nó.
-// LLM: tự viết ra đoạn code cần chạy (LLM không tự chạy được code).
-// LangChain: gọi hàm này để thực thi code đó (dùng module "vm" của Node, chạy trong môi
-// trường tách biệt), rồi đưa kết quả console.log về lại cho LLM.
-// Vd: code "console.log(1 + 1)" -> tool trả về "2".
+// Tool chạy code JavaScript do LLM viết.
+// - Chạy bằng module "vm": context riêng, không thấy biến của chương trình chính.
+// - Chỉ trả về những gì code in bằng console.log. Vd: "console.log(1 + 1)" -> "2".
+// - Lỗi -> trả message lỗi (không throw), để LLM đọc và sửa code.
+// Lưu ý: "vm" không phải sandbox bảo mật, chỉ dùng cho demo.
 class JavaScriptREPLTool extends Tool {
   name = "javascript_repl";
 
+  // Description: LLM đọc để biết khi nào gọi Tool và phải truyền input gì.
   description =
     "A JavaScript (Node.js) shell. Use this to execute JavaScript commands. " +
     "Input should be a valid JavaScript snippet. If you want to see the output " +
     "of a value, you should print it out with console.log(...).";
 
   async _call(code) {
+    // Context chỉ có console.log, gom output vào logs.
     const logs = [];
     const sandbox = {
       console: {
@@ -57,11 +56,10 @@ class JavaScriptREPLTool extends Tool {
       },
     };
     try {
-      // Tạo môi trường riêng để chạy code.
       vm.createContext(sandbox);
-      // Thực thi code do LLM viết ra.
+      // timeout 5s: chặn code lặp vô hạn.
       vm.runInContext(code, sandbox, { timeout: 5000 });
-      // Tool chỉ trả về những gì được in bằng console.log().
+      // Không có output -> nhắc LLM dùng console.log.
       return logs.length > 0
         ? logs.join("\n")
         : "Code đã chạy xong nhưng không có output (hãy dùng console.log để in kết quả).";
@@ -74,43 +72,29 @@ class JavaScriptREPLTool extends Tool {
 // Agent chỉ có 1 Tool: JavaScriptREPLTool.
 const tools = [new JavaScriptREPLTool()];
 
-// Prompt này phải tự viết (bản legacy được thư viện dựng sẵn, ẩn bên trong):
+// Prompt phải tự viết. Bản ReAct dùng prompt thư viện dựng sẵn.
 // - "placeholder": chỗ chèn 1 danh sách message.
-//
-// "agent_scratchpad" = "Trong lần xử lý này, agent đã làm những gì?"
-//   - Để trả lời 1 câu hỏi, agent có thể phải gọi tool nhiều bước (gọi tool -> xem kết
-//     quả -> gọi tiếp hoặc trả lời). Đây là nơi lưu "đã gọi tool nào, kết quả gì".
-//   - Do AgentExecutor tự tạo và xoá sau mỗi lần invoke(), KHÔNG tồn tại giữa các câu hỏi.
-//   - Vd: LLM cần sort danh sách
-//       1. viết code sort, agent gọi javascript_repl chạy code đó
-//       2. nhận về kết quả đã sort
-//       3. lưu bước này vào scratchpad
-//       4. trả lời user
+// - agent_scratchpad: các Tool đã gọi + kết quả, trong lần invoke() hiện tại.
+//   AgentExecutor tự điền, reset mỗi lần invoke().
+//   Vd: cần sort -> viết code -> gọi javascript_repl -> output vào scratchpad -> LLM trả lời.
 const prompt = ChatPromptTemplate.fromMessages([
   ["system", "You are a helpful assistant."],
   ["human", "{input}"],
   ["placeholder", "{agent_scratchpad}"],
 ]);
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
-  // agent: Ghép LLM + Tools + Prompt thành 1 Agent (Tool Calling), chỉ quyết định action
-  // chứ không tự chạy tool.
-  // 1. Bên trong, hàm này gọi llm.bindTools(tools) để báo cho Gemini biết trước có tool
-  //    javascript_repl.
-  // 2. Nhờ vậy khi cần chạy code, Gemini trả lời ngay bằng tên tool + code dạng JSON,
-  //    không cần LangChain đoán qua text.
+  // agent: LLM + Tools + Prompt. Chỉ quyết định bước tiếp theo, không tự chạy Tool.
+  // Bên trong gọi llm.bindTools(tools) -> Gemini trả tên Tool + code dạng JSON.
   const agent = createToolCallingAgent({ llm, tools, prompt });
 
-  // agentExecutor: chạy Agent Loop, tự thực thi action của agent cho tới khi có Final
-  // Answer:
-  // 1. Gọi agent.
-  // 2. Nếu agent muốn gọi javascript_repl thì tự thực thi code đó.
-  // 3. Đưa kết quả về cho agent.
-  // 4. Lặp lại từ bước 1 tới khi agent trả lời xong.
-  //   - handleParsingErrors (true): dù tool-calling trả JSON có cấu trúc, model vẫn có thể
-  //     trả tham số sai kiểu hoặc thiếu field bắt buộc - đưa lỗi đó vào quan sát tiếp theo
-  //     cho agent tự sửa, thay vì crash chương trình.
-  //   - verbose (true): in log chi tiết LLM nghĩ gì -> chọn Tool nào -> Tool trả kết quả gì.
+  // agentExecutor: vòng lặp chạy agent.
+  // 1. Gọi agent -> nhận code cần chạy.
+  // 2. Chạy code bằng Tool, đưa output vào scratchpad.
+  // 3. Lặp lại tới khi agent trả Final Answer.
+  // - handleParsingErrors: tham số sai kiểu/thiếu field -> gửi lỗi lại cho agent tự sửa.
+  // - verbose: in log từng bước: LLM nghĩ gì, gọi Tool nào, Tool trả gì.
   const agentExecutor = new AgentExecutor({
     agent,
     tools,
@@ -118,6 +102,7 @@ async function main() {
     verbose: true,
   });
 
+  // Dữ liệu test: danh sách khách hàng [tên, họ].
   const customerList = [
     ["Harrison", "Chase"],
     ["Lang", "Chain"],
@@ -128,9 +113,8 @@ async function main() {
     ["Jen", "Ayai"],
   ];
 
-  // Agent không tự sort danh sách này:
-  // 1. LLM viết JavaScript để sort.
-  // 2. Agent đưa code đó cho JavaScriptREPLTool chạy.
+  // Yêu cầu sort theo họ, rồi theo tên.
+  // Kỳ vọng: LLM viết code sort -> gọi javascript_repl -> trả kết quả Tool in ra.
   const result = await agentExecutor.invoke({
     input: `Sort these customers by last name and then first name and print the output: ${JSON.stringify(
       customerList,

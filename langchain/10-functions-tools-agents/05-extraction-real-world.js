@@ -1,14 +1,21 @@
-// =======================================================
-// Extraction trên dữ liệu thực tế: áp dụng Tagging + Extraction (xem
-// 03-tagging.js, 04-extraction.js) lên nội dung thật của 1 bài blog, thay vì
-// vài câu ví dụ ngắn.
-// =======================================================
+// =======================================================================
+// FUNCTIONS, TOOLS & AGENTS - BƯỚC 5: TAGGING + EXTRACTION TRÊN DỮ LIỆU THẬT
+//
+// Áp dụng Tagging + Extraction (file 03, 04) lên 1 bài blog thật,
+// thay vì vài câu ví dụ ngắn.
+//
+// Flow:
+// 1. Tải nội dung bài blog.
+// 2. Tagging: tóm tắt + ngôn ngữ + từ khóa của bài.
+// 3. Extraction: trích danh sách paper được nhắc tới. So sánh prompt chung chung vs chặt chẽ.
+// 4. Bài quá dài -> chia nhỏ, trích từng đoạn rồi gộp kết quả.
+// =======================================================================
+
 require("../_polyfill");
 require("dotenv").config();
 
-// Node 18 chưa có sẵn global "File" (undici - thư viện fetch bên trong dùng
-// tới nó) -> lấy tạm từ node:buffer, nếu không CheerioWebBaseLoader tải
-// trang web sẽ báo lỗi "File is not defined".
+// Node 18 chưa có global "File", mà undici (thư viện fetch) cần.
+// Thiếu -> CheerioWebBaseLoader lỗi "File is not defined". Lấy tạm từ node:buffer.
 if (typeof File === "undefined") {
   global.File = require("node:buffer").File;
 }
@@ -29,23 +36,21 @@ const model = new ChatGoogleGenerativeAI({
   temperature: 0,
 });
 
-// RunnableLambda lấy args của tool_call đầu tiên - dùng chung cho cả 2 demo
-// tagging (Overview) và extraction (Info) bên dưới (xem 03-tagging.js để
-// hiểu chi tiết cách hoạt động).
+// Lấy args của tool_call đầu tiên. Dùng chung cho bước 2 và 3 (chi tiết: 03-tagging.js).
 const extractFirstToolArgs = RunnableLambda.from(
   (aiMessage) => aiMessage.tool_calls[0].args,
 );
 
-// ============================
-// 1. Tải nội dung bài blog
-// ============================
+// ===== BƯỚC 1: TẢI NỘI DUNG BÀI BLOG =====
+
+// CheerioWebBaseLoader: tải trang web, bỏ HTML, chỉ giữ chữ.
 async function loadBlogPost() {
   const loader = new CheerioWebBaseLoader(
     "https://lilianweng.github.io/posts/2023-06-23-agent/",
   );
   const [doc] = await loader.load();
 
-  // Chỉ lấy 10000 ký tự đầu để demo cho nhanh, không cần xử lý cả bài dài.
+  // Bước 2, 3 chỉ dùng 10000 ký tự đầu cho nhanh. Bước 4 dùng cả bài (doc).
   const pageContent = doc.pageContent.slice(0, 10000);
 
   console.log("\n=== 1. Nội dung bài blog (1000 ký tự đầu) ===");
@@ -54,9 +59,9 @@ async function loadBlogPost() {
   return { doc, pageContent };
 }
 
-// ============================
-// 2. Tagging tổng quan bài viết (Overview)
-// ============================
+// ===== BƯỚC 2: TAGGING TỔNG QUAN BÀI VIẾT (OVERVIEW) =====
+
+// Gắn nhãn tổng quan cho bài: tóm tắt, ngôn ngữ, từ khóa.
 async function overviewTaggingDemo(pageContent) {
   const overviewSchema = z.object({
     summary: z.string().describe("Provide a concise summary of the content."),
@@ -76,8 +81,7 @@ async function overviewTaggingDemo(pageContent) {
     ["system", "Think carefully, and then tag the text as instructed"],
     ["human", "{input}"],
   ]);
-  // tool_choice: ép model luôn gọi đúng tool "Overview" (xem đủ các option
-  // của tool_choice ở 03-tagging.js).
+  // Ép model luôn gọi tool "Overview" (các option tool_choice: 03-tagging.js).
   const taggingModel = model.withConfig({
     tools: [overviewTool],
     tool_choice: "Overview",
@@ -89,10 +93,11 @@ async function overviewTaggingDemo(pageContent) {
   console.log(result);
 }
 
-// ============================
-// 3. Trích danh sách paper được nhắc tới trong bài
-// ============================
+// ===== BƯỚC 3: TRÍCH DANH SÁCH PAPER TRONG BÀI =====
+
+// So sánh 2 prompt (chung chung vs chặt chẽ). Trả chain chặt chẽ để dùng ở bước 4.
 async function paperExtractionDemo(pageContent) {
+  // 1 paper: tên + tác giả (có thể không có).
   const paperSchema = z.object({
     title: z.string(),
     author: z.string().optional(),
@@ -108,15 +113,13 @@ async function paperExtractionDemo(pageContent) {
     "Information to extract",
     infoSchema,
   );
-  // tool_choice: ép model luôn gọi đúng tool "Info" (xem đủ các option của
-  // tool_choice ở 03-tagging.js).
+  // Ép model luôn gọi tool "Info".
   const extractionModel = model.withConfig({
     tools: [infoTool],
     tool_choice: "Info",
   });
 
-  // Prompt đầu tiên khá chung chung -> model có thể tự nhặt nhầm tiêu đề bài
-  // báo (article) làm "paper".
+  // 3a. Prompt chung chung -> model có thể lấy nhầm tiêu đề bài viết làm "paper".
   const genericPrompt = ChatPromptTemplate.fromMessages([
     [
       "system",
@@ -135,8 +138,8 @@ async function paperExtractionDemo(pageContent) {
   console.log("\n=== 3a. Trích paper - prompt chung chung ===");
   console.log(genericResult);
 
-  // Prompt chi tiết hơn: dặn rõ không lấy tên bài viết hiện tại, không tự
-  // bịa thông tin, và trả mảng rỗng nếu bài không nhắc tới paper nào.
+  // 3b. Prompt chặt chẽ: không lấy tên bài viết, không bịa,
+  // không có paper thì trả mảng rỗng.
   const strictTemplate = `A article will be passed to you. Extract from it all papers that are mentioned by this article follow by its author.
 
 Do not extract the name of the article itself. If no papers are mentioned that's fine - you don't need to extract any! Just return an empty list.
@@ -156,8 +159,7 @@ Do not make up or guess ANY extra information. Only extract what exactly is in t
   console.log("\n=== 3b. Trích paper - prompt chặt chẽ hơn ===");
   console.log(strictResult);
 
-  // Văn bản không liên quan gì tới paper -> phải trả về mảng rỗng, không
-  // được bịa ra paper nào.
+  // 3c. Text không nhắc paper nào -> kỳ vọng mảng rỗng, không bịa.
   const emptyResult = await extractionChain.invoke({ input: "hi" });
   console.log("\n=== 3c. Trích paper - văn bản không có paper nào ===");
   console.log(emptyResult);
@@ -165,15 +167,12 @@ Do not make up or guess ANY extra information. Only extract what exactly is in t
   return extractionChain;
 }
 
-// ============================
-// 4. Chạy extraction trên TOÀN BỘ bài viết bằng cách chia nhỏ (splitter)
-// ============================
-// Bài viết đầy đủ dài hơn nhiều so với 10000 ký tự demo ở trên, dài hơn cả
-// giới hạn 1 lần gọi model. Cách xử lý gồm 3 bước:
-// 1. Chia bài viết thành nhiều đoạn nhỏ (splits).
-// 2. Chạy extraction riêng cho TỪNG đoạn.
-// 3. Gộp kết quả của các đoạn (mảng của mảng) lại thành 1 mảng phẳng duy
-//    nhất bằng Array.prototype.flat().
+// ===== BƯỚC 4: EXTRACTION TRÊN TOÀN BỘ BÀI (CHIA NHỎ BẰNG SPLITTER) =====
+
+// Cả bài quá dài cho 1 lần gọi model. Cách xử lý:
+// 1. Chia bài thành nhiều đoạn nhỏ (splits).
+// 2. Chạy extraction riêng cho từng đoạn.
+// 3. Gộp kết quả (mảng của mảng) thành 1 mảng phẳng bằng .flat().
 async function fullDocumentExtractionDemo(doc, extractionChain) {
   const textSplitter = new RecursiveCharacterTextSplitter({ chunkOverlap: 0 });
   const splits = await textSplitter.splitText(doc.pageContent);
@@ -182,8 +181,7 @@ async function fullDocumentExtractionDemo(doc, extractionChain) {
   console.log("Số đoạn:", splits.length);
   console.log("Đoạn đầu tiên (splits[0]):", splits[0]);
 
-  // RunnableLambda biến 1 chuỗi text dài thành mảng input cho extractionChain
-  // (mỗi đoạn splits[i] -> { input: splits[i] }).
+  // prep: text dài -> mảng input, mỗi đoạn thành { input: chunk }.
   const prep = RunnableLambda.from(async (pageContent) => {
     const chunks = await textSplitter.splitText(pageContent);
     return chunks.map((chunk) => ({ input: chunk }));
@@ -192,13 +190,12 @@ async function fullDocumentExtractionDemo(doc, extractionChain) {
   console.log("\n=== 4b. prep.invoke('hi') (input ngắn -> vẫn ra 1 chunk) ===");
   console.log(await prep.invoke("hi"));
 
-  // chain:
-  //   - chia nhỏ
-  //   - chạy extractionChain trên TỪNG đoạn (song song, nhờ .map())
-  //   - gộp kết quả (mảng của mảng) thành 1 mảng phẳng bằng .flat() [[1,2], [3], [4,5]] -> [1,2,3,4,5]
+  // Chain:
+  // 1. prep: chia nhỏ.
+  // 2. extractionChain.map(): chạy extractionChain song song trên từng đoạn.
+  // 3. .flat(): gộp kết quả. Vd: [[1,2], [3], [4,5]] -> [1,2,3,4,5].
   //
-  // Lưu ý: bước này gọi model 1 lần cho MỖI đoạn -> khá tốn API call với bài
-  // viết dài, nên demo chỉ bật khi cần xem kết quả đầy đủ.
+  // Lưu ý: mỗi đoạn = 1 lần gọi model -> tốn API call, nên mặc định tắt.
   const chain = prep
     .pipe(extractionChain.map())
     .pipe(RunnableLambda.from((results) => results.flat()));
@@ -211,13 +208,18 @@ async function fullDocumentExtractionDemo(doc, extractionChain) {
   console.log("(đang tắt - xem comment trong code để bật)");
 }
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
+  // Bước 1: tải bài blog.
   const { doc, pageContent } = await loadBlogPost();
 
+  // Bước 2: tagging tổng quan.
   await overviewTaggingDemo(pageContent);
 
+  // Bước 3: trích danh sách paper, lấy lại chain chặt chẽ cho bước 4.
   const extractionChain = await paperExtractionDemo(pageContent);
 
+  // Bước 4: trích paper trên toàn bộ bài (chia nhỏ).
   await fullDocumentExtractionDemo(doc, extractionChain);
 }
 

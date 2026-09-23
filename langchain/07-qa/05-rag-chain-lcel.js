@@ -1,3 +1,16 @@
+// =======================================================================
+// QA - BƯỚC 5: RAG BẰNG LCEL
+//
+// Tự ráp pipeline RAG bằng RunnableSequence, thay chain có sẵn ở file 04:
+// 1. RunnablePassthrough.assign: tìm document, thêm key "documents".
+// 2. prompt: điền {documents} + {input}.
+// 3. llm: viết câu trả lời.
+// 4. StringOutputParser: AIMessage -> string.
+//
+// Ưu điểm: thấy rõ từng bước, dễ tùy biến (đổi cách format document, thêm bước...).
+// Output là string, không cần lấy .answer như file 04.
+// =======================================================================
+
 require("../_polyfill");
 require("dotenv").config();
 
@@ -13,13 +26,13 @@ const {
 const { StringOutputParser } = require("@langchain/core/output_parsers");
 const path = require("path");
 
-// Embedding Model: gọi API Gemini (model gemini-embedding-001) để biến Document / Query thành vector.
+// Model embedding: đổi Document và câu hỏi thành vector.
 const embeddings = new GoogleGenerativeAIEmbeddings({
   apiKey: process.env.GEMINI_API_KEY,
   model: "gemini-embedding-001",
 });
 
-// LLM: gọi API Gemini (model gemini-3.5-flash) để sinh câu trả lời cuối cùng.
+// LLM: viết câu trả lời cuối.
 const llm = new ChatGoogleGenerativeAI({
   apiKey: process.env.GEMINI_API_KEY,
   model: "gemini-3.5-flash",
@@ -29,26 +42,27 @@ const llm = new ChatGoogleGenerativeAI({
 const filePath = path.join(__dirname, "OutdoorClothingCatalog_1000.csv");
 const loader = new CSVLoader(filePath);
 
+// Ghép nội dung các document thành 1 đoạn text, ngăn bằng dòng trống.
 function formatDocuments(docs) {
   return docs.map((doc) => doc.pageContent).join("\n\n");
 }
 
+// Cách viết khác: tách bước retrieve + format ra hàm riêng (xem dòng comment trong ragChain).
 async function retrieveContext(retriever, query) {
   const relevantDocs = await retriever.invoke(query);
   return formatDocuments(relevantDocs);
 }
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
   const docs = await loader.load();
 
   console.log("Loaded documents:", docs.length);
 
-  // Gọi API Gemini để tạo vector cho từng Document, rồi lưu Document + vector vào MemoryVectorStore trong RAM.
+  // Embed từng Document, lưu vào RAM.
   const db = await MemoryVectorStore.fromDocuments(docs, embeddings);
 
-  // Retriever: khi invoke sẽ:
-  // 1. Gọi API Gemini để tạo vector cho query.
-  // 2. So sánh với các vector Document trong RAM (xử lý local) để trả về những document liên quan nhất.
+  // Retriever: nhận câu hỏi -> trả k document liên quan nhất.
   const retriever = db.asRetriever({
     k: 4,
   });
@@ -57,10 +71,9 @@ async function main() {
     `{documents} Question: {input}`,
   );
 
-  // Pipeline:
-  // 1. Lấy document liên quan (gọi API Gemini).
-  // 2. Đưa vào prompt.
-  // 3. Gọi API Gemini (LLM) sinh câu trả lời.
+  // Pipeline RAG (4 bước ở header).
+  // assign(): giữ nguyên key "input", thêm key "documents".
+  // Vd: { input: "..." } -> { input: "...", documents: "..." }.
   const ragChain = RunnableSequence.from([
     RunnablePassthrough.assign({
       documents: async (input) => {

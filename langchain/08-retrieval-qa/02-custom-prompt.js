@@ -1,3 +1,12 @@
+// =======================================================================
+// RETRIEVAL QA - BƯỚC 2: PROMPT TÙY CHỈNH & TÀI LIỆU NGUỒN
+//
+// Nâng cấp từ 01-basic.js:
+// 1. Prompt tùy chỉnh: chỉ dựa vào context, không bịa, trả lời ngắn.
+// 2. In result.context: các chunk đã dùng để trả lời.
+//    Dùng để kiểm tra câu trả lời có bằng chứng thật trong tài liệu không.
+// =======================================================================
+
 require("../_polyfill");
 require("dotenv").config();
 
@@ -29,6 +38,7 @@ const llm = new ChatGoogleGenerativeAI({
   temperature: 0,
 });
 
+// Xây vectorDB: load 3 PDF -> split -> embed -> MemoryVectorStore (giống 01-basic.js).
 async function buildVectorDb() {
   const pdfPaths = [
     path.join(lecturesDir, "MachineLearning-Lecture01.pdf"),
@@ -53,26 +63,23 @@ async function buildVectorDb() {
   return vectordb;
 }
 
-// Prompt tuỳ chỉnh, ép LLM:
+// Prompt tùy chỉnh, yêu cầu LLM:
 // - Chỉ trả lời dựa trên context.
-// - Không tự bịa khi không biết.
-// - Luôn trả lời ngắn gọn.
-// Giữ nguyên nội dung tiếng Anh vì đây là chỉ dẫn gửi thẳng cho LLM (giống bản Python),
-// không phải comment giải thích code.
+// - Không biết thì nói không biết, không bịa.
+// - Tối đa 3 câu, kết thúc bằng "thanks for asking!" (dấu hiệu dễ thấy prompt có hiệu lực).
 const qaPromptTemplate = `Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer. Use three sentences maximum. Keep the answer as concise as possible. Always say "thanks for asking!" at the end of the answer.
 {context}
 Question: {input}
 Helpful Answer:`;
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
   const vectordb = await buildVectorDb();
   const retriever = vectordb.asRetriever({ k: 3 });
 
   const prompt = ChatPromptTemplate.fromTemplate(qaPromptTemplate);
 
-  // returnSourceDocuments bên Python tương ứng với việc createRetrievalChain
-  // LUÔN trả kèm field "context" (mảng Document đã dùng để trả lời) trong kết quả,
-  // không cần bật thêm tuỳ chọn gì.
+  // createRetrievalChain luôn trả kèm field "context" (mảng Document đã dùng), không cần bật thêm.
   const combineDocsChain = await createStuffDocumentsChain({ llm, prompt });
   const qaChain = await createRetrievalChain({ retriever, combineDocsChain });
 
@@ -82,8 +89,7 @@ async function main() {
   console.log("Question:", question);
   console.log("Answer:", result.answer);
 
-  // context: danh sách chunk đã được retriever tìm ra và đưa vào prompt cho LLM,
-  // dùng để kiểm tra câu trả lời có bằng chứng thật hay không.
+  // In chunk đầu tiên đã dùng, để đối chiếu với câu trả lời.
   console.log("\nSource document [0]:");
   console.log(result.context[0]);
 }

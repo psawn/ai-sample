@@ -1,11 +1,19 @@
-// So sánh 2 cách embed của thư viện:
-// - embedDocuments(): gửi các chunk theo batch lớn (~100 chunk/request). Nếu 1 batch lỗi
-//   (thường do rate limit), thư viện không throw mà âm thầm trả về vector rỗng cho cả batch
-//   -> cơ chế retry tự động của langchain (AsyncCaller) không biết để retry, dữ liệu mất luôn.
-// - embedQuery(): gọi từng chunk một và CÓ đi qua AsyncCaller -> tự động retry khi lỗi.
+// =======================================================================
+// UTIL - EMBED AN TOÀN (CÓ RETRY KHI LỖI)
 //
-// Giải pháp: tự chia nhỏ danh sách chunk, gọi embedQuery cho từng nhóm nhỏ chạy song song
-// (concurrency) để vừa nhanh vừa không bắn quá nhiều request cùng lúc gây rate limit.
+// Vấn đề: 2 cách embed của thư viện xử lý lỗi khác nhau.
+// 1. embedDocuments(): gửi theo batch lớn (~100 chunk/request).
+//    Batch lỗi (thường do rate limit) -> không throw, âm thầm trả vector rỗng.
+//    Cơ chế retry (AsyncCaller) không biết có lỗi -> không retry -> mất dữ liệu.
+// 2. embedQuery(): gọi từng chunk, có đi qua AsyncCaller -> tự retry khi lỗi.
+//
+// Giải pháp: chia chunk thành từng nhóm nhỏ, gọi embedQuery song song trong nhóm.
+// Vừa nhanh, vừa không bắn quá nhiều request cùng lúc gây rate limit.
+// Chi tiết lỗi gốc: debug-embedding-errors.js.
+// =======================================================================
+
+// Embed danh sách docs, mỗi lần chạy song song tối đa `concurrency` request.
+// Trả mảng vector đúng thứ tự docs.
 async function embedChunksSafely(embeddings, docs, concurrency = 5) {
   const vectors = new Array(docs.length);
   for (let i = 0; i < docs.length; i += concurrency) {

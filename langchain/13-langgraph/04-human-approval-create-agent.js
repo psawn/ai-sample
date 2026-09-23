@@ -1,14 +1,19 @@
-// Human in the Loop - Bản dùng createAgent (humanInTheLoopMiddleware)
-// Cùng bài toán "duyệt tay trước khi gọi Tool" như 04-human-approval-manual-graph.js,
-// nhưng dùng `createAgent` + middleware thay vì tự dựng StateGraph với `interruptBefore`.
+// =======================================================================
+// LANGGRAPH - BƯỚC 4: HUMAN IN THE LOOP (DUYỆT TAY) - BẢN createAgent
 //
-// Khác biệt so với bản manual-graph:
-//   - Chặn theo TÊN TOOL cụ thể (`interruptOn: { web_search: true }`), không chặn theo
-//     tên Node.
-//   - Không có `getState()`/`stream(null, thread)`. Khi bị chặn, `agent.invoke()` trả về
-//     `result.__interrupt__` chứa yêu cầu duyệt.
-//   - Muốn chạy tiếp: gọi lại `agent.invoke(new Command({ resume: { decisions } }), thread)`
-//     với quyết định approve/edit/reject cho từng Tool call đang chờ.
+// Agent dừng lại chờ người dùng duyệt (y/n) trước mỗi lần gọi tool.
+// Dùng createAgent + humanInTheLoopMiddleware.
+//
+// Luồng:
+// 1. agent.invoke() -> Model muốn gọi tool -> bị chặn, trả về result.__interrupt__.
+// 2. Người dùng chọn approve / reject cho từng tool call đang chờ.
+// 3. agent.invoke(new Command({ resume: { decisions } }), thread) -> chạy tiếp.
+// 4. Còn __interrupt__ thì quay lại bước 2.
+//
+// Cùng bài toán với 04-human-approval-manual-graph.js. Khác biệt:
+// - Chặn theo tên tool (interruptOn: { web_search: true }), không theo tên node.
+// - Không dùng getState() / stream(null, thread). Đọc result.__interrupt__, chạy tiếp bằng Command.
+// =======================================================================
 
 require("../_polyfill");
 require("dotenv").config();
@@ -19,11 +24,13 @@ const { MemorySaver, Command } = require("@langchain/langgraph");
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { webSearch } = require("./tool");
 
+// System prompt: trợ lý nghiên cứu, được gọi tool nhiều lần.
 const prompt = `You are a smart research assistant. Use the search engine to look up information. \
 You are allowed to make multiple calls (either together or in sequence). \
 Only look up information when you are sure of what you want. \
 If you need to look up some information before asking a follow up question, you are allowed to do that!`;
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
   const llm = new ChatGoogleGenerativeAI({
     apiKey: process.env.GEMINI_API_KEY,
@@ -33,8 +40,8 @@ async function main() {
 
   const memory = new MemorySaver();
 
-  // interruptOn: { web_search: true } -> mỗi lần Model gọi Tool "web_search" đều bị chặn
-  // lại để chờ duyệt, tương đương interruptBefore: ["action"] ở bản manual-graph.
+  // Mỗi lần Model gọi tool "web_search" đều bị chặn chờ duyệt.
+  // Tương đương interruptBefore: ["action"] ở bản manual-graph.
   const hitlMiddleware = humanInTheLoopMiddleware({
     interruptOn: { web_search: true },
   });
@@ -53,13 +60,14 @@ async function main() {
     output: process.stdout,
   });
 
+  // Lượt đầu: Model muốn gọi web_search -> bị chặn, trả về result.__interrupt__.
   let result = await agent.invoke(
     { messages: [{ role: "user", content: "Whats the weather in SF?" }] },
     thread,
   );
 
-  // result.__interrupt__ còn giá trị -> vẫn đang chờ duyệt Tool. Lặp lại vòng hỏi-duyệt
-  // vì Model có thể cần gọi Tool nhiều lần liên tiếp.
+  // Vòng duyệt: còn __interrupt__ nghĩa là còn tool call chờ duyệt.
+  // Phải lặp vì Model có thể gọi tool nhiều lần liên tiếp.
   while (result.__interrupt__) {
     const interruptRequest = result.__interrupt__[0];
     console.log(
@@ -68,29 +76,24 @@ async function main() {
     );
 
     const answer = await rl.question("Đồng ý cho chạy Tool? (y/n) ");
-    // 1 quyết định cho MỖI Tool call đang chờ trong yêu cầu này.
+    // Mỗi tool call đang chờ cần 1 quyết định.
     const decisions = interruptRequest.value.actionRequests.map(() =>
       answer === "y"
         ? { type: "approve" }
         : { type: "reject", message: "Người dùng từ chối" },
     );
 
-    // Command là một class đặc biệt cho phép Node/Agent vừa cập nhật State vừa điều khiển
-    // hướng đi của Graph:
-    //   - goto:   chọn Node tiếp theo hoặc END.
-    //   - update: cập nhật State theo reducer của từng field.
-    //   - resume: cung cấp giá trị để tiếp tục Graph tại chỗ interrupt() đang tạm dừng.
-    // Graph đang tạm dừng tại interrupt() để chờ user duyệt Tool.
-    // `decisions` chứa quyết định của user cho từng Tool call đang chờ.
-    // Truyền `decisions` qua `resume` để middleware biết phải xử lý từng Tool call:
-    //   - approve: cho phép Tool chạy.
-    //   - reject:  không cho Tool chạy.
-    //   - edit:    chỉnh sửa yêu cầu Tool trước khi chạy.
+    // Command: vừa cập nhật state, vừa điều khiển hướng đi của graph.
+    // - goto: chọn node tiếp theo hoặc END.
+    // - update: cập nhật state.
+    // - resume: giá trị gửi vào chỗ interrupt() đang dừng, để chạy tiếp.
+    //
+    // Ở đây resume mang decisions cho middleware xử lý từng tool call:
+    // approve (cho chạy) / reject (không chạy) / edit (sửa rồi chạy).
     result = await agent.invoke(new Command({ resume: { decisions } }), thread);
 
-    // Debug: in ra kết quả thật mà Tool trả về (nhận diện qua field `tool_call_id`, chỉ
-    // ToolMessage mới có) - nếu Tool fail (vd: lỗi mạng), nội dung sẽ là thông báo lỗi từ
-    // catch() trong tool.js chứ không phải dữ liệu Wikipedia thật.
+    // Debug: in kết quả thật của tool (chỉ ToolMessage có tool_call_id).
+    // Tool lỗi (vd: lỗi mạng) thì nội dung là thông báo lỗi từ catch() trong tool.js.
     const toolMessage = result.messages.findLast((m) => m.tool_call_id);
     if (toolMessage) console.log("\n[Tool trả về]:", toolMessage.content);
   }

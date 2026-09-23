@@ -1,30 +1,39 @@
-// Ví dụ .bind() bằng object mô phỏng embeddings.client (có method gọi API dùng 'this').
-// Cùng pattern với embeddings.client.batchEmbedContents.bind(...) ở debug-embedding-errors.js.
+// =======================================================================
+// UTIL - VÍ DỤ .bind() VÀ 'this' TRONG JAVASCRIPT
+//
+// 'this' = object đứng ngay trước dấu '.' cuối cùng, lúc gọi hàm.
+// Tách hàm ra khỏi object -> mất 'this'. Dùng .bind() để khóa cứng 'this'.
+//
+// Cùng pattern với embeddings.client.batchEmbedContents.bind(...)
+// ở debug-embedding-errors.js.
+// =======================================================================
 
+// Object mô phỏng embeddings.client, có method dùng 'this'.
 const apiClient = {
   name: "GeminiClient",
   fetchData: function () {
-    // 'this' = object đang GỌI hàm này, không phải nơi hàm được định nghĩa
+    // 'this' = object đang gọi hàm, không phải nơi hàm được định nghĩa.
     console.log("Đang gọi API bằng: " + this.name);
   },
 };
 
-// BƯỚC 1: Gọi qua object -> 'this' = apiClient -> OK
+// Bước 1: gọi qua object -> 'this' = apiClient -> đúng.
 apiClient.fetchData();
-// ✅ LOG: "Đang gọi API bằng: GeminiClient"
+// Log: "Đang gọi API bằng: GeminiClient"
 
-// BƯỚC 2: Tách hàm ra khỏi object -> mất 'this'
-const fetchDataAlone = apiClient.fetchData; // chỉ copy hàm, không mang theo apiClient
+// Bước 2: tách hàm ra khỏi object -> mất 'this'.
+const fetchDataAlone = apiClient.fetchData; // Chỉ copy hàm, không mang theo apiClient
 fetchDataAlone();
-// ❌ LOG: "Đang gọi API bằng: undefined" -> lỗi hay gặp khi truyền hàm của object đi chỗ khác (callback...)
+// Log: "Đang gọi API bằng: undefined" (sai)
+// Lỗi hay gặp khi truyền method của object làm callback.
 
-// BƯỚC 3: .bind() = khóa cứng 'this' vào apiClient, dù gọi ở đâu sau này
+// Bước 3: .bind() khóa cứng 'this' vào apiClient, gọi ở đâu cũng đúng.
 const boundFetchData = apiClient.fetchData.bind(apiClient);
 boundFetchData();
-// ✅ LOG: "Đang gọi API bằng: GeminiClient" -> vẫn đúng dù đã tách ra biến riêng
+// Log: "Đang gọi API bằng: GeminiClient" (đúng, dù đã tách ra biến riêng)
 
-// QUY TẮC CHUNG: 'this' luôn là object đứng NGAY TRƯỚC dấu '.' cuối cùng lúc gọi hàm.
-// Muốn tách hàm ra dùng riêng mà không mất 'this', bind() đúng object đó.
+// Quy tắc: muốn tách hàm ra dùng riêng mà không mất 'this',
+// bind() đúng object đứng trước dấu '.' cuối cùng:
 //
-// apiClient.fetchData()     -> object trước dấu '.' cuối là apiClient      -> bind(apiClient)
-// apiClient.fetchData.xxx() -> object trước dấu '.' cuối là apiClient.fetchData -> bind(apiClient.fetchData)
+// apiClient.fetchData()     -> object trước '.' cuối là apiClient           -> bind(apiClient)
+// apiClient.fetchData.xxx() -> object trước '.' cuối là apiClient.fetchData -> bind(apiClient.fetchData)

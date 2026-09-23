@@ -1,29 +1,34 @@
-// Agent tạm dừng trước khi chạy Tool (Human-in-the-Loop)
+// =======================================================================
+// LANGGRAPH - AGENT DỪNG TRƯỚC KHI CHẠY TOOL (HUMAN IN THE LOOP)
 //
-// Mục tiêu:
-// - Giống hệt Agent ở agent-with-memory.js, chỉ thêm `interruptBefore: ["action"]` khi compile Graph.
-// - Giúp Graph tạm dừng ngay trước Node "action" mỗi khi Model muốn gọi Tool,
-//   chờ người dùng xác nhận hoặc sửa state rồi mới chạy tiếp.
+// Agent ReAct giống agent-with-memory.js, thêm interruptBefore: ["action"] khi compile.
+// Mỗi khi Model muốn gọi tool, graph dừng ngay trước node "action".
+// -> Chờ người dùng duyệt (hoặc sửa state) rồi mới chạy tiếp.
 //
-// Lưu ý về MessagesAnnotation:
-// - Tự động ghi đè Message nếu trùng `id`, hoặc nối thêm nếu `id` mới.
-// - Đúng cơ chế cần thiết để sửa `tool_calls` trong state mà không sợ trùng lặp message.
+// MessagesAnnotation gộp message theo id:
+// - Trùng id -> ghi đè. id mới -> nối thêm.
+// - Nhờ vậy sửa được tool_calls trong state mà không sinh message trùng.
+//
+// Dùng cho 04, 05, 06-*-manual-graph.js.
+// =======================================================================
 
 require("../_polyfill");
 
 const { StateGraph, END, MessagesAnnotation } = require("@langchain/langgraph");
 const { SystemMessage, ToolMessage } = require("@langchain/core/messages");
 
-// State = "bộ nhớ chung" của Graph, nơi các Node đọc và cập nhật dữ liệu.
-// MessagesAnnotation định nghĩa State (như agent.js)
+// State: dữ liệu chung, các node cùng đọc và ghi. Giống agent.js.
 const AgentState = MessagesAnnotation;
 
+// Agent = Model + tools + system prompt + checkpointer + điểm dừng trước node "action".
 class Agent {
   constructor(model, tools, checkpointer, system = "") {
     this.system = system;
     this.tools = Object.fromEntries(tools.map((t) => [t.name, t]));
     this.model = model.bindTools(tools);
 
+    // Graph giống agent.js (giải thích từng bước ở đó):
+    // START -> llm -> có tool_calls thì action -> llm, không thì END.
     const graph = new StateGraph(AgentState);
     graph.addNode("llm", this.callModel.bind(this));
     graph.addNode("action", this.takeAction.bind(this));
@@ -34,25 +39,24 @@ class Agent {
     });
     graph.addEdge("action", "llm");
 
-    // interruptBefore: ["action"] -> Tạm dừng Graph NGAY TRƯỚC khi vào Node "action".
-    // Mỗi khi Model quyết định gọi Tool, Graph sẽ dừng lại để chờ xác nhận từ người dùng.
-    // Cơ chế này áp dụng cho TẤT CẢ các lần gọi Tool (kể cả khi Model gọi Tool liên tiếp).
+    // Khác agent-with-memory.js duy nhất ở đây: interruptBefore: ["action"].
+    // Graph dừng trước node "action" ở mọi lần gọi tool, kể cả gọi liên tiếp.
     //
-    // 💡 Dự án Production:
-    // - NÊN DÙNG khi Tool có rủi ro/khó đảo ngược (xóa file, chuyển tiền, gửi email...)
-    //   hoặc cần tuân thủ quy trình kiểm duyệt (Audit/Compliance).
-    // - KHÔNG NÊN DÙNG cho Tool chỉ đọc (web_search, tra DB...) vì làm chậm luồng và treo Agent.
-    // - Muốn chặn CHỌN LỌC từng Tool thay vì chặn tất cả, xem `humanInTheLoopMiddleware` 
-    //   tại file 04-human-approval-create-agent.js.
+    // Khi nào dùng trong dự án thật:
+    // - Nên dùng: tool khó đảo ngược (xóa file, chuyển tiền, gửi email...) hoặc cần kiểm duyệt.
+    // - Không nên: tool chỉ đọc (web_search, tra DB...), vì agent phải chờ người, chạy chậm.
+    // - Muốn chặn riêng từng tool thay vì chặn hết: dùng humanInTheLoopMiddleware
+    //   (xem 04-human-approval-create-agent.js).
     this.graph = graph.compile({ checkpointer, interruptBefore: ["action"] });
   }
 
-  // Kiểm tra xem Message cuối cùng từ Model có chứa tool_calls hay không
+  // Rẽ nhánh: message mới nhất của Model có yêu cầu gọi tool không?
   existsAction(state) {
     const lastMessage = state.messages[state.messages.length - 1];
     return lastMessage.tool_calls?.length ? "true" : "false";
   }
 
+  // Node "llm": thêm system prompt vào đầu messages, rồi gọi Model.
   async callModel(state) {
     let messages = state.messages;
     if (this.system) {
@@ -62,6 +66,7 @@ class Agent {
     return { messages: [message] };
   }
 
+  // Node "action": chạy từng tool_call. Chỉ tới được đây khi đã được duyệt.
   async takeAction(state) {
     const toolCalls = state.messages[state.messages.length - 1].tool_calls;
     const results = [];
@@ -69,6 +74,7 @@ class Agent {
     for (const call of toolCalls) {
       console.log(`  -> Đang gọi: ${call.name}(${JSON.stringify(call.args)})`);
 
+      // Model gọi tên tool không tồn tại -> báo lại để Model thử lại.
       if (!this.tools[call.name]) {
         results.push(
           new ToolMessage({

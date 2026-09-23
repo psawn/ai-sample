@@ -1,3 +1,17 @@
+// =======================================================================
+// CHROMA - RAG HỎI ĐÁP VỀ APPLE
+//
+// RAG = Retrieval-Augmented Generation.
+// 1. Retrieval: tìm đoạn tài liệu liên quan nhất trong Chroma.
+// 2. Augmented: nhét đoạn đó vào prompt làm context.
+// 3. Generation: LLM trả lời dựa trên context, hạn chế bịa.
+//
+// Bản LangChain (nhiều document, chain dựng sẵn): ../../langchain/07-qa/.
+//
+// Cần chạy Chroma server trước:
+//   docker run -d --name chroma -p 8000:8000 chromadb/chroma
+// =======================================================================
+
 require("dotenv").config();
 const readline = require("readline");
 const { ChromaClient } = require("chromadb");
@@ -9,13 +23,14 @@ const chroma = new ChromaClient({
   port: Number(process.env.CHROMA_PORT) || 8000,
 });
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const chatModel = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
+const chatModel = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
 
 const embeddingFunction = new GoogleGeminiEmbeddingFunction({
   apiKey: process.env.GEMINI_API_KEY,
   modelName: "gemini-embedding-001",
 });
 
+// Kho kiến thức mẫu: mỗi mục là 1 document trong Chroma. id: dùng làm id trong Chroma.
 const knowledgeBase = [
   {
     id: "founding",
@@ -45,8 +60,10 @@ const knowledgeBase = [
 
 const collectionName = "apple-knowledge";
 
+// Lấy collection. Còn trống thì nạp knowledgeBase vào.
+// Lưu ý: collection đã có dữ liệu -> bỏ qua. Sửa knowledgeBase -> phải xóa collection cũ.
 async function ensurePopulated() {
-  // embeddingFunction sẽ tự gọi model để embed text, nên chỉ cần truyền text thô vào add() và query() là được.
+  // embeddingFunction tự embed text -> chỉ cần truyền text thô vào add() và query().
   const collection = await chroma.getOrCreateCollection({ name: collectionName, embeddingFunction });
 
   const count = await collection.count();
@@ -62,7 +79,11 @@ async function ensurePopulated() {
   return collection;
 }
 
+// Trả lời câu hỏi theo RAG (3 bước ở header).
 async function answerQuestion(collection, question) {
+  // 1. Retrieval: lấy 1 document gần câu hỏi nhất.
+  // nResults: 1 -> câu hỏi cần thông tin từ 2 document sẽ thiếu context. Tăng lên nếu cần.
+  // documents[0][0]: câu hỏi đầu tiên, document đầu tiên.
   const result = await collection.query({ queryTexts: [question], nResults: 1 });
   const context = result.documents[0][0];
 
@@ -70,11 +91,14 @@ async function answerQuestion(collection, question) {
     return "Không tìm thấy thông tin liên quan để trả lời câu hỏi này.";
   }
 
+  // 2. Augmented + 3. Generation: đưa context vào prompt, LLM trả lời.
   const prompt = `Dựa vào thông tin sau đây, hãy trả lời câu hỏi ngắn gọn và chính xác.\n\nThông tin: ${context}\n\nCâu hỏi: ${question}`;
   const result2 = await chatModel.generateContent(prompt);
   return result2.response.text();
 }
 
+// ===== KỊCH BẢN MINH HỌA =====
+// Nạp dữ liệu -> mở CLI cho user hỏi về Apple.
 async function main() {
   const collection = await ensurePopulated();
 

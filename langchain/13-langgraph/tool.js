@@ -1,5 +1,10 @@
-// Search Tool: Tìm kiếm dữ liệu thật từ Wikipedia API (MediaWiki) - Miễn phí, không cần API Key.
-// Gợi ý: Nếu cần dữ liệu thời gian thực (thời tiết, tin tức), có thể thay thế bằng TavilySearchResults.
+// =======================================================================
+// LANGGRAPH - SEARCH TOOL: TÌM KIẾM DỮ LIỆU THẬT TỪ WIKIPEDIA
+//
+// Tool web_search dùng chung cho các bài trong thư mục này.
+// Dùng Wikipedia API (MediaWiki): miễn phí, không cần API key.
+// Cần dữ liệu thời gian thực (thời tiết, tin tức) thì thay bằng TavilySearchResults.
+// =======================================================================
 
 require("../_polyfill");
 
@@ -8,7 +13,7 @@ const { tool } = require("@langchain/core/tools");
 
 const WIKI_API = "https://en.wikipedia.org/w/api.php";
 
-// 1. Tìm tối đa 3 tiêu đề trang liên quan nhất tới từ khóa (query)
+// 1. Tìm tối đa 3 tiêu đề trang liên quan nhất tới từ khoá (query).
 async function searchTitles(query) {
   const params = new URLSearchParams({
     action: "query",
@@ -25,7 +30,7 @@ async function searchTitles(query) {
   return data.query.search.map((item) => item.title);
 }
 
-// 2. Lấy nội dung tóm tắt (dạng plain text, bỏ markup HTML) của trang theo tiêu đề
+// 2. Lấy phần tóm tắt của trang theo tiêu đề, dạng plain text (đã bỏ HTML).
 async function getPageSummary(title) {
   const params = new URLSearchParams({
     action: "query",
@@ -41,12 +46,12 @@ async function getPageSummary(title) {
   }
   const data = await response.json();
   const pages = data.query.pages;
-  // API trả về Object có key là pageId ngẫu nhiên -> Dùng Object.values để lấy phần tử đầu tiên
+  // API trả về object có key là pageId, không biết trước -> lấy phần tử đầu bằng Object.values.
   return Object.values(pages)[0]?.extract ?? "";
 }
 
-// 3. Hàm xử lý chính: Tìm các trang liên quan và tổng hợp lại tóm tắt.
-//    Bọc try/catch để bắt lỗi kết nối (nếu có) -> Báo lỗi cho Model xử lý thay vì làm crash ứng dụng.
+// 3. Hàm chính: tìm các trang liên quan, gộp phần tóm tắt lại.
+//    try/catch: lỗi mạng trả về thành message cho Model đọc, thay vì crash.
 async function searchWikipedia(query) {
   try {
     const titles = await searchTitles(query);
@@ -61,12 +66,12 @@ async function searchWikipedia(query) {
       ? "No good Wikipedia Search Result was found"
       : summaries.join("\n\n");
   } catch (error) {
-    // Trả về thông báo để Model tự trả lời bằng kiến thức có sẵn thay vì thử lại
+    // Dặn Model trả lời bằng kiến thức có sẵn, không gọi lại tool.
     return `Wikipedia search failed (${error.message}). Do not retry - answer using your general knowledge instead.`;
   }
 }
 
-// 4. Bọc hàm searchWikipedia thành Tool chuẩn LangChain để gộp được vào `model.bindTools()`
+// 4. Bọc searchWikipedia thành tool LangChain, để truyền vào bindTools() / createAgent.
 const webSearch = tool(searchWikipedia, {
   name: "web_search",
   description: "Search Wikipedia and get page summaries.",

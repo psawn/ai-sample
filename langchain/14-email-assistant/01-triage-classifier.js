@@ -1,9 +1,12 @@
-// Email Assistant - Bước 1: TRIAGE (phân loại email)
+// =======================================================================
+// EMAIL ASSISTANT - BƯỚC 1: TRIAGE (PHÂN LOẠI EMAIL)
 //
-// Ý tưởng: thay vì để LLM trả lời tự do, ta ép LLM trả về đúng 1 object theo schema
-// (`withStructuredOutput`) gồm "reasoning" (giải thích) + "classification" (1 trong 3 nhãn
-// cố định). Nhờ vậy code phía sau đọc kết quả (result.classification) mà không cần tự
-// parse văn bản tự do của LLM.
+// Phân loại email vào 1 trong 3 nhãn: ignore / notify / respond.
+//
+// withStructuredOutput ép LLM trả về object đúng schema, thay vì văn bản tự do.
+// Object gồm reasoning (giải thích) và classification (nhãn).
+// Code đọc thẳng result.classification, không phải tự parse văn bản.
+// =======================================================================
 
 require("../_polyfill");
 require("dotenv").config();
@@ -13,7 +16,8 @@ const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { profile, triageRules, questionEmail, spamEmail } = require("./profile");
 const { buildTriageSystemPrompt, buildTriageUserPrompt } = require("./prompts");
 
-// Schema kết quả phân loại: enum giới hạn đúng 3 lựa chọn để LLM không "sáng tác" nhãn lạ.
+// Schema đầu ra của bộ phân loại.
+// enum giới hạn đúng 3 nhãn, LLM không sinh được nhãn ngoài danh sách.
 const Router = z.object({
   reasoning: z
     .string()
@@ -33,10 +37,11 @@ const llm = new ChatGoogleGenerativeAI({
   temperature: 0,
 });
 
-// Bọc withStructuredOutput(Router) quanh llm -> mọi lần invoke() đều trả về object đúng
-// shape của Router thay vì AIMessage văn bản thô.
+// Sau khi bọc, invoke() trả về object đúng schema Router, không phải AIMessage.
 const llmRouter = llm.withStructuredOutput(Router);
 
+// System prompt của bộ phân loại: hồ sơ người dùng + 3 quy tắc phân loại.
+// examples = null: chưa dùng ví dụ mẫu (few-shot). Xem bước 05.
 const systemPrompt = buildTriageSystemPrompt({
   fullName: profile.fullName,
   name: profile.name,
@@ -47,9 +52,15 @@ const systemPrompt = buildTriageSystemPrompt({
   examples: null,
 });
 
+// Phân loại 1 email, in lý do và nhãn LLM chọn.
 async function runTriage(emailInput) {
   const { author, to, subject, emailThread } = emailInput;
-  const userPrompt = buildTriageUserPrompt({ author, to, subject, emailThread });
+  const userPrompt = buildTriageUserPrompt({
+    author,
+    to,
+    subject,
+    emailThread,
+  });
 
   const result = await llmRouter.invoke([
     { role: "system", content: systemPrompt },
@@ -60,6 +71,7 @@ async function runTriage(emailInput) {
 
   console.log(`🧠 Reasoning: ${result.reasoning}`);
 
+  // classification chắc chắn thuộc 3 nhãn (enum), nên rẽ nhánh trực tiếp.
   if (result.classification === "respond") {
     console.log("📧 Classification: RESPOND - This email requires a response");
   } else if (result.classification === "ignore") {
@@ -71,9 +83,10 @@ async function runTriage(emailInput) {
   }
 }
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
-  await runTriage(spamEmail); // Kỳ vọng: classification = "ignore".
-  await runTriage(questionEmail); // Kỳ vọng: classification = "respond".
+  await runTriage(spamEmail); // Email quảng cáo -> kỳ vọng: IGNORE.
+  await runTriage(questionEmail); // Câu hỏi từ đồng nghiệp -> kỳ vọng: RESPOND.
 }
 
 main();

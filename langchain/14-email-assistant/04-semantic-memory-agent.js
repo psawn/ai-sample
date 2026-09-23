@@ -1,12 +1,16 @@
-// Email Assistant - Bước 4: Thêm semantic memory cho Agent
+// =======================================================================
+// EMAIL ASSISTANT - BƯỚC 4: SEMANTIC MEMORY (BỘ NHỚ NGỮ NGHĨA)
 //
-// Agent trả lời email (response_agent) có thêm 2 tool:
-// - manage_memory: lưu, cập nhật, xoá memory trong Store.
-// - search_memory: tìm memory liên quan đã lưu trong Store.
+// Bước 03: mỗi lần invoke() là độc lập, agent không nhớ gì từ lần trước.
+// Bước 04: thêm bộ nhớ dài hạn (Store), sống qua nhiều lượt invoke().
 //
-// Các lượt invoke() dùng chung Store nên có thể nhớ dữ liệu cũ.
-// Xem 05-episodic-memory-triage.js cho loại memory còn lại: episodic memory
-// (few-shot examples) giúp bước triage tự học từ các email đã phân loại trước đó.
+// response_agent có thêm 2 tool:
+// - manage_memory: tạo, cập nhật, xoá memory trong Store.
+// - search_memory: tìm memory liên quan trong Store.
+//
+// Loại memory còn lại xem bước 05: episodic memory (ví dụ mẫu) giúp bước triage
+// học từ các email đã phân loại trước đó.
+// =======================================================================
 
 require("../_polyfill");
 require("dotenv").config();
@@ -43,9 +47,9 @@ const {
   createSearchMemoryTool,
 } = require("./memory-tools");
 
-// Email tiếp theo của questionEmail, không nhắc lại câu hỏi cũ.
-// Dùng để kiểm tra Agent có tìm lại được ngữ cảnh cũ qua search_memory hay không.
-// Đây là một lượt invoke() hoàn toàn mới, không có State của lượt trước.
+// Email follow-up của questionEmail, không nhắc lại nội dung câu hỏi cũ.
+// Chạy ở lượt invoke() mới, không còn state của lượt trước,
+// nên chỉ trả lời đúng nếu agent tìm lại được memory qua search_memory.
 const followUpEmail = {
   author: "Alice Smith <alice.smith@company.com>",
   to: "John Doe <john.doe@company.com>",
@@ -53,8 +57,8 @@ const followUpEmail = {
   emailThread: `Hi John, Any update on my previous ask?`,
 };
 
-// System prompt liệt kê các tool Agent có thể dùng.
-// 3 tool xử lý email/calendar và 2 tool để lưu/tra cứu memory.
+// System prompt của response agent, liệt kê 5 tool:
+// 3 tool xử lý email và lịch họp, 2 tool đọc ghi memory.
 function buildAgentSystemPromptMemory({ fullName, name, instructions }) {
   return `< Role >
 You are ${fullName}'s executive assistant. You are a top-notch executive assistant who cares about ${name} performing as well as possible.
@@ -74,6 +78,7 @@ ${instructions}
 </ Instructions >`;
 }
 
+// Schema đầu ra của bộ phân loại.
 const Router = z.object({
   reasoning: z
     .string()
@@ -95,23 +100,24 @@ const llm = new ChatGoogleGenerativeAI({
 
 const llmRouter = llm.withStructuredOutput(Router);
 
+// Model embedding: đổi text thành vector để Store tìm memory theo ý nghĩa.
 const embeddings = new GoogleGenerativeAIEmbeddings({
   apiKey: process.env.GEMINI_API_KEY,
   model: "gemini-embedding-001",
 });
 
-// `index` bật semantic search cho search_memory.
-// `dims` là số chiều của embedding.
-const store = new InMemoryStore({
-  index: {
-    embeddings,
-    dims: 3072,
-  },
-});
+// ===== SEMANTIC MEMORY: Store + 2 memory tools =====
 
-// Namespace chia memory theo user: email_assistant > {langgraph_user_id} > collection.
-// Placeholder "{langgraph_user_id}" sẽ được thay bằng user id
-// khi tool chạy, thông qua resolveNamespace() trong memory-tools.js.
+// Store dùng chung cho cả 3 loại bộ nhớ. Bước 04 mới dùng loại 1:
+// 1. Semantic  : thông tin agent lưu khi xử lý email, namespace "collection".
+// 2. Episodic  : ví dụ mẫu cho triage, namespace "examples". Bước 05.
+// 3. Procedural: chỉ dẫn làm việc theo từng user. Bước 06.
+// dims = số chiều vector của gemini-embedding-001.
+const store = new InMemoryStore({ index: { embeddings, dims: 3072 } });
+
+// Đường dẫn lưu memory, chia theo user.
+// "{langgraph_user_id}" được resolveNamespace() trong memory-tools.js
+// thay bằng userId thật lúc tool chạy.
 const MEMORY_NAMESPACE = [
   "email_assistant",
   "{langgraph_user_id}",
@@ -121,16 +127,17 @@ const MEMORY_NAMESPACE = [
 const manageMemoryTool = createManageMemoryTool(MEMORY_NAMESPACE);
 const searchMemoryTool = createSearchMemoryTool(MEMORY_NAMESPACE);
 
-// XẤU: instructions không có quy tắc rõ ràng về việc dùng tool.
-// Thực tế khi sử dụng gọi search_memory nhiều lần với từ khóa khác nhau
-// dù đã tìm thấy thông tin cần ngay từ lần gọi đầu
-// -> chạm giới hạn 25 bước (recursionLimit) và crash
+// 2 bản chỉ dẫn cho response agent. Agent dùng goodInstructions.
+//
+// badInstructions: không có quy tắc dùng tool. Giữ lại để so sánh.
+// Kết quả khi chạy: agent gọi search_memory nhiều lần với từ khoá khác nhau,
+// dù lần đầu đã tìm thấy, rồi chạm recursionLimit 25 bước và crash.
 const badInstructions = agentInstructions;
 
-// TỐT: quy tắc dùng số cứng (AT MOST ONCE / EXACTLY ONCE) thay vì điều kiện
-// "retry nếu cần" - vì thực nghiệm cho thấy Agent vẫn lách rule có điều kiện
-// (gọi search_memory 4-5 lần dù rule cho phép "retry once"). Rule càng ít
-// nhánh rẽ, Agent càng khó diễn giải sai.
+// goodInstructions: giới hạn số lần gọi cố định (AT MOST ONCE / EXACTLY ONCE),
+// không dùng điều kiện kiểu "retry nếu cần".
+// Lý do: rule có điều kiện vẫn bị lách, agent gọi search_memory 4-5 lần dù rule
+// chỉ cho retry 1 lần. Rule càng ít nhánh rẽ càng khó hiểu sai.
 const goodInstructions = `${agentInstructions}
 
 < Tool usage >
@@ -139,6 +146,19 @@ const goodInstructions = `${agentInstructions}
 - Never call the same tool more than once per email. As soon as you have enough information, stop calling tools and give your final answer immediately.
 </ Tool usage >`;
 
+// Response Agent: 3 tool email/lịch họp + 2 memory tools, dùng goodInstructions.
+//
+// LLM chọn tool dựa trên 3 nguồn, cả 3 được gửi kèm mỗi lượt gọi LLM:
+//   1. Mảng tools bên dưới: name + description + zod schema của từng tool.
+//      LangChain chuyển thành function declarations.
+//   2. Khối < Tools > viết tay trong buildAgentSystemPromptMemory.
+//   3. goodInstructions: số lần được gọi mỗi tool.
+//
+// Hệ quả:
+// - Mô tả tool lặp ở nguồn 1 và 2: sửa 1 nơi mà quên nơi kia thì 2 nơi lệch nhau.
+// - description chỉ nói tool làm gì ("Write and send an email."),
+//   không nói khi nào nên dùng -> LLM dễ chọn nhầm khi 2 tool cùng hợp lý.
+//   Khi nào nên dùng phải viết thêm ở nguồn 3 (xem ghi chú ở profile.js).
 const responseAgent = createAgent({
   model: llm,
   tools: [
@@ -153,22 +173,22 @@ const responseAgent = createAgent({
     name: profile.name,
     instructions: goodInstructions,
   }),
-  // Gắn Store để memory tools có thể đọc và ghi memory.
+  // Gắn Store để memory tools đọc ghi được.
   store,
 });
 
-// Các lượt invoke() trong demo dùng chung một user id.
+// Mọi lượt invoke() trong demo dùng chung 1 userId.
 const config = {
   configurable: { langgraph_user_id: "lance" },
 };
 
-// Demo memory tools độc lập với luồng email.
-// Các lượt chạy dùng chung Store và user id nên lượt sau có thể tìm lại
-// memory đã lưu ở lượt trước - khác với 03-full-email-agent.js, nơi mỗi
-// invoke() độc lập và không nhớ gì.
+// ===== DEMO 1: MEMORY TOOLS, CHƯA DÙNG LUỒNG EMAIL =====
+// 2 lượt chạy dùng chung Store + userId: lượt 2 đọc được memory lượt 1 đã ghi.
+// Bước 03 không làm được vì mỗi invoke() độc lập.
 async function demoMemoryTools() {
   console.log("\n========== Demo: manage_memory & search_memory ==========");
 
+  // Lượt 1: cung cấp 1 thông tin, agent gọi manage_memory để lưu.
   const rememberResponse = await responseAgent.invoke(
     {
       messages: [
@@ -183,6 +203,7 @@ async function demoMemoryTools() {
 
   console.log("Agent:", rememberResponse.messages.at(-1).content);
 
+  // Lượt 2: hỏi lại, agent gọi search_memory để tìm.
   const recallResponse = await responseAgent.invoke(
     {
       messages: [
@@ -199,14 +220,13 @@ async function demoMemoryTools() {
 
   console.log("Namespaces:", await store.listNamespaces());
 
-  // Xem trực tiếp dữ liệu trong Store, không qua search_memory tool.
+  // Đọc Store trực tiếp, không qua tool. Không có query -> lấy toàn bộ namespace.
   console.log(
     "Toàn bộ memory:",
     await store.search(["email_assistant", "lance", "collection"]),
   );
 
-  // Không truyền query -> lấy toàn bộ memory trong namespace.
-  // Có query -> tìm memory theo ngữ nghĩa bằng embeddings.
+  // Có query -> xếp hạng theo độ tương đồng embedding.
   console.log(
     "Memory khớp 'jim':",
     await store.search(["email_assistant", "lance", "collection"], {
@@ -215,21 +235,15 @@ async function demoMemoryTools() {
   );
 }
 
-// State = bộ nhớ ngắn hạn, chỉ tồn tại trong một lượt invoke() của Graph.
-// Store = bộ nhớ dài hạn, dùng để lưu và tra cứu thông tin giữa các lượt invoke().
+// ===== EMAIL GRAPH: Triage Router + Response Agent (có memory) =====
+
+// State là bộ nhớ ngắn hạn, chỉ sống trong 1 lượt invoke().
+// Store là bộ nhớ dài hạn, dùng chung giữa các lượt invoke().
 //
-// LLM = bộ não biết suy luận và trả lời.
-// Agent = LLM + tools + khả năng tự quyết định các bước xử lý.
-//
-// messages do 2 node ghi khác nhau:
-//  - triage_router: chỉ thêm 1 message "human" khi email cần respond
-//      -> LLM
-//      -> object { reasoning, classification }
-//      -> không lưu AI result vào state.messages
-//  - response_agent: ghi toàn bộ message history: human/ai/tool
-//      -> Agent
-//      -> messages[]
-//      -> lưu toàn bộ message history vào state.messages
+// 2 node ghi messages khác nhau:
+// - triage_router : chỉ thêm 1 message "human" khi cần respond.
+//                   Kết quả { reasoning, classification } không ghi vào messages.
+// - response_agent: ghi toàn bộ lịch sử human/ai/tool mà agent trả về.
 const EmailAgentState = Annotation.Root({
   emailInput: Annotation({
     reducer: (current, update) => update ?? current,
@@ -241,11 +255,13 @@ const EmailAgentState = Annotation.Root({
   }),
 });
 
+// Node 1: phân loại email.
 async function triageRouterNode(state) {
   console.log("\n📍 Node: triage_router - đang phân loại email...");
 
   const { author, to, subject, emailThread } = state.emailInput;
 
+  // Prompt phân loại: hồ sơ người dùng + 3 quy tắc. Chưa dùng ví dụ mẫu.
   const systemPrompt = buildTriageSystemPrompt({
     fullName: profile.fullName,
     name: profile.name,
@@ -268,16 +284,17 @@ async function triageRouterNode(state) {
     { role: "user", content: userPrompt },
   ]);
 
-  // result là object { reasoning, classification }, không phải AIMessage.
-  // Chỉ dùng để phân loại, không lưu vào state.
+  // result là object { reasoning, classification }, không phải AIMessage,
+  // nên chỉ dùng để điều hướng, không ghi vào state.
   console.log(`🧠 Reasoning: ${result.reasoning}`);
 
+  // Điều hướng theo nhãn LLM trả về.
   if (result.classification === "respond") {
     console.log("📧 Classification: RESPOND - This email requires a response");
     return new Command({
       goto: "response_agent",
       update: {
-        // Thêm 1 message "human" để giao email cho response_agent xử lý.
+        // Giao email cho response_agent dưới dạng 1 message của user.
         messages: [
           {
             role: "user",
@@ -299,33 +316,35 @@ async function triageRouterNode(state) {
   return new Command({ goto: END });
 }
 
-// Truyền config xuống Agent để memory tools lấy được user id
-// và truy cập đúng namespace memory của user hiện tại.
+// Node 2: chuyển messages cho agent có tool xử lý.
 async function responseAgentNode(state, nodeConfig) {
   console.log(
     "\n📍 Node: response_agent - đang gọi Agent xử lý (tool call)...",
   );
 
+  // Truyền config xuống agent để memory tools lấy được userId,
+  // từ đó đọc ghi đúng namespace của user hiện tại.
   const result = await responseAgent.invoke(
     { messages: state.messages },
     nodeConfig,
   );
 
-  // Agent trả về đủ message history:
-  // HumanMessage -> AIMessage -> ToolMessage -> ... -> AIMessage.
-  // Ghi cả mảng vào state để Graph giữ lại toàn bộ lịch sử xử lý.
+  // Agent trả về đủ lịch sử: HumanMessage -> AIMessage -> ToolMessage -> ... -> AIMessage.
+  // Ghi cả mảng vào state. Không bị nhân đôi vì messagesStateReducer gộp message trùng id.
   return { messages: result.messages };
 }
 
+// Khai báo và biên dịch graph.
 const emailAgent = new StateGraph(EmailAgentState)
   .addNode("triage_router", triageRouterNode, {
     ends: ["response_agent", END],
   })
   .addNode("response_agent", responseAgentNode)
   .addEdge(START, "triage_router")
-  // Gắn Store cho Graph cho phép Node/Tool có thể truy cập long term memory Store.
+  // Gắn Store cho graph, để node và tool truy cập được bộ nhớ dài hạn.
   .compile({ store });
 
+// Chạy graph với 1 email, in toàn bộ lịch sử message.
 async function runEmail(emailInput) {
   console.log(`\n========== Email: "${emailInput.subject}" ==========`);
 
@@ -340,16 +359,17 @@ async function runEmail(emailInput) {
   }
 }
 
-// Khác với 03-full-email-agent.js (không nhớ gì giữa các lần invoke())
-// mỗi invoke() ở đây vẫn dùng được long-term memory.
-// Email trước lưu thông tin vào Store, email sau có thể tìm lại qua search_memory.
+// ===== DEMO 2: MEMORY QUA LUỒNG EMAIL =====
+// Email trước ghi thông tin vào Store, email sau tìm lại bằng search_memory.
 async function demoEmailMemory() {
+  // Email 1: agent trả lời câu hỏi và ghi thông tin vào Store.
   await runEmail(questionEmail);
-  // followUpEmail không nhắc lại nội dung cũ,
-  // nhưng Agent vẫn tìm được thông tin từ email trước.
+
+  // Email 2: không nhắc lại nội dung cũ, agent phải tìm lại từ Store.
   await runEmail(followUpEmail);
 }
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
   // await demoMemoryTools();
   await demoEmailMemory();

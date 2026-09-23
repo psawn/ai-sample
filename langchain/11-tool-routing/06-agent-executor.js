@@ -1,23 +1,20 @@
-// File này minh hoạ AgentExecutor - bộ phận tự động chạy Agent Loop.
+// =======================================================================
+// TOOL ROUTING - BƯỚC 6: AgentExecutor + MEMORY (BẢN CŨ)
 //
-// Agent = LLM + Tools
+// Nâng cấp từ 05-routing.js:
+// 1. AgentExecutor: tự chạy vòng lặp, đưa kết quả Tool về model tới khi model
+//    trả lời xong. Không cần tự viết route().
+// 2. Memory: nhớ lịch sử để trả lời câu hỏi nối tiếp.
+//    Vd: "tên tôi là bob" -> "tên tôi là gì?".
 //
-// LLM:
-//   - Đọc câu hỏi
-//   - Quyết định cần làm gì
-//   - Chọn Tool nếu cần
+// Flow mỗi câu hỏi:
+// 1. Nạp lịch sử chat vào prompt.
+// 2. Model chọn Tool -> Tool chạy -> kết quả về model. Lặp tới khi có Final Answer.
+// 3. Lưu câu hỏi + câu trả lời vào lịch sử.
 //
-// Tool:
-//   - Thực hiện công việc mà LLM yêu cầu
-//
-// Flow:
-//   User → LLM → chọn Tool → Tool thực thi → kết quả → LLM → Final Answer
-//
-// AgentExecutor tự lặp gọi Tool cho tới khi model trả lời xong (không cần tự viết vòng
-// lặp bằng tay như route() ở 05-routing.js).
-//
-// File này còn thêm memory (nhớ lịch sử hội thoại) để agent trả lời đúng các câu hỏi nối
-// tiếp nhau, vd: "tên tôi là bob" -> "tên tôi là gì?".
+// Bản API mới (createAgent + checkpointer): 06-agent-executor-createagent.js.
+// =======================================================================
+
 require("../_polyfill");
 require("dotenv").config();
 
@@ -38,26 +35,17 @@ const llm = new ChatGoogleGenerativeAI({
   temperature: 0,
 });
 
+// 2 Tool Agent được dùng: xem nhiệt độ + tra Wikipedia.
 const tools = [getCurrentTemperature, searchWikipedia];
 
-// "chat_history" và "agent_scratchpad" đều là danh sách message, nhưng trả lời 2 câu hỏi
-// khác nhau:
-//
-// "chat_history" = "Trước đó chúng ta đã nói gì?"
-//   - Là các lượt hỏi-đáp đã XONG ở những lần invoke() trước.
-//   - Do RunnableWithMessageHistory quản lý (xem bên dưới), tồn tại xuyên suốt session.
-//   - Vd: câu trước hỏi "tên tôi là bob", câu sau hỏi "tên tôi là gì" thì cần
-//     chat_history mới trả lời đúng.
-//
-// "agent_scratchpad" = "Trong lần xử lý này, agent đã làm những gì?"
-//   - Để trả lời 1 câu hỏi, agent có thể phải gọi tool nhiều bước (gọi tool -> xem kết
-//     quả -> gọi tiếp hoặc trả lời). Đây là nơi lưu "đã gọi tool nào, kết quả gì".
-//   - Do AgentExecutor tự tạo và xoá sau mỗi lần invoke(), KHÔNG tồn tại giữa các câu hỏi.
-//   - Vd: hỏi "thời tiết ở sf?"
-//       1. agent gọi get_current_temperature(sf)
-//       2. nhận về "20°C"
-//       3. lưu bước này vào scratchpad
-//       4. trả lời user
+// Prompt có 2 chỗ chèn danh sách message, khác nhau ở phạm vi:
+// 1. chat_history: các lượt hỏi-đáp đã xong ở những lần invoke() trước.
+//    - RunnableWithMessageHistory điền, giữ suốt session.
+//    - Vd: câu "tên tôi là gì" cần câu "tên tôi là bob" ở lượt trước.
+// 2. agent_scratchpad: các Tool đã gọi + kết quả, trong lần invoke() hiện tại.
+//    - AgentExecutor điền, reset mỗi lần invoke().
+//    - Vd: "thời tiết ở sf?" -> gọi get_current_temperature -> "20°C"
+//      -> vào scratchpad -> model trả lời.
 const prompt = ChatPromptTemplate.fromMessages([
   ["system", "You are helpful but sassy assistant"],
   new MessagesPlaceholder("chat_history"),
@@ -65,28 +53,25 @@ const prompt = ChatPromptTemplate.fromMessages([
   ["placeholder", "{agent_scratchpad}"],
 ]);
 
-// agent = LLM được cấu hình để dùng Tools và quyết định action (không tự chạy tool).
+// agent: LLM + Tools + Prompt. Chỉ quyết định bước tiếp theo, không tự chạy Tool.
 const agent = createToolCallingAgent({ llm, tools, prompt });
 
-// agentExecutor = chạy Agent Loop, tự thực thi action của agent cho tới khi có Final Answer:
-// 1. Gọi agent.
-// 2. Nếu agent muốn gọi tool (vd: get_current_temperature) thì tự thực thi tool đó.
-// 3. Đưa kết quả về cho agent.
-// 4. Lặp lại từ bước 1 tới khi agent trả lời xong.
+// agentExecutor: vòng lặp chạy agent.
+// 1. Gọi agent -> nhận Tool cần gọi.
+// 2. Chạy Tool, đưa kết quả vào scratchpad.
+// 3. Lặp lại tới khi agent trả Final Answer.
 const agentExecutor = new AgentExecutor({
   agent,
   tools,
   verbose: false,
 });
 
-// Mỗi sessionId có 1 lịch sử hội thoại riêng, lưu trong RAM (mất khi tắt chương trình).
-//
-// InMemoryChatMessageHistory = class có sẵn của LangChain, chỉ để lưu 1 danh sách message.
-// getMessageHistory (hàm bên dưới) là hàm TỰ VIẾT, chỉ để nối sessionId với đúng instance
-// InMemoryChatMessageHistory tương ứng - không phải API bắt buộc của LangChain.
-//
-// Có thể đổi logic lưu trữ bên trong (vd: Redis, MongoDB, file...) tuỳ ý, miễn hàm trả về
-// đúng 1 object implement BaseChatMessageHistory.
+// ===== MEMORY: LƯU LỊCH SỬ THEO sessionId =====
+
+// Mỗi sessionId có 1 lịch sử riêng, lưu trong RAM (tắt chương trình là mất).
+// - InMemoryChatMessageHistory: class có sẵn, lưu 1 danh sách message.
+// - getMessageHistory: hàm tự viết, trả đúng history theo sessionId.
+// Muốn lưu bền (Redis, MongoDB, file...): chỉ cần trả về 1 BaseChatMessageHistory khác.
 const messageHistories = {};
 function getMessageHistory(sessionId) {
   if (!messageHistories[sessionId]) {
@@ -95,11 +80,10 @@ function getMessageHistory(sessionId) {
   return messageHistories[sessionId];
 }
 
-// RunnableWithMessageHistory: bọc agentExecutor lại để tự quản lý "chat_history".
-//   - Trước khi gọi agent: tự lấy lịch sử cũ, đưa vào "chat_history".
-//   - Sau khi agent trả lời: tự lưu lượt hỏi-đáp mới vào lại lịch sử.
-//   - Đây là cách quản lý TỰ ĐỘNG (khác với cách TỰ TAY - so sánh 2 cách ở
-//     ../chat-history-manual-vs-auto.js).
+// RunnableWithMessageHistory: bọc agentExecutor, tự quản lý chat_history.
+// - Trước khi gọi: nạp lịch sử cũ vào "chat_history".
+// - Sau khi trả lời: lưu lượt hỏi-đáp mới.
+// So sánh cách tự làm tay: ../01-basics/chat-history-manual-vs-auto.js.
 const agentWithMemory = new RunnableWithMessageHistory({
   runnable: agentExecutor,
   getMessageHistory,
@@ -107,13 +91,14 @@ const agentWithMemory = new RunnableWithMessageHistory({
   historyMessagesKey: "chat_history",
 });
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
-  // 1 sessionId = 1 cuộc hội thoại
-  // -> dùng lại sessionId đó cho toàn bộ cuộc trò chuyện
-  // -> agentWithMemory sẽ nhớ được ngữ cảnh giữa các câu hỏi.
+  // 1 sessionId = 1 cuộc hội thoại.
+  // Dùng chung cho cả 3 lượt để agent nhớ ngữ cảnh.
   const config = { configurable: { sessionId: "bob-session" } };
 
   try {
+    // Lượt 1: giới thiệu tên.
     const result1 = await agentWithMemory.invoke(
       { input: "my name is bob" },
       config,
@@ -121,6 +106,7 @@ async function main() {
     console.log("\n========== Lượt 1 ==========");
     console.log(result1.output);
 
+    // Lượt 2: hỏi lại tên -> agent phải nhớ "bob" từ lượt 1.
     const result2 = await agentWithMemory.invoke(
       { input: "whats my name" },
       config,
@@ -128,6 +114,7 @@ async function main() {
     console.log("\n========== Lượt 2 (agent phải nhớ tên) ==========");
     console.log(result2.output);
 
+    // Lượt 3: hỏi thời tiết -> agent vẫn nhớ ngữ cảnh, và gọi Tool.
     const result3 = await agentWithMemory.invoke(
       { input: "whats the weather in sf?" },
       config,
@@ -137,8 +124,8 @@ async function main() {
     );
     console.log(result3.output);
 
-    // Log lại messageHistories để xem RunnableWithMessageHistory đã tự lưu những gì sau
-    // 3 lượt hỏi-đáp ở trên - mỗi sessionId ứng với 1 mảng HumanMessage/AIMessage riêng.
+    // Xem history đã lưu: mỗi sessionId có 1 mảng HumanMessage/AIMessage.
+    // Chỉ có text hỏi-đáp, không có bước gọi Tool (bản createAgent lưu cả 2).
     console.log("\n========== messageHistories (nội bộ) ==========");
     for (const [sessionId, history] of Object.entries(messageHistories)) {
       console.log(sessionId, ":", await history.getMessages());

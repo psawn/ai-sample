@@ -1,3 +1,20 @@
+// =======================================================================
+// RETRIEVAL QA - BƯỚC 6: CHATBOT CLI HỎI ĐÁP TRÊN PDF
+//
+// Cùng pattern với 05-conversational-chat.js, chạy trên terminal.
+//
+// Flow:
+// 1. Lúc khởi động: load PDF 1 lần, tạo retriever + 2 chain.
+// 2. Mỗi câu hỏi: viết lại câu hỏi -> tìm document -> trả lời -> lưu history.
+// 3. Lặp lại tới khi gõ "exit".
+//
+// Khác file 05: tự ghép 2 chain (rephraseChain + answerChain), không dùng
+// createHistoryAwareRetriever. Nhờ vậy lấy được câu hỏi đã viết lại và
+// số document để in debug.
+//
+// Chỉ hỗ trợ "stuff" (API mới). Muốn thử map_reduce/refine: file 07.
+// =======================================================================
+
 require("../_polyfill");
 require("dotenv").config();
 const readline = require("readline");
@@ -19,19 +36,6 @@ const {
 } = require("@langchain/classic/chains/combine_documents");
 const { HumanMessage, AIMessage } = require("@langchain/core/messages");
 
-// Chatbot hỏi đáp trên 1 file PDF cố định, chạy thẳng trên terminal (không có UI):
-// 1. Load PDF 1 lần lúc khởi động.
-// 2. Lặp vòng hỏi-đáp qua readline, mỗi câu hỏi mới đều dùng lại lịch sử chat của các
-//    câu trước để trả lời đúng mạch hội thoại.
-//
-// Cùng pattern LangChain hiện khuyến nghị như 05-conversational-chat.js (rephraseChain
-// viết lại câu hỏi để tìm document, answerChain trả lời dựa trên document + chat_history)
-// - chỉ khác là tự ghép tay 2 chain (thay vì dùng createHistoryAwareRetriever/
-// createRetrievalChain) để lấy được generatedQuestion/sourceDocuments hiển thị debug
-// trên terminal.
-//
-// Dùng API mới (createStuffDocumentsChain) nên chỉ hỗ trợ "stuff", đổi lại câu trả lời
-// vẫn "thấy" được chat_history. Muốn thử map_reduce/refine, xem file 07 (dùng API cũ).
 const loadedFile = path.join(
   __dirname,
   "../../docs/cs229_lectures/MachineLearning-Lecture01.pdf",
@@ -48,12 +52,9 @@ const llm = new ChatGoogleGenerativeAI({
   temperature: 0,
 });
 
-// loadDb: chuẩn bị mọi thứ cần cho hội thoại.
-// 1. Load 1 file PDF.
-// 2. Split thành chunk.
-// 3. Embed từng chunk.
-// 4. Dựng retriever + 2 chain: 1 chain viết lại câu hỏi (rephraseChain), 1 chain trả lời
-//    dựa trên context tìm được (answerChain).
+// Chuẩn bị cho hội thoại:
+// 1. Load PDF -> split -> embed.
+// 2. Tạo retriever + 2 chain: rephraseChain (viết lại câu hỏi), answerChain (trả lời).
 async function loadDb(file, k) {
   const documents = await new PDFLoader(file).load();
 
@@ -66,16 +67,9 @@ async function loadDb(file, k) {
   const vectordb = await MemoryVectorStore.fromDocuments(docs, embeddings);
   const retriever = vectordb.asRetriever({ k });
 
-  // rephraseChain: giúp AI "hiểu" câu hỏi tiếp theo đang nói về điều gì, bằng cách viết
-  // lại nó thành 1 câu hỏi rõ nghĩa. LangChain gọi bước này là "contextualize question"
-  // (đặt câu hỏi vào đúng ngữ cảnh), kết quả gọi là "Standalone Question" (câu hỏi độc
-  // lập).
-  // Cấu trúc prompt theo thứ tự:
-  // 1. system: hướng dẫn.
-  // 2. chat_history: lịch sử chat.
-  // 3. human: câu hỏi mới.
-  // Nhờ vậy retriever vẫn tìm đúng document dù câu hỏi gốc mơ hồ, phụ thuộc câu trước
-  // (vd "why is that needed?").
+  // rephraseChain: viết lại câu hỏi mơ hồ (vd "why is that needed?") thành
+  // standalone question dựa vào chat history -> retriever tìm đúng document.
+  // Thứ tự prompt: system -> chat_history -> human (câu hỏi mới).
   const rephrasePrompt = ChatPromptTemplate.fromMessages([
     [
       "system",
@@ -86,8 +80,8 @@ async function loadDb(file, k) {
   ]);
   const rephraseChain = rephrasePrompt.pipe(llm).pipe(new StringOutputParser());
 
-  // answerChain: nhét document tìm được + câu hỏi gốc + chat_history vào 1 prompt duy nhất
-  // ("stuff") để LLM trả lời. Có chat_history nên trả lời được tự nhiên, đúng mạch chat.
+  // answerChain ("stuff"): nhét document + câu hỏi gốc + chat_history vào 1 prompt.
+  // Có chat_history nên trả lời tự nhiên, đúng mạch hội thoại.
   const qaPrompt = ChatPromptTemplate.fromMessages([
     [
       "system",
@@ -101,13 +95,14 @@ async function loadDb(file, k) {
   return { retriever, rephraseChain, answerChain };
 }
 
-// Xử lý 1 lượt hỏi-đáp: nhận câu hỏi + chat_history hiện có, trả về answer (câu trả lời),
-// generatedQuestion (Standalone Question - câu hỏi đã viết lại, dùng để tìm document)
-// và sourceDocuments (các đoạn tài liệu đã dùng làm ngữ cảnh trả lời).
+// Xử lý 1 lượt hỏi-đáp. Trả về:
+// - answer: câu trả lời.
+// - generatedQuestion: câu hỏi đã viết lại (dùng để tìm document).
+// - sourceDocuments: các document đã dùng làm context.
 async function askQuestion(qa, query, chatHistory) {
   const { retriever, rephraseChain, answerChain } = qa;
 
-  // Chưa có lịch sử chat thì dùng thẳng câu hỏi gốc, còn có lịch sử thì cần viết lại thành Standalone Question.
+  // Chưa có history -> dùng thẳng câu hỏi gốc. Có history -> viết lại cho rõ nghĩa.
   const generatedQuestion =
     chatHistory.length === 0
       ? query
@@ -115,6 +110,7 @@ async function askQuestion(qa, query, chatHistory) {
 
   const sourceDocuments = await retriever.invoke(generatedQuestion);
 
+  // Trả lời câu hỏi gốc (không phải câu đã viết lại), kèm history.
   const answer = await answerChain.invoke({
     input: query,
     context: sourceDocuments,
@@ -124,12 +120,13 @@ async function askQuestion(qa, query, chatHistory) {
   return { answer, generatedQuestion, sourceDocuments };
 }
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
   console.log(`Đang load database từ: ${loadedFile}`);
   const qa = await loadDb(loadedFile, 4);
   console.log("Đã sẵn sàng! Gõ câu hỏi rồi Enter, gõ 'exit' để thoát.\n");
 
-  // Lưu lịch sử hội thoại trong 1 mảng, dùng lại cho các câu hỏi tiếp theo.
+  // Lịch sử hội thoại, dùng lại cho các câu hỏi sau.
   const chatHistory = [];
 
   const rl = readline.createInterface({
@@ -137,6 +134,7 @@ async function main() {
     output: process.stdout,
   });
 
+  // Vòng lặp hỏi-đáp: hỏi 1 câu -> trả lời -> hỏi tiếp, tới khi gõ "exit".
   const askLoop = () => {
     rl.question("User: ", async (query) => {
       if (query.trim().toLowerCase() === "exit") {
@@ -154,7 +152,7 @@ async function main() {
       console.log("Số document tìm được:", sourceDocuments.length);
       console.log("ChatBot:", answer, "\n");
 
-      // Lưu lượt hỏi-đáp này vào lịch sử để dùng cho câu hỏi tiếp theo.
+      // Lưu Q&A vào history cho câu hỏi sau.
       chatHistory.push(new HumanMessage(query), new AIMessage(answer));
 
       askLoop();

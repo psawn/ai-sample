@@ -1,5 +1,14 @@
-// Tool tìm kiếm Wikipedia: gọi thẳng MediaWiki API, lấy 3 trang liên quan nhất rồi tóm tắt
-// phần mở đầu (intro) của mỗi trang.
+// =======================================================================
+// TOOL ROUTING - BƯỚC 3: TOOL TÌM KIẾM WIKIPEDIA
+//
+// Tool gọi thẳng MediaWiki API.
+//
+// Flow:
+// 1. Tìm 3 trang liên quan nhất tới query.
+// 2. Lấy đoạn tóm tắt mở đầu (intro) của từng trang.
+// 3. Gộp lại thành 1 đoạn text trả cho LLM.
+// =======================================================================
+
 require("../_polyfill");
 require("dotenv").config();
 
@@ -22,7 +31,8 @@ async function searchTitles(query) {
   return data.query.search.map((item) => item.title);
 }
 
-// Bước 2: lấy đoạn tóm tắt (intro, không có markup) của 1 trang theo tiêu đề.
+// Bước 2: lấy tóm tắt 1 trang theo tiêu đề.
+// exintro: chỉ lấy phần mở đầu. explaintext: text thuần, bỏ markup.
 async function getPageSummary(title) {
   const params = new URLSearchParams({
     action: "query",
@@ -35,16 +45,17 @@ async function getPageSummary(title) {
   const response = await fetch(`${WIKI_API}?${params}`);
   const data = await response.json();
   const pages = data.query.pages;
-  // API trả về object keyed theo pageId, không biết trước key nên lấy giá trị đầu tiên.
+  // Key của pages là pageId, không biết trước -> lấy phần tử đầu tiên.
   return Object.values(pages)[0]?.extract ?? "";
 }
 
-// Hàm thực thi thật của Tool - đây là nơi mọi việc thật sự xảy ra (gọi API, tổng hợp kết quả).
+// Hàm thực thi của Tool: chạy bước 1 + 2, gộp kết quả (bước 3).
 async function fetchWikipediaSummaries(query) {
   const titles = await searchTitles(query);
   const summaries = [];
   for (const title of titles) {
     const extract = await getPageSummary(title);
+    // Bỏ trang không có tóm tắt.
     if (extract) {
       summaries.push(`Page: ${title}\nSummary: ${extract}`);
     }
@@ -57,18 +68,20 @@ async function fetchWikipediaSummaries(query) {
   return result;
 }
 
-// tool(fn, options) chỉ "gắn nhãn" cho fetchWikipediaSummaries, không thay đổi cách nó
-// chạy - .invoke(args) sau này sẽ gọi lại đúng fetchWikipediaSummaries(args).
+// tool(fn, options): chỉ gắn name / description / schema cho fn, không đổi cách fn chạy.
+// schema là z.string() -> input là 1 chuỗi query, không phải object.
 const searchWikipedia = tool(fetchWikipediaSummaries, {
   name: "search_wikipedia",
   description: "Run Wikipedia search and get page summaries.",
   schema: z.string().describe("query to search on Wikipedia"),
 });
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
   console.log("name:", searchWikipedia.name);
   console.log("description:", searchWikipedia.description);
 
+  // Gọi thẳng Tool, không qua LLM, với từ khóa "langchain".
   try {
     const result = await searchWikipedia.invoke("langchain");
     console.log("\nresult:", result);
@@ -77,9 +90,8 @@ async function main() {
   }
 }
 
-// require.main === module kiểm tra file này có phải là file gốc đang được thực thi hay không.
-// - Đúng (chạy trực tiếp `node file.js`): Gọi main().
-// - Sai (file khác require() file này): Bỏ qua main() để chỉ xuất module ra ngoài.
+// Chỉ chạy main() khi chạy trực tiếp `node 03-wikipedia-tool.js`.
+// File khác require() file này (05, 06, 07) -> không chạy main(), chỉ lấy Tool.
 if (require.main === module) {
   main();
 }

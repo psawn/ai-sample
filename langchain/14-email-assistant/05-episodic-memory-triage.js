@@ -1,16 +1,18 @@
-// Email Assistant - Bước 5: Thêm episodic memory cho bước triage
+// =======================================================================
+// EMAIL ASSISTANT - BƯỚC 5: EPISODIC MEMORY (BỘ NHỚ THEO SỰ KIỆN) CHO TRIAGE
 //
-// triage_router tìm các email tương tự đã được phân loại trước đó
-// và dùng chúng làm few-shot examples để phân loại email mới.
+// Triage học từ các email đã phân loại trước đó.
+// - Semantic memory (bước 04): agent nhớ thông tin để dùng khi trả lời email.
+// - Episodic memory (bước 05): triage nhớ các email đã phân loại + nhãn đúng.
 //
-// Khi có email được sửa nhãn, ta lưu email + nhãn đúng vào Store.
-// Lần sau gặp email tương tự, triage có thể tìm lại example này.
+// Với mỗi email mới, triage_router tìm email tương tự trong Store,
+// rồi đưa vào prompt làm ví dụ mẫu (few-shot).
 //
-// Đây là episodic memory: nhớ lại các ví dụ cụ thể trong quá khứ.
-// Khác với semantic memory ở 04-semantic-memory-agent.js:
-// semantic memory lưu thông tin để Agent dùng lại khi xử lý email.
+// Triage phân loại sai -> lưu email + nhãn đúng vào Store. Lần sau gặp email
+// tương tự, triage tìm lại ví dụ đó và phân loại đúng, không phải sửa rules.
 //
-// response_agent vẫn dùng manage_memory/search_memory như bài 04.
+// response_agent vẫn dùng manage_memory và search_memory như bước 04.
+// =======================================================================
 
 require("../_polyfill");
 require("dotenv").config();
@@ -44,28 +46,28 @@ const {
   createSearchMemoryTool,
 } = require("./memory-tools");
 
+// Model embedding: đổi text thành vector để Store tìm theo ý nghĩa.
 const embeddings = new GoogleGenerativeAIEmbeddings({
   apiKey: process.env.GEMINI_API_KEY,
   model: "gemini-embedding-001",
 });
 
-// `index` bật semantic search cho store.search().
-// Nhờ vậy email khác câu chữ nhưng cùng ý vẫn có thể tìm được example phù hợp.
-const store = new InMemoryStore({
-  index: {
-    embeddings,
-    dims: 3072,
-  },
-});
+// Store dùng chung cho 2 loại bộ nhớ:
+// 1. Semantic: thông tin agent lưu khi xử lý email, namespace "collection".
+// 2. Episodic: ví dụ mẫu cho triage, namespace "examples".
+// dims = số chiều vector của gemini-embedding-001.
+const store = new InMemoryStore({ index: { embeddings, dims: 3072 } });
 
-// Namespace chia memory theo user:
-// email_assistant > {userId} > examples.
+// ===== EPISODIC MEMORY: Ví dụ mẫu (few-shot) lưu trong Store =====
+
+// Đường dẫn lưu ví dụ mẫu, chia theo user.
+// Ví dụ: ["email_assistant", "lance", "examples"].
 function examplesNamespace(userId) {
   return ["email_assistant", userId, "examples"];
 }
 
-// Ghép email + nhãn thành một example.
-// Chỉ lấy 400 ký tự đầu để prompt ngắn hơn.
+// Chuyển 1 cặp email + nhãn thành đoạn văn bản để chèn vào prompt.
+// Cắt thread còn 400 ký tự đầu để tiết kiệm token.
 function formatExample({ email, label }) {
   return `Email Subject: ${email.subject}
 Email From: ${email.author}
@@ -77,19 +79,18 @@ ${email.emailThread.slice(0, 400)}
 > Triage Result: ${label}`;
 }
 
-// Gộp các example thành một block few-shot.
-// Không có example -> trả về null.
-function formatFewShotExamples(items) {
-  if (items.length === 0) return null;
+// Gộp các ví dụ tìm được thành 1 khối few-shot.
+// Trả về null nếu Store chưa có ví dụ nào.
+function formatFewShotExamples(matches) {
+  if (matches.length === 0) return null;
 
-  const blocks = items.map((item) => formatExample(item.value));
+  const blocks = matches.map((match) => formatExample(match.value));
   return ["Here are some previous examples:", ...blocks].join(
     "\n\n------------\n\n",
   );
 }
 
-// Tạo sẵn 2 ví dụ cho user "lance" để triage tham khảo.
-// Đây là dữ liệu mẫu có sẵn từ đầu.
+// Nạp sẵn 2 ví dụ mẫu vào Store để triage có cái tham khảo ngay từ đầu.
 async function seedExamples(userId) {
   const namespace = examplesNamespace(userId);
 
@@ -136,8 +137,8 @@ Sarah`,
   });
 }
 
-// Tìm email tương tự trong Store để triage tham khảo.
-// Chưa đưa example vào triage_router.
+// Tìm thử ví dụ mẫu bằng 1 email gần giống email của Sarah.
+// Chỉ in kết quả, chưa đưa vào triage_router.
 async function demoFewShotSearch(userId) {
   const email = {
     author: "Sarah Chen <sarah.chen@company.com>",
@@ -152,10 +153,12 @@ async function demoFewShotSearch(userId) {
     limit: 1,
   });
 
-  console.log("\n===== Demo: few-shot search =====");
   console.log(formatFewShotExamples(results));
 }
 
+// ===== TRIAGE ROUTER & RESPONSE AGENT =====
+
+// Schema đầu ra của bộ phân loại.
 const Router = z.object({
   reasoning: z
     .string()
@@ -177,8 +180,8 @@ const llm = new ChatGoogleGenerativeAI({
 
 const llmRouter = llm.withStructuredOutput(Router);
 
-// System prompt liệt kê các tool Agent có thể dùng.
-// 3 tool xử lý email/calendar và 2 tool để lưu/tra cứu semantic memory.
+// System prompt của response agent, liệt kê 5 tool:
+// 3 tool xử lý email và lịch họp, 2 tool đọc ghi semantic memory.
 function buildAgentSystemPromptMemory({ fullName, name, instructions }) {
   return `< Role >
 You are ${fullName}'s executive assistant. You are a top-notch executive assistant who cares about ${name} performing as well as possible.
@@ -198,8 +201,9 @@ ${instructions}
 </ Instructions >`;
 }
 
-// Namespace semantic memory, dùng cho response_agent.
-// Tách biệt với namespace "examples" của episodic memory.
+// Đường dẫn lưu semantic memory của response_agent.
+// Tách khỏi "examples" (episodic) để 2 loại bộ nhớ không lẫn nhau.
+// "{langgraph_user_id}" được thay bằng userId thật lúc chạy.
 const MEMORY_NAMESPACE = [
   "email_assistant",
   "{langgraph_user_id}",
@@ -209,6 +213,7 @@ const MEMORY_NAMESPACE = [
 const manageMemoryTool = createManageMemoryTool(MEMORY_NAMESPACE);
 const searchMemoryTool = createSearchMemoryTool(MEMORY_NAMESPACE);
 
+// Response agent chỉ tạo 1 lần vì instructions cố định, lấy từ profile.js.
 const responseAgent = createAgent({
   model: llm,
   tools: [
@@ -223,13 +228,13 @@ const responseAgent = createAgent({
     name: profile.name,
     instructions: agentInstructions,
   }),
-  // Gắn Store để memory tools có thể đọc và ghi memory.
+  // Gắn Store để memory tools đọc ghi semantic memory.
   store,
 });
 
-// State = bộ nhớ ngắn hạn của Graph.
-// emailInput giữ email gốc.
-// messages giữ lịch sử hội thoại giữa response_agent và Tool.
+// State: bộ nhớ ngắn hạn, sống trong 1 lượt chạy graph.
+// - emailInput: email đang xử lý.
+// - messages  : lịch sử trao đổi giữa response_agent và các tool.
 const EmailAgentState = Annotation.Root({
   emailInput: Annotation({
     reducer: (current, update) => update ?? current,
@@ -241,19 +246,22 @@ const EmailAgentState = Annotation.Root({
   }),
 });
 
+// Node 1: phân loại email.
 async function triageRouterNode(state, config) {
   console.log("\n📍 Node: triage_router - đang phân loại email...");
 
   const userId = config?.configurable?.langgraph_user_id ?? "default";
   const { author, to, subject, emailThread } = state.emailInput;
 
-  // Tìm các email tương tự đã được phân loại của user.
-  // Đây là episodic memory của triage.
-  const store = getStore(config);
-  const examples = await store.search(examplesNamespace(userId), {
+  // 1. Tìm các email tương tự mà user này đã phân loại trước đó.
+  //    Lấy Store qua getStore(config), không dùng biến store ở đầu file.
+  //    Đây là cách chuẩn của LangGraph: node và tool lấy Store qua config.
+  const graphStore = getStore(config);
+  const examples = await graphStore.search(examplesNamespace(userId), {
     query: JSON.stringify({ email: state.emailInput }),
   });
 
+  // 2. Prompt phân loại: quy tắc cố định trong profile.js + ví dụ mẫu vừa tìm được.
   const systemPrompt = buildTriageSystemPrompt({
     fullName: profile.fullName,
     name: profile.name,
@@ -276,16 +284,17 @@ async function triageRouterNode(state, config) {
     { role: "user", content: userPrompt },
   ]);
 
-  // result là object { reasoning, classification }, không phải AIMessage.
-  // Chỉ dùng để phân loại, không lưu vào state.
+  // result là object { reasoning, classification }, không phải AIMessage,
+  // nên chỉ dùng để điều hướng, không ghi vào state.
   console.log(`🧠 Reasoning: ${result.reasoning}`);
 
+  // Điều hướng theo nhãn LLM trả về.
   if (result.classification === "respond") {
     console.log("📧 Classification: RESPOND - This email requires a response");
     return new Command({
       goto: "response_agent",
       update: {
-        // Thêm message để giao email cho response_agent xử lý.
+        // Giao email cho response_agent dưới dạng 1 message của user.
         messages: [
           {
             role: "user",
@@ -307,32 +316,38 @@ async function triageRouterNode(state, config) {
   return new Command({ goto: END });
 }
 
-// Truyền config xuống Agent để memory tools lấy được user id
-// và truy cập đúng namespace memory của user hiện tại.
+// Node 2: chuyển messages cho agent có tool xử lý.
 async function responseAgentNode(state, nodeConfig) {
   console.log(
     "\n📍 Node: response_agent - đang gọi Agent xử lý (tool call)...",
   );
 
+  // Truyền config xuống agent để memory tools lấy được userId,
+  // từ đó đọc ghi đúng namespace của user hiện tại.
   const result = await responseAgent.invoke(
     { messages: state.messages },
     nodeConfig,
   );
 
-  // Agent trả về toàn bộ message history.
-  // Ghi cả mảng vào state để Graph giữ lại lịch sử xử lý.
+  // Agent trả về toàn bộ lịch sử message, ghi cả mảng vào state.
+  // Không bị nhân đôi vì messagesStateReducer gộp message trùng id.
   return { messages: result.messages };
 }
 
+// Khai báo và biên dịch graph:
+// 1. START -> triage_router.
+// 2. respond -> response_agent. Nhãn khác -> END.
 const emailAgent = new StateGraph(EmailAgentState)
+  // ends: các node mà Command({ goto }) có thể nhảy tới.
   .addNode("triage_router", triageRouterNode, {
     ends: ["response_agent", END],
   })
   .addNode("response_agent", responseAgentNode)
   .addEdge(START, "triage_router")
-  // Gắn Store để các Node có thể truy cập long-term memory.
+  // Gắn Store để các node truy cập được bộ nhớ dài hạn.
   .compile({ store });
 
+// Chạy graph với 1 email, in toàn bộ lịch sử message.
 async function runEmail(emailInput, userId) {
   console.log(
     `\n========== Email: "${emailInput.subject}" (user=${userId}) ==========`,
@@ -351,11 +366,14 @@ async function runEmail(emailInput, userId) {
   }
 }
 
-// Email cố tình mơ hồ: đọc qua giống một câu hỏi thật (nên "respond"),
-// nhưng người gửi là đối tác lạ, ngoài công ty - John muốn triage bỏ qua
-// loại này. Rules hiện tại không phân biệt được nên LLM dễ đoán sai lần đầu,
-// đúng lúc cần episodic memory (example) để sửa.
-const edgeCaseEmail = {
+// ===== KỊCH BẢN MINH HỌA =====
+
+// Email cố tình mơ hồ:
+// - Nội dung giống câu hỏi thật, nên LLM dễ xếp RESPOND.
+// - Người gửi là đối tác lạ ngoài công ty, John muốn IGNORE.
+// Rules hiện tại không phân biệt được, nên lần đầu LLM xếp sai.
+// Episodic memory dùng để sửa đúng trường hợp này.
+const ambiguousEmail = {
   author: "Tom Jones <tom.jones@bar.com>",
   to: "John Doe <john.doe@company.com>",
   subject: "Quick question about API documentation",
@@ -367,10 +385,10 @@ Thanks,
 Tom`,
 };
 
-// Đổi nhẹ câu chữ nhưng vẫn cùng ý.
-// Dùng để kiểm tra semantic search có tìm được example cũ không.
-const similarEmail = {
-  ...edgeCaseEmail,
+// Cùng ý với ambiguousEmail, khác câu chữ và người gửi.
+// Kiểm tra tìm theo ý nghĩa có ra được ví dụ cũ không.
+const paraphrasedEmail = {
+  ...ambiguousEmail,
   author: "Jim Jones <jim.jones@bar.com>",
   emailThread: `Hi John,
 
@@ -380,42 +398,45 @@ Thanks,
 Jim`,
 };
 
-// Chưa có example -> LLM tự đoán -> trả về RESPOND (sai).
+// Chạy khi user "harrison" chưa có ví dụ nào trong Store.
 async function runWithoutMemory() {
-  console.log("\n===== TRƯỚC KHI SỬA - kỳ vọng RESPOND =====");
-  await runEmail(edgeCaseEmail, "harrison");
+  await runEmail(ambiguousEmail, "harrison");
 }
 
-// Lưu nhãn đúng rồi chạy lại cùng email -> triage tìm được example -> trả về IGNORE (đúng).
+// Sửa sai: lưu email + nhãn đúng (IGNORE) vào Store của "harrison" rồi chạy lại.
+// Chỉ cần sửa 1 lần, các lần sau triage phân loại đúng.
 async function correctAndRunWithMemory() {
   await store.put(examplesNamespace("harrison"), randomUUID(), {
-    email: edgeCaseEmail,
+    email: ambiguousEmail,
     label: "ignore",
   });
 
-  console.log("\n===== SAU KHI SỬA - kỳ vọng IGNORE =====");
-  await runEmail(edgeCaseEmail, "harrison");
+  await runEmail(ambiguousEmail, "harrison");
 }
 
-// Demo episodic memory
-//
-// runWithoutMemory():
-// Chưa có example -> LLM tự phân loại -> RESPOND (sai)
-//
-// correctAndRunWithMemory():
-// Có example với label IGNORE -> triage tìm example -> IGNORE (đúng)
 async function demoEpisodicLearning() {
+  // Nạp 2 ví dụ mẫu cho user "lance".
   await seedExamples("lance");
+
+  // Demo tìm email tương tự trong Store, chỉ in ra.
+  console.log("\n===== Demo: few-shot search =====");
   await demoFewShotSearch("lance");
 
+  // Vòng 1: chưa có ví dụ, LLM tự phân loại, ra RESPOND (sai).
+  console.log("\n===== TRƯỚC KHI SỬA - kỳ vọng RESPOND =====");
   await runWithoutMemory();
+
+  // Vòng 2: đã có ví dụ nhãn IGNORE, triage tìm thấy và xếp IGNORE (đúng).
+  console.log("\n===== SAU KHI SỬA - kỳ vọng IGNORE =====");
   await correctAndRunWithMemory();
 
-  // // Email khác câu chữ nhưng cùng ý -> vẫn tìm được example cũ.
-  // await runEmail(similarEmail, "harrison");
+  // Vòng 3: email khác câu chữ nhưng cùng ý, vẫn tìm được ví dụ cũ, ra IGNORE.
+  console.log("\n===== EMAIL TƯƠNG TỰ VỚI CÂU CHỮ KHÁC - kỳ vọng IGNORE =====");
+  await runEmail(paraphrasedEmail, "harrison");
 
-  // // User khác có namespace riêng -> không thấy memory của harrison.
-  // await runEmail(similarEmail, "andrew");
+  // Vòng 4: user andrew có namespace riêng, không thấy ví dụ của harrison -> RESPOND.
+  console.log("\n===== USER KHÁC (USER=ANDREW) - kỳ vọng RESPOND =====");
+  await runEmail(paraphrasedEmail, "andrew");
 }
 
 async function main() {

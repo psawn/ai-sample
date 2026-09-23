@@ -1,12 +1,17 @@
-// Human in the Loop - Phần 1: Duyệt tay trước khi Agent gọi Tool
-// Bản dựng StateGraph thủ công (dùng agent-with-interrupt.js) - xem bản createAgent tương
-// đương ở 04-human-approval-create-agent.js.
+// =======================================================================
+// LANGGRAPH - BƯỚC 4: HUMAN IN THE LOOP (DUYỆT TAY) - BẢN DỰNG GRAPH BẰNG TAY
 //
-// Mục tiêu:
-// - Cơ chế `interruptBefore: ["action"]` khiến Graph tự động DỪNG lại ngay
-//   trước Node "action" khi Model yêu cầu gọi Tool.
-// - Dùng `graph.getState(thread).next` để xem Node nào sắp chạy tiếp ([] là đã xong).
-// - Dùng `graph.stream(null, thread)` (truyền `null`) để tiếp tục chạy từ vị trí đang dừng.
+// Graph dừng lại chờ duyệt trước mỗi lần gọi tool.
+// - interruptBefore: ["action"]: graph tự dừng ngay trước node "action" (node chạy tool).
+// - graph.getState(thread).next: node sắp chạy tiếp. [] nghĩa là đã xong.
+// - graph.stream(null, thread): input null -> chạy tiếp từ chỗ đang dừng.
+//
+// 2 kịch bản:
+// 1. Code tự duyệt, không hỏi người dùng.
+// 2. Hỏi người dùng (y/n) trước mỗi lần gọi tool.
+//
+// Dùng Agent ở agent-with-interrupt.js. Bản createAgent: 04-human-approval-create-agent.js.
+// =======================================================================
 
 require("../_polyfill");
 require("dotenv").config();
@@ -18,34 +23,35 @@ const { HumanMessage } = require("@langchain/core/messages");
 const { Agent } = require("./agent-with-interrupt");
 const { webSearch } = require("./tool");
 
+// System prompt: trợ lý nghiên cứu, được gọi tool nhiều lần.
 const prompt = `You are a smart research assistant. Use the search engine to look up information. \
 You are allowed to make multiple calls (either together or in sequence). \
 Only look up information when you are sure of what you want. \
 If you need to look up some information before asking a follow up question, you are allowed to do that!`;
 
-// Hàm in ra dữ liệu trả về sau mỗi Node chạy xong
+// In dữ liệu trả về sau mỗi node chạy xong.
 function printStepEvent(event) {
   // console.log("[event thô]", event);
 
   for (const [node, value] of Object.entries(event)) {
-    // Khi Graph bị interruptBefore chặn lại, stream() bắn thêm 1 event phụ (vd:
-    // "__interrupt__") không có field `messages` - bỏ qua, không phải Node thật.
+    // Lúc bị interruptBefore chặn, stream() trả thêm event phụ (vd: "__interrupt__").
+    // Event này không có messages, không phải node thật -> bỏ qua.
     if (!value?.messages) continue;
     const lastMessage = value.messages.at(-1);
     console.log(`Node [${node}]`, lastMessage.content || lastMessage.tool_calls);
   }
 }
 
-// Kịch bản 1: Tự động cho chạy tiếp bằng code, không cần hỏi người dùng (minh họa API
-// getState và stream(null)) - vẫn phải LẶP vì Model có thể cần gọi Tool nhiều lần liên tiếp.
+// Kịch bản 1: code tự duyệt, không hỏi người dùng.
+// Mục đích: minh họa getState() và stream(null).
 async function runAutoApprove(abot) {
   console.log(
     '\n========== Thread 1: Chạy và tự dừng trước Node "action" ==========',
   );
   const thread = { configurable: { thread_id: "1" } };
 
-  // Model muốn gọi Tool -> Agent có interruptBefore: ["action"] nên Graph bị chặn NGAY
-  // TRƯỚC Node "action", chưa chạy Tool -> vòng lặp for-await bên dưới tự dừng ở đây.
+  // Model muốn gọi tool -> graph dừng ngay trước node "action", tool chưa chạy.
+  // Vòng for-await bên dưới kết thúc tại điểm dừng này.
   const firstEvents = await abot.graph.stream(
     { messages: [new HumanMessage("Whats the weather in SF?")] },
     thread,
@@ -57,9 +63,8 @@ async function runAutoApprove(abot) {
   let state = await abot.graph.getState(thread);
   console.log("-> Node sắp chạy tiếp:", state.next);
 
-  // Tự động duyệt (không hỏi ai) nhưng vẫn phải LẶP: sau khi đọc xong kết quả Tool, Model
-  // có thể quyết định gọi Tool thêm lần nữa -> Graph lại bị chặn tiếp. Chỉ dừng vòng lặp
-  // khi state.next thực sự rỗng (Graph chạy xong hoàn toàn).
+  // Phải lặp: đọc kết quả tool xong, Model có thể gọi tool tiếp -> graph lại dừng.
+  // Chỉ thoát khi state.next rỗng (graph đã chạy xong).
   while (state.next.length > 0) {
     console.log(
       "\n========== Tự động duyệt -> Tiếp tục chạy bằng stream(null) ==========",
@@ -74,14 +79,14 @@ async function runAutoApprove(abot) {
   console.log("-> Node sắp chạy tiếp:", state.next, "(rỗng nghĩa là đã xong)");
 }
 
-// Kịch bản 2: Hỏi ý kiến người dùng (y/n) trước MỖI lần gọi Tool
+// Kịch bản 2: hỏi người dùng (y/n) trước mỗi lần gọi tool.
 async function runManualApprove(abot) {
   console.log(
     "\n========== Thread 2: Vòng lặp chờ người dùng xác nhận gọi Tool ==========",
   );
   const thread = { configurable: { thread_id: "2" } };
 
-  // Chạy lượt đầu tiên tới khi bị dừng trước Node "action"
+  // Chạy lượt đầu tới khi dừng trước node "action".
   const firstEvents = await abot.graph.stream(
     { messages: [new HumanMessage("Whats the weather in LA?")] },
     thread,
@@ -96,7 +101,7 @@ async function runManualApprove(abot) {
   });
   let state = await abot.graph.getState(thread);
 
-  // Tiếp tục hỏi duyệt chừng nào Graph vẫn còn Node chờ chạy (state.next không rỗng)
+  // Hỏi duyệt chừng nào graph còn node chờ chạy.
   while (state.next.length > 0) {
     console.log("\n-> Model muốn gọi Tool, Node sắp chạy:", state.next);
     const answer = await rl.question("Đồng ý cho chạy Tool? (y/n) ");
@@ -106,19 +111,20 @@ async function runManualApprove(abot) {
       break;
     }
 
-    // Người dùng đồng ý -> Cho Graph chạy tiếp tới điểm dừng tiếp theo (hoặc tới khi xong)
+    // Đồng ý -> chạy tiếp tới điểm dừng kế tiếp, hoặc tới khi xong.
     const nextEvents = await abot.graph.stream(null, thread);
     for await (const event of nextEvents) {
       printStepEvent(event);
     }
 
-    // Cập nhật lại state mới nhất để kiểm tra vòng lặp kế tiếp
+    // Lấy state mới để kiểm tra điều kiện vòng lặp.
     state = await abot.graph.getState(thread);
   }
 
   rl.close();
 }
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
   const llm = new ChatGoogleGenerativeAI({
     apiKey: process.env.GEMINI_API_KEY,
@@ -129,7 +135,9 @@ async function main() {
   const memory = new MemorySaver();
   const abot = new Agent(llm, [webSearch], memory, prompt);
 
+  // Kịch bản 1: code tự duyệt.
   await runAutoApprove(abot);
+  // Kịch bản 2: người dùng duyệt từng lần.
   await runManualApprove(abot);
 }
 

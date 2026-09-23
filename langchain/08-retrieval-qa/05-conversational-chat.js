@@ -1,3 +1,16 @@
+// =======================================================================
+// RETRIEVAL QA - BƯỚC 5: CHATBOT RAG CÓ NHỚ HỘI THOẠI
+//
+// Khắc phục giới hạn ở 04-limitations.js (hỏi tiếp bị lạc đề).
+// Ghép 2 chain nhỏ, thay ConversationalRetrievalChain (deprecated):
+// 1. historyAwareRetriever: dùng chat history viết lại câu hỏi cho rõ nghĩa,
+//    rồi mới tìm document.
+//    Vd: "why are those needed?" + history về "probability"
+//        -> "why is probability needed?"
+// 2. questionAnswerChain: trả lời dựa trên document + câu hỏi gốc + chat history
+//    -> câu trả lời tự nhiên, đúng mạch hội thoại.
+// =======================================================================
+
 require("../_polyfill");
 require("dotenv").config();
 const path = require("path");
@@ -22,15 +35,6 @@ const {
 const { HumanMessage, AIMessage } = require("@langchain/core/messages");
 const { embedChunksSafely } = require("../06-retrieval/util-embed-safely");
 
-// Cách LangChain hiện khuyến nghị để làm chatbot có nhớ hội thoại - thay cho class
-// ConversationalRetrievalChain cũ (đã bị đánh dấu deprecated) - bằng cách ghép 2 chain nhỏ:
-// 1. historyAwareRetriever: chỉ dùng lịch sử chat để "hiểu" câu hỏi tiếp theo đang nói
-//    về cái gì, rồi mới đi tìm document (xem 04-limitations.js để thấy rõ vấn đề
-//    khi KHÔNG có bước này: hỏi tiếp không có ngữ cảnh sẽ lạc đề).
-// 2. qaChain: trả lời dựa trên document tìm được + câu hỏi GỐC (chưa viết lại) + lịch sử
-//    chat - dùng thẳng lịch sử chat ở đây (thay vì câu đã viết lại) để câu trả lời tự
-//    nhiên, đúng mạch hội thoại hơn.
-
 const lecturesDir = path.join(__dirname, "../../docs/cs229_lectures");
 
 const embeddings = new GoogleGenerativeAIEmbeddings({
@@ -44,11 +48,7 @@ const llm = new ChatGoogleGenerativeAI({
   temperature: 0,
 });
 
-// Xây vectorDB dùng chung cho cả cuộc hội thoại bên dưới:
-// 1. Load cả 3 file PDF bài giảng.
-// 2. Gộp lại thành 1 danh sách document.
-// 3. Split thành chunk.
-// 4. Embed toàn bộ chunk.
+// Xây vectorDB: load 3 PDF -> split -> embed -> MemoryVectorStore (giống 01-basic.js).
 async function buildVectorDb() {
   const pdfPaths = [
     path.join(lecturesDir, "MachineLearning-Lecture01.pdf"),
@@ -67,64 +67,50 @@ async function buildVectorDb() {
   });
   const splits = await textSplitter.splitDocuments(docs);
 
-  // Embed từng chunk an toàn (tự retry khi lỗi) rồi mới đưa vào vectorstore.
-  // Xem lý do trong util-embed-safely.js.
+  // Embed có retry khi lỗi (lý do: ../06-retrieval/util-embed-safely.js).
   const vectors = await embedChunksSafely(embeddings, splits);
   const vectordb = await MemoryVectorStore.fromExistingIndex(embeddings);
   await vectordb.addVectors(vectors, splits);
   return vectordb;
 }
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
   const vectordb = await buildVectorDb();
   const retriever = vectordb.asRetriever({ k: 4 });
 
-  // Prompt này giúp AI "hiểu" câu hỏi đang nói về điều gì, bằng cách viết lại nó thành 1
-  // câu hỏi rõ nghĩa, không cần biết các câu hỏi trước đó. LangChain gọi bước này là
-  // "contextualize question" (đặt câu hỏi vào đúng ngữ cảnh), kết quả trả về là
-  // "Standalone Question" (câu hỏi độc lập, tự đủ nghĩa).
-  // Cấu trúc prompt theo thứ tự:
-  // 1. system: hướng dẫn.
-  // 2. chat_history: lịch sử chat.
-  // 3. human: câu hỏi mới.
-  // Ví dụ: "why are those needed?" ("those" mơ hồ -> cần ngữ cảnh mới hiểu) + chat_history
-  // đang nói về "probability" -> viết lại thành "why is probability needed?" (đã rõ nghĩa).
+  // ----- Chain 1: viết lại câu hỏi (contextualize question) -----
+  // Câu hỏi mơ hồ -> "standalone question" (tự đủ nghĩa, không cần history).
+  // Thứ tự prompt: system (hướng dẫn) -> chat_history -> human (câu hỏi mới).
   const rephrasePrompt = ChatPromptTemplate.fromMessages([
     [
       "system",
       "Given a chat history and the latest user question which might reference context in the chat history, formulate a standalone question which can be understood without the chat history. Do NOT answer the question, just reformulate it if needed and otherwise return it as is.",
     ],
-    // Dùng MessagesPlaceholder("chat_history") thay vì string template vì lịch sử chat
-    // là một mảng các đối tượng tin nhắn (HumanMessage, AIMessage), không phải chuỗi thuần túy.
-    // Giúp tiêm danh sách tin nhắn vào đúng vị trí mà không làm mất cấu trúc định danh người nói.
-    // Nhờ đó, Gemini nhận được một danh sách rõ ràng:
-    //   [Human] Câu hỏi cũ
-    //   [AI] Câu trả lời cũ
-    //   [Human] Câu hỏi mới ({input})
+    // chat_history là mảng message (HumanMessage, AIMessage), không phải chuỗi.
+    // MessagesPlaceholder chèn mảng này vào prompt, giữ đúng vai người nói:
+    // [Human] câu hỏi cũ -> [AI] câu trả lời cũ -> [Human] câu hỏi mới.
     new MessagesPlaceholder("chat_history"),
     ["human", "{input}"],
   ]);
 
-  // Tạo retriever thông minh
-  // - chat_history rỗng: chuyển thẳng {input} gốc cho retriever -> KHÔNG gọi LLM để viết lại câu hỏi
-  // - chat_history có dữ liệu: gọi LLM với rephrasePrompt -> viết lại {input} thành
-  //   câu hỏi standalone, rồi đưa cho retriever
+  // Retriever có dùng history:
+  // - History rỗng: dùng thẳng câu hỏi gốc, không gọi LLM viết lại.
+  // - History có dữ liệu: gọi LLM viết lại câu hỏi, rồi mới tìm document.
   const historyAwareRetriever = await createHistoryAwareRetriever({
     llm,
     retriever,
     rephrasePrompt,
   });
 
-  // Prompt trả lời: vẫn có {context} (document tìm được) và {input} (câu hỏi
-  // GỐC, chưa viết lại) như các bài trước, thêm chat_history để LLM trả lời
-  // tự nhiên, đúng mạch hội thoại.
+  // ----- Chain 2: trả lời -----
+  // Prompt gồm {context} (document), {input} (câu hỏi gốc) và chat_history.
+  // Dùng câu hỏi gốc, không dùng câu đã viết lại, để trả lời tự nhiên theo mạch hội thoại.
   const qaPrompt = ChatPromptTemplate.fromMessages([
     [
       "system",
       "Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer. Use three sentences maximum. Keep the answer as concise as possible. Always say \"thanks for asking!\" at the end of the answer.\n\n{context}",
     ],
-    // Tương tự rephrasePrompt ở trên: dùng MessagesPlaceholder chứ không phải
-    // "{chat_history}" dạng chuỗi.
     new MessagesPlaceholder("chat_history"),
     ["human", "{input}"],
   ]);
@@ -133,25 +119,22 @@ async function main() {
     prompt: qaPrompt,
   });
 
-  // Nối 2 chain lại: historyAwareRetriever tìm document -> questionAnswerChain trả lời.
+  // Nối 2 chain: historyAwareRetriever tìm document -> questionAnswerChain trả lời.
   const ragChain = await createRetrievalChain({
     retriever: historyAwareRetriever,
     combineDocsChain: questionAnswerChain,
   });
 
-  // Callback để log ra câu hỏi mà historyAwareRetriever thực sự gửi cho retriever đi
-  // tìm tài liệu - tức là câu hỏi SAU khi đã qua bước viết lại (rephrase) dựa vào
-  // chat_history. Nhờ log này thấy rõ đoạn "biến đổi": câu hỏi mơ hồ ("those...") ->
-  // câu hỏi độc lập, đã có đủ ngữ cảnh.
+  // Callback in câu hỏi sau khi viết lại (câu thật sự dùng để tìm tài liệu).
+  // Thấy rõ: câu mơ hồ ("those...") -> câu rõ nghĩa.
   const logRephraseCallback = {
     handleRetrieverStart: (_retriever, query) => {
       console.log("  -> Câu hỏi dùng để tìm tài liệu:", query);
     },
   };
 
-  // Lịch sử hội thoại lưu tay trong RAM, giống cách làm ở memory/03-all-history.js.
-  // Đây là cách quản lý chat_history TỰ TAY - xem so sánh với cách TỰ ĐỘNG ở
-  // ../chat-history-manual-vs-auto.js.
+  // Chat history quản lý bằng tay (giống 03-memory/03-all-history.js).
+  // So sánh cách tự động: 01-basics/chat-history-manual-vs-auto.js.
   const chatHistory = [];
 
   const question1 = "Is probability a class topic?";
@@ -162,13 +145,11 @@ async function main() {
   );
   console.log("A1:", result1.answer);
 
-  // Lưu lại câu hỏi + câu trả lời vừa rồi vào lịch sử, để dùng cho câu hỏi tiếp theo.
+  // Lưu Q&A vừa rồi vào history cho câu hỏi sau.
   chatHistory.push(new HumanMessage(question1), new AIMessage(result1.answer));
 
-  // Câu hỏi này có "those" mơ hồ. Nhờ historyAwareRetriever viết lại câu hỏi dựa vào
-  // chatHistory ở trên, retriever vẫn tìm đúng chunk liên quan tới "probability" - khác
-  // với khi KHÔNG có bước này (xem 04-limitations.js: cùng 2 câu hỏi này nhưng chạy qua
-  // RetrievalQA không có contextualize/memory, câu trả lời 2 thường lạc đề).
+  // Câu hỏi có "those" mơ hồ. Nhờ viết lại theo history, retriever vẫn tìm đúng
+  // chunk về "probability". (Ở 04-limitations.js, cùng câu này thường lạc đề.)
   const question2 = "why are those prerequesites needed?";
   console.log("\nQ2:", question2);
   const result2 = await ragChain.invoke(

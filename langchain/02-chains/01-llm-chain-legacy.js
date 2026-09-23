@@ -1,25 +1,20 @@
+// =======================================================================
+// CHAINS - BƯỚC 1: LLMChain (CÁCH CŨ - LEGACY)
+//
+// Chain: nối nhiều bước xử lý (prompt -> model -> ...) để khỏi gọi tay từng bước.
+// LLMChain là chain đơn giản nhất: 1 prompt + 1 model.
+// chain.call({...biến}) tự làm 2 việc:
+// 1. Điền biến vào prompt (giống prompt.formatMessages()).
+// 2. Gửi prompt cho model (giống model.invoke()).
+//
+// LLMChain đã deprecated. Cách mới: 01-llm-chain-lcel.js.
+// =======================================================================
+
 require("../_polyfill");
 require("dotenv").config();
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { ChatPromptTemplate } = require("@langchain/core/prompts");
 const { LLMChain } = require("@langchain/classic/chains");
-
-// =======================================================
-// LLMChain (cách viết CŨ, dùng class LLMChain)
-//
-// "Chain" là cách LangChain gọi việc nối nhiều bước xử lý lại với nhau
-// (ví dụ: Prompt -> Model -> ...) để không phải tự gọi tay từng bước một.
-//
-// LLMChain là chain đơn giản nhất, chỉ gồm 1 Prompt + 1 Model. Khi gọi
-// chain.call({...biến}), nó tự động làm 2 việc:
-// 1. Điền các biến vào Prompt (giống prompt.formatMessages()).
-// 2. Gửi Prompt đã điền cho Model, tức gọi API Gemini để lấy câu trả lời
-//    (giống model.invoke()).
-//
-// Lưu ý: class LLMChain đã bị đánh dấu lỗi thời (deprecated), sẽ bị xóa
-// ở LangChain 1.0.0. Xem file "01-llm-chain-lcel.js" để biết cách viết
-// mới mà LangChain khuyến nghị.
-// =======================================================
 
 const apiKey = process.env.GEMINI_API_KEY;
 
@@ -38,13 +33,14 @@ const chain = new LLMChain({
   prompt,
 });
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
-  // chain.call() điền input vào prompt rồi gọi API Gemini để lấy câu trả lời.
+  // Điền {product} vào prompt rồi gọi Gemini.
   const result = await chain.call({
     product: "Queen Size Sheet Set",
   });
 
-  // Kết quả trả về là object dạng { text: "..." }, câu trả lời nằm ở result.text.
+  // Kết quả dạng { text: "..." } -> câu trả lời ở result.text.
   console.log("Company name:", result.text);
 }
 
