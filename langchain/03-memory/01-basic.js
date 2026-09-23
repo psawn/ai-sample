@@ -1,10 +1,17 @@
+// =======================================================================
+// MEMORY - BƯỚC 1: LƯU LỊCH SỬ HỘI THOẠI CƠ BẢN
+//
+// InMemoryChatMessageHistory: lưu các message (Human/AI) trong RAM.
+// File này không gọi AI, chỉ mô phỏng cách thêm và đọc lại lịch sử.
+// =======================================================================
+
 require("../_polyfill");
 const { InMemoryChatMessageHistory } = require("@langchain/core/chat_history");
 const { HumanMessage, AIMessage } = require("@langchain/core/messages");
 
-// Code không gọi AI. Chỉ mô phỏng việc lưu lịch sử hội thoại.
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
-  // Tạo một Memory lưu trong RAM.
+  // Memory lưu trong RAM (tắt chương trình là mất).
   const history = new InMemoryChatMessageHistory();
 
   // User gửi tin nhắn.

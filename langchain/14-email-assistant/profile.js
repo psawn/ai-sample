@@ -1,6 +1,12 @@
-// Dữ liệu dùng chung cho cả 3 file demo trong bài: hồ sơ người dùng (để LLM biết đang
-// hỗ trợ ai) + quy tắc phân loại email (để LLM biết email nào bỏ qua/thông báo/trả lời)
-// + 2 email mẫu để test.
+// =======================================================================
+// EMAIL ASSISTANT - DỮ LIỆU DÙNG CHUNG CHO CÁC BƯỚC DEMO
+//
+// Gồm:
+// - profile          : hồ sơ người dùng, cho LLM biết đang hỗ trợ ai.
+// - triageRules      : quy tắc phân loại email thành ignore / notify / respond.
+// - agentInstructions: chỉ dẫn làm việc cho response agent.
+// - 2 email mẫu để chạy thử.
+// =======================================================================
 
 const profile = {
   name: "John",
@@ -9,8 +15,8 @@ const profile = {
     "Senior software engineer leading a team of 5 developers",
 };
 
-// Các quy tắc này sẽ được nhét vào system prompt của LLM phân loại (triage) - LLM đọc
-// mô tả bằng ngôn ngữ tự nhiên này để quyết định xếp email vào nhóm nào.
+// Quy tắc phân loại, chèn vào system prompt của bước triage.
+// LLM đọc mô tả này để xếp email vào nhóm.
 const triageRules = {
   ignore: "Marketing newsletters, spam emails, mass company announcements",
   notify:
@@ -19,17 +25,17 @@ const triageRules = {
     "Direct questions from team members, meeting requests, critical bug reports",
 };
 
-// Cố tình viết instructions mơ hồ để minh hoạ agent có thể lạm dụng Tool.
-// Với questionEmail, agent có thể tự gọi schedule_meeting dù câu hỏi trả lời được
-// ngay qua email - đây là hạn chế của prompt, không phải lỗi code.
+// Chỉ dẫn cho response agent. Cố ý viết mơ hồ để thấy agent lạm dụng tool.
+// Ví dụ: với questionEmail, agent có thể gọi schedule_meeting dù trả lời
+// bằng email là đủ. Đây là hạn chế của prompt, không phải lỗi code.
 //
-// Muốn agent ưu tiên trả lời qua email, cần thêm rule rõ ràng, ví dụ:
+// Muốn agent ưu tiên trả lời bằng email thì thêm rule rõ ràng, ví dụ:
 // "Prefer answering directly via write_email; only use schedule_meeting when the
 // sender explicitly asks for a meeting or the issue cannot be resolved by email alone."
 const agentInstructions =
   "Use these tools when appropriate to help manage John's tasks efficiently.";
 
-// Email cần LLM trả lời (câu hỏi trực tiếp từ đồng nghiệp).
+// Email cần trả lời: câu hỏi trực tiếp từ đồng nghiệp.
 const questionEmail = {
   author: "Alice Smith <alice.smith@company.com>",
   to: "John Doe <john.doe@company.com>",
@@ -46,7 +52,7 @@ Thanks!
 Alice`,
 };
 
-// Email nên bị LLM lọc bỏ (spam quảng cáo, không đáng trả lời).
+// Email nên bỏ qua: spam quảng cáo.
 const spamEmail = {
   author: "Marketing Team <marketing@amazingdeals.com>",
   to: "John Doe <john.doe@company.com>",

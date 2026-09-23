@@ -1,14 +1,20 @@
-// Danh sách "Action" (tool) mà Agent được phép gọi trong vòng lặp ReAct - mỗi action nhận
-// vào 1 chuỗi input, trả về 1 chuỗi kết quả (Observation) để đưa lại cho model đọc.
+// =======================================================================
+// AGENT FROM SCRATCH - DANH SÁCH ACTION (TOOL) CHO VÒNG LẶP ReAct
+//
+// Mỗi action nhận 1 chuỗi input, trả 1 kết quả (Observation) cho model đọc.
+// Dùng chung cho cả bản ReAct (01, 02) và bản Tool Calling (03, 04).
+// =======================================================================
 
-// Action "calculate": tính 1 biểu thức số học đơn giản, ví dụ "4 * 7 / 3".
-// Dùng eval() cho gọn vì đây chỉ là bài học minh hoạ - không dùng cách này cho production
-// (eval() chạy được bất kỳ code JS nào, rất nguy hiểm nếu input đến từ người dùng thật).
+// Action "calculate": tính biểu thức số học. Vd: "4 * 7 / 3".
+// Lưu ý: eval() chạy được mọi code JS -> chỉ dùng cho bài học.
+// Không dùng ở dự án thật, nhất là khi input đến từ người dùng.
 function calculate(what) {
   return eval(what);
 }
 
-// Action "average_dog_weight": tra cứu cân nặng trung bình theo giống chó.
+// Action "average_dog_weight": tra cân nặng trung bình theo giống chó (dữ liệu giả lập).
+// So khớp kiểu "tên giống chứa input", phân biệt hoa/thường.
+// Vd: "Collie" khớp "Border Collie". "border collie" không khớp -> rơi vào mặc định 50 lbs.
 function averageDogWeight(name) {
   if ("Scottish Terrier".includes(name)) {
     return "Scottish Terriers average 20 lbs";
@@ -21,7 +27,8 @@ function averageDogWeight(name) {
   }
 }
 
-// Map tên action -> hàm thực thi, để tra cứu khi model yêu cầu chạy 1 action.
+// Tra hàm theo tên action.
+// Vd: model viết "Action: calculate: 37 + 20" -> knownActions["calculate"]("37 + 20").
 const knownActions = {
   calculate,
   average_dog_weight: averageDogWeight,

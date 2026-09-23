@@ -1,3 +1,17 @@
+// =======================================================================
+// QA - BƯỚC 6: ĐÁNH GIÁ RAG BẰNG QAEvalChain
+//
+// Dùng LLM làm "giám khảo" chấm hệ thống RAG.
+//
+// Flow:
+// 1. Chuẩn bị bộ câu hỏi + đáp án đúng (examples).
+// 2. Cho RAG trả lời từng câu -> predictions.
+// 3. QAEvalChain so câu trả lời AI với đáp án -> CORRECT / INCORRECT.
+//
+// Giám khảo so ý nghĩa, không cần trùng từng chữ.
+// Bản tự viết bằng LCEL (tùy biến được): 07-evaluation-lcel.js.
+// =======================================================================
+
 require("../_polyfill");
 require("dotenv").config();
 
@@ -13,18 +27,17 @@ const {
   RunnablePassthrough,
 } = require("@langchain/core/runnables");
 const { StringOutputParser } = require("@langchain/core/output_parsers");
-// QAEvalChain: chain dựng sẵn của LangChain,
-// đóng vai trò "giám khảo" - gọi LLM để so sánh câu trả lời AI sinh ra với đáp án đúng, rồi chấm CORRECT/INCORRECT.
+// QAEvalChain: chain "giám khảo" dựng sẵn, chấm CORRECT/INCORRECT.
 const { QAEvalChain } = require("@langchain/classic/evaluation");
 const path = require("path");
 
-// Embedding Model: gọi API Gemini (model gemini-embedding-001) để biến Document / Query thành vector.
+// Model embedding: đổi Document và câu hỏi thành vector.
 const embeddings = new GoogleGenerativeAIEmbeddings({
   apiKey: process.env.GEMINI_API_KEY,
   model: "gemini-embedding-001",
 });
 
-// LLM: gọi API Gemini (model gemini-3.5-flash) cho 2 việc - trả lời câu hỏi (qaChain) và chấm điểm câu trả lời (evalChain).
+// LLM dùng cho 2 việc: trả lời câu hỏi (qaChain) và chấm điểm (evalChain).
 const llm = new ChatGoogleGenerativeAI({
   apiKey: process.env.GEMINI_API_KEY,
   model: "gemini-3.5-flash",
@@ -34,12 +47,12 @@ const llm = new ChatGoogleGenerativeAI({
 const filePath = path.join(__dirname, "OutdoorClothingCatalog_1000.csv");
 const loader = new CSVLoader(filePath);
 
+// Ghép nội dung các document thành 1 đoạn text.
 function formatDocuments(docs) {
   return docs.map((doc) => doc.pageContent).join("\n\n");
 }
 
-// Bộ câu hỏi kiểm thử: mỗi câu hỏi kèm sẵn đáp án đúng (do người viết tự xác nhận),
-// dùng làm "chuẩn" để so sánh với câu trả lời mà hệ thống RAG (AI) sinh ra.
+// Bộ câu hỏi kiểm thử, mỗi câu kèm đáp án đúng (người viết tự xác nhận).
 const examples = [
   {
     query: "Do the Cozy Comfort Pullover Set have side pockets?",
@@ -52,18 +65,18 @@ const examples = [
   },
 ];
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
-  // Giới hạn số document để tránh vượt rate limit của API embedding.
+  // Chỉ lấy 90 document để không vượt rate limit của API embedding.
+  // 2 sản phẩm trong examples nằm trong 90 dòng đầu.
   const docs = (await loader.load()).slice(0, 90);
 
   console.log("Loaded documents:", docs.length);
 
-  // Gọi API Gemini để tạo vector cho từng Document, lưu Document + vector vào MemoryVectorStore trong RAM.
+  // Embed từng Document, lưu vào RAM.
   const db = await MemoryVectorStore.fromDocuments(docs, embeddings);
 
-  // Retriever: khi invoke sẽ:
-  // 1. Gọi API Gemini để tạo vector cho câu hỏi.
-  // 2. So sánh với các vector Document trong RAM để tìm ra những đoạn nội dung liên quan nhất làm ngữ cảnh trả lời.
+  // Retriever: nhận câu hỏi -> trả k document liên quan nhất.
   const retriever = db.asRetriever({
     k: 4,
   });
@@ -72,11 +85,8 @@ async function main() {
     `{documents}\n\nQuestion: {input}`,
   );
 
-  // RAG chain:
-  // 1. Tìm document liên quan.
-  // 2. Nhét vào prompt.
-  // 3. Gọi LLM sinh câu trả lời.
-  // Đây là hệ thống mà ta muốn kiểm tra độ chính xác.
+  // Bước 1: hệ thống RAG cần kiểm tra (giống 05-rag-chain-lcel.js).
+  // Tìm document -> nhét vào prompt -> LLM trả lời.
   const qaChain = RunnableSequence.from([
     RunnablePassthrough.assign({
       documents: async (input) => {
@@ -89,25 +99,22 @@ async function main() {
     new StringOutputParser(),
   ]);
 
-  // results: cho qaChain trả lời từng query trong examples (gọi API Gemini),
-  // results[i] là câu trả lời do AI sinh ra ứng với examples[i], theo đúng thứ tự.
-  // Đây chỉ là câu trả lời AI đoán được, có thể khác với answer chuẩn.
+  // Bước 2: cho RAG trả lời tất cả câu hỏi.
+  // results[i] là câu trả lời AI cho examples[i], đúng thứ tự.
   const results = await qaChain.batch(
     examples.map((example) => ({ input: example.query })),
   );
 
-  // predictions: "bài làm" cần chấm - ghép query/answer chuẩn với câu trả lời
-  // AI vừa sinh ra (result), để đưa vào evalChain.evaluate() so sánh ở bước tiếp theo.
+  // "Bài làm" cần chấm: câu hỏi + đáp án đúng + câu trả lời AI (result).
   const predictions = examples.map((example, i) => ({
     query: example.query,
     answer: example.answer,
     result: results[i],
   }));
 
-  // QAEvalChain.fromLlm dựng sẵn 1 chain giám khảo:
-  // 1. Nhận vào (câu hỏi, đáp án đúng, câu trả lời AI sinh ra).
-  // 2. Gọi LLM để nhận xét 2 câu trả lời có cùng ý nghĩa không, dù cách diễn đạt khác nhau.
-  // 3. Trả về CORRECT hoặc INCORRECT.
+  // Bước 3: chấm điểm.
+  // Giám khảo nhận (câu hỏi, đáp án, câu trả lời AI) -> so ý nghĩa
+  // -> trả CORRECT hoặc INCORRECT.
   const evalChain = QAEvalChain.fromLlm(llm);
   const gradedOutputs = await evalChain.evaluate(examples, predictions);
 

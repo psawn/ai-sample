@@ -1,29 +1,23 @@
+// =======================================================================
+// CHAINS - BƯỚC 4: RouterChain (CÁCH CŨ - MultiPromptChain)
+//
+// Giống 1 lễ tân chuyển khách tới đúng phòng ban.
+// 1. Destination chain: các chain chuyên biệt (physics, math, history, CS),
+//    mỗi chain có prompt riêng cho chủ đề đó.
+// 2. Router chain: đọc câu hỏi, chọn destination phù hợp.
+//    Không khớp chủ đề nào -> trả "DEFAULT" -> rơi vào defaultChain.
+//
+// MultiPromptChain.fromLLMAndPrompts(): dựng sẵn router + destinations + default.
+// Mỗi câu hỏi gọi Gemini 2 lần: 1 lần chọn destination, 1 lần trả lời.
+//
+// MultiPromptChain chưa deprecated, nhưng bên trong dùng LLMChain (đã deprecated).
+// Cách mới thuần LCEL: 04-router-chain-lcel.js.
+// =======================================================================
+
 require("../_polyfill");
 require("dotenv").config();
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { MultiPromptChain } = require("@langchain/classic/chains");
-
-// =======================================================
-// RouterChain (cách viết CŨ - MultiPromptChain)
-//
-// Hình dung giống 1 lễ tân: có nhiều "phòng ban" chuyên biệt (physics,
-// math, history, computer science), mỗi phòng ban là 1 chain riêng với
-// prompt được viết riêng cho đúng chủ đề đó.
-// - "destination chain": các chain chuyên biệt kể trên.
-// - "router chain": đọc câu hỏi của user, rồi quyết định nên chuyển câu
-//   hỏi đó cho destination chain nào (hoặc trả về "DEFAULT" nếu câu hỏi
-//   không khớp chủ đề nào, lúc đó sẽ rơi vào defaultChain).
-//
-// MultiPromptChain.fromLLMAndPrompts() tự động dựng sẵn routerChain +
-// tất cả destinationChains + defaultChain giúp mình, không cần tự viết.
-// Mỗi câu hỏi sẽ tốn 2 lần gọi API Gemini: 1 lần để routerChain chọn
-// destination, 1 lần để destination chain tương ứng trả lời.
-//
-// Lưu ý: MultiPromptChain KHÔNG bị đánh dấu lỗi thời (deprecated) trong
-// bản langchain hiện tại, nhưng bên trong nó vẫn được dựng từ LLMChain
-// đã deprecated. Xem file "04-router-chain-lcel.js" để so sánh cách
-// viết mới, thuần LCEL.
-// =======================================================
 
 const apiKey = process.env.GEMINI_API_KEY;
 
@@ -33,8 +27,11 @@ const model = new ChatGoogleGenerativeAI({
   temperature: 0,
 });
 
+// 3 mảng song song, cùng thứ tự: tên -> mô tả -> prompt của từng destination.
+// Phần tử thứ i của 3 mảng thuộc cùng 1 destination. Lệch thứ tự -> router chọn sai prompt.
 const promptNames = ["physics", "math", "history", "computer science"];
 
+// Router đọc mô tả này để chọn destination.
 const promptDescriptions = [
   "Good for answering questions about physics",
   "Good for answering math questions",
@@ -55,14 +52,15 @@ const chain = MultiPromptChain.fromLLMAndPrompts(model, {
   promptTemplates,
 });
 
+// Hỏi 1 câu. Gọi Gemini 2 lần: 1 lần chọn destination, 1 lần trả lời.
 async function ask(input) {
-  // chain.call() gọi API Gemini 2 lần: routerChain chọn destination, rồi destination chain trả lời.
   const result = await chain.call({ input });
 
   console.log(`Q: ${input}`);
   console.log(`A: ${result.text}\n`);
 }
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
   // Khớp destination "physics".
   await ask("What is black body radiation?");

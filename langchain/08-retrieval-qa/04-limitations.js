@@ -1,3 +1,13 @@
+// =======================================================================
+// RETRIEVAL QA - BƯỚC 4: GIỚI HẠN - KHÔNG NHỚ HỘI THOẠI
+//
+// Vấn đề: mỗi lần invoke() là 1 lượt hỏi độc lập.
+// Câu hỏi nối tiếp như "why are those prerequisites needed?" mất ngữ cảnh,
+// vì retriever không biết "those" ám chỉ gì.
+//
+// Cách khắc phục: thêm chat history (05-conversational-chat.js).
+// =======================================================================
+
 require("../_polyfill");
 require("dotenv").config();
 
@@ -29,6 +39,7 @@ const llm = new ChatGoogleGenerativeAI({
   temperature: 0,
 });
 
+// Xây vectorDB: load 3 PDF -> split -> embed -> MemoryVectorStore (giống 01-basic.js).
 async function buildVectorDb() {
   const pdfPaths = [
     path.join(lecturesDir, "MachineLearning-Lecture01.pdf"),
@@ -53,32 +64,28 @@ async function buildVectorDb() {
   return vectordb;
 }
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
   const vectordb = await buildVectorDb();
   const retriever = vectordb.asRetriever({ k: 3 });
 
+  // Chain giống 01-basic.js, không có chat history.
   const prompt = ChatPromptTemplate.fromTemplate(
     `Use the following pieces of context to answer the question.\n\n{context}\n\nQuestion: {input}`,
   );
   const combineDocsChain = await createStuffDocumentsChain({ llm, prompt });
   const qaChain = await createRetrievalChain({ retriever, combineDocsChain });
 
-  // Câu hỏi 1: hỏi trực tiếp, chain trả lời bình thường vì "probability" có
-  // trong câu hỏi, retriever tìm được chunk liên quan.
+  // Câu 1: hỏi trực tiếp -> trả lời tốt, vì "probability" có ngay trong câu hỏi.
   const question1 = "Is probability a class topic?";
   const result1 = await qaChain.invoke({ input: question1 });
   console.log("Q1:", question1);
   console.log("A1:", result1.answer);
 
-  // Câu hỏi 2: "those prerequesites" chỉ có nghĩa nếu model nhớ câu hỏi 1 vừa nói về
-  // "probability". Nhưng:
-  // 1. Mỗi lần invoke() là một lượt hỏi ĐỘC LẬP.
-  // 2. retriever chỉ tìm chunk theo đúng chữ trong question2, không biết "those" đang ám
-  //    chỉ điều gì.
-  // -> câu trả lời thường lạc đề hoặc chung chung.
-  // Đây chính là giới hạn của RetrievalQA: không có bộ nhớ hội thoại (chat history). Muốn
-  // khắc phục phải dùng ConversationalRetrievalChain kết hợp với memory (xem thêm các ví
-  // dụ về memory trong langchain/memory/).
+  // Câu 2: "those prerequesites" chỉ có nghĩa nếu nhớ câu 1 nói về "probability".
+  // invoke() không nhớ gì, retriever chỉ tìm theo chữ trong câu 2.
+  // Kỳ vọng: câu trả lời lạc đề hoặc chung chung.
+  // Cách khắc phục: thêm chat history (05-conversational-chat.js, 03-memory/).
   const question2 = "why are those prerequesites needed?";
   const result2 = await qaChain.invoke({ input: question2 });
   console.log("\nQ2:", question2);

@@ -1,8 +1,17 @@
-// Email Assistant - Bước 2: AGENT trả lời/hành động
+// =======================================================================
+// EMAIL ASSISTANT - BƯỚC 2: RESPONSE AGENT (TRẢ LỜI / HÀNH ĐỘNG)
 //
-// Đây là Agent kiểu ReAct: LLM đọc yêu cầu, tự quyết định có cần gọi Tool hay không, gọi
-// Tool nào, với tham số gì - rồi lặp lại (đọc kết quả Tool -> suy nghĩ tiếp) cho tới khi
-// đủ thông tin để trả lời người dùng. `createAgent` dựng sẵn toàn bộ vòng lặp này.
+// Agent xử lý yêu cầu bằng tool: gửi email, xem lịch, đặt lịch họp.
+// Bước 01 chỉ phân loại, bước 02 bắt đầu hành động.
+//
+// Agent kiểu ReAct chạy theo vòng lặp:
+//   1. LLM đọc yêu cầu, chọn tool và điền tham số.
+//   2. Chạy tool, đưa kết quả lại cho LLM.
+//   3. Lặp lại 1-2 tới khi đủ thông tin.
+//   4. LLM trả lời, không gọi tool nữa -> dừng.
+//
+// createAgent dựng sẵn vòng lặp này.
+// =======================================================================
 
 require("../_polyfill");
 require("dotenv").config();
@@ -13,12 +22,14 @@ const { profile, agentInstructions } = require("./profile");
 const { buildAgentSystemPrompt } = require("./prompts");
 const { writeEmail, scheduleMeeting, checkCalendarAvailability } = require("./tools");
 
+// System prompt của agent: vai trò, danh sách tool, chỉ dẫn làm việc.
 const systemPrompt = buildAgentSystemPrompt({
   fullName: profile.fullName,
   name: profile.name,
   instructions: agentInstructions,
 });
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
   const llm = new ChatGoogleGenerativeAI({
     apiKey: process.env.GEMINI_API_KEY,
@@ -26,6 +37,7 @@ async function main() {
     temperature: 0,
   });
 
+  // Agent gồm 3 phần: model, danh sách tool, system prompt.
   const agent = createAgent({
     model: llm,
     tools: [writeEmail, scheduleMeeting, checkCalendarAvailability],
@@ -34,12 +46,13 @@ async function main() {
 
   console.log("\n📍 Agent đang xử lý (tool call)...");
 
-  // Câu hỏi này khớp mô tả của tool "check_calendar_availability" -> LLM sẽ tự chọn gọi
-  // đúng tool đó thay vì bịa ra câu trả lời.
+  // Câu hỏi khớp description của check_calendar_availability,
+  // nên LLM gọi tool đó thay vì tự bịa câu trả lời.
   const response = await agent.invoke({
     messages: [{ role: "user", content: "what is my availability for tuesday?" }],
   });
 
+  // Message cuối trong lịch sử là câu trả lời của agent.
   console.log(response.messages.at(-1).content);
 }
 

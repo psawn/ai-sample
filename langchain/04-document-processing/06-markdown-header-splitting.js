@@ -1,17 +1,26 @@
+// =======================================================================
+// DOCUMENT PROCESSING - BƯỚC 6: CẮT MARKDOWN THEO HEADING
+//
+// 1. Tách văn bản theo dòng heading (#, ##, ###...).
+// 2. Gắn các heading đang áp dụng vào metadata của mỗi chunk.
+//
+// Chunk dù bị cắt nhỏ vẫn biết mình thuộc mục nào
+// -> LLM trả lời chính xác, có ngữ cảnh hơn.
+//
+// LangChain JS chưa có splitter này, nên tự viết.
+// =======================================================================
+
 require("../_polyfill");
 require("dotenv").config();
 
-// LangChain JS chưa có sẵn splitter tách theo heading Markdown (khác bản Python),
-// nên tự viết hàm nhỏ này:
-// 1. Tách văn bản theo dòng heading (#, ##, ###...).
-// 2. Gắn heading hiện tại vào metadata của mỗi chunk.
-// 3. Nhờ vậy LLM biết chunk thuộc mục nào dù nội dung đã bị cắt nhỏ, giúp trả lời
-//    chính xác và có ngữ cảnh hơn.
+// Cắt markdown theo heading. Mỗi chunk có dạng:
+// { pageContent: "nội dung", metadata: { "Header 1": "...", "Header 2": "..." } }
 function splitMarkdownByHeaders(text, headersToSplitOn) {
-  const activeHeaders = {};
+  const activeHeaders = {}; // Các heading đang áp dụng cho nội dung hiện tại
   const chunks = [];
   let currentLines = [];
 
+  // Đóng chunk hiện tại (nếu có nội dung) kèm snapshot các heading.
   const flush = () => {
     const content = currentLines.join("\n").trim();
     if (content)
@@ -26,9 +35,11 @@ function splitMarkdownByHeaders(text, headersToSplitOn) {
     );
 
     if (header) {
+      // Gặp heading mới -> đóng chunk cũ.
       flush();
       const [prefix, name] = header;
-      // Xoá các heading cấp thấp hơn/ngang hàng khi gặp heading mới cùng cấp hoặc cao hơn.
+      // Xóa heading cùng cấp hoặc cấp thấp hơn.
+      // Vd: gặp "## Chapter 2" -> xóa "## Chapter 1" và "### Section".
       for (const [key] of Object.entries(activeHeaders)) {
         const [existingPrefix] = headersToSplitOn.find(([, n]) => n === key);
         if (existingPrefix.length >= prefix.length) delete activeHeaders[key];
@@ -42,6 +53,7 @@ function splitMarkdownByHeaders(text, headersToSplitOn) {
   return chunks;
 }
 
+// ===== KỊCH BẢN MINH HỌA =====
 function main() {
   const markdownDocument = `# Title
 
@@ -59,6 +71,9 @@ Hi this is Lance
 
 Hi this is Molly`;
 
+  // Mỗi phần tử: [ký hiệu heading, tên key trong metadata].
+  // Kỳ vọng chunk 1: "Hi this is Jim\nHi this is Joe",
+  // metadata { "Header 1": "Title", "Header 2": "Chapter 1" }.
   const headersToSplitOn = [
     ["#", "Header 1"],
     ["##", "Header 2"],

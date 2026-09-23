@@ -1,3 +1,11 @@
+// =======================================================================
+// LANGCHAIN BASICS - QUẢN LÝ CHAT HISTORY: TỰ TAY vs TỰ ĐỘNG
+//
+// Model không tự nhớ. Mỗi lần gọi phải gửi kèm lịch sử chat (chat_history).
+// 1. Manual: tự tạo mảng, tự push, tự truyền vào invoke().
+// 2. Auto: RunnableWithMessageHistory làm hộ tất cả, theo sessionId.
+// =======================================================================
+
 require("../_polyfill");
 require("dotenv").config();
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
@@ -16,27 +24,22 @@ const model = new ChatGoogleGenerativeAI({
   temperature: 0,
 });
 
+// MessagesPlaceholder: chỗ trống để chèn cả mảng message lịch sử vào prompt.
+// Thứ tự: system -> lịch sử -> câu hỏi mới.
 const prompt = ChatPromptTemplate.fromMessages([
   ["system", "You are a helpful assistant."],
   new MessagesPlaceholder("chat_history"),
   ["human", "{input}"],
 ]);
 
-/**
- * 1. Quản lý chat_history TỰ TAY (Manual)
- * chat_history chỉ là 1 mảng JS bình thường, do MÌNH tự tạo, tự push(), tự truyền vào
- * mỗi lần invoke() - LangChain không đụng vào nó.
- *
- * Cách hoạt động:
- * 1. Tự khai báo `const chatHistory = []`.
- * 2. Mỗi lần hỏi, tự truyền chat_history hiện có vào chain.invoke({ input, chat_history }).
- * 3. Sau khi có câu trả lời, tự push HumanMessage + AIMessage vào lại chatHistory.
- *
- * Ví dụ thật: retrieval-qa/05-conversational-chat.js.
- *
- * Khi nào dùng: Chỉ có 1 cuộc hội thoại, chạy tuần tự trong 1 file - không cần phân biệt
- * nhiều user. Đơn giản, thấy rõ luồng dữ liệu.
- */
+// ===== CÁCH 1: MANUAL - TỰ QUẢN LÝ chat_history =====
+// chat_history chỉ là mảng JS bình thường. LangChain không đụng vào nó.
+// 1. Tự khai báo mảng chatHistory.
+// 2. Mỗi lần hỏi, tự truyền chatHistory vào invoke().
+// 3. Có câu trả lời -> tự push HumanMessage + AIMessage vào mảng.
+//
+// Khi nào dùng: chỉ 1 cuộc hội thoại, không cần phân biệt nhiều user.
+// Ví dụ thật: 08-retrieval-qa/05-conversational-chat.js.
 async function demoManual() {
   const chain = prompt.pipe(model).pipe(new StringOutputParser());
   const chatHistory = [];
@@ -53,26 +56,19 @@ async function demoManual() {
   console.log("Q2:", question2, "-> A2:", answer2);
 }
 
-/**
- * 2. Quản lý chat_history TỰ ĐỘNG (RunnableWithMessageHistory)
- * Không tự tạo mảng, không tự push(), không tự truyền chat_history vào invoke() -
- * RunnableWithMessageHistory làm hộ, dựa theo sessionId.
- *
- * Cách hoạt động:
- * 1. Bọc chain lại bằng RunnableWithMessageHistory, khai báo getMessageHistory(sessionId)
- *    để nó biết lấy/lưu lịch sử ở đâu.
- * 2. Mỗi lần hỏi chỉ cần chainWithHistory.invoke({ input }, { configurable: { sessionId } }).
- * 3. Nó tự lấy lịch sử của đúng sessionId đó gán vào chat_history trước khi gọi chain, và
- *    tự lưu lại câu hỏi + câu trả lời sau khi xong.
- *
- * Ví dụ thật: tool-routing/06-agent-executor.js, tool-routing/07-cli-chatbot.js.
- *
- * Khi nào dùng: Cần quản lý nhiều cuộc hội thoại song song (nhiều user, mỗi người 1
- * sessionId riêng) - khỏi phải tự tay truyền đúng lịch sử ứng với từng user mỗi lần gọi.
- */
+// ===== CÁCH 2: AUTO - RunnableWithMessageHistory =====
+// Không tự tạo mảng, không tự push, không tự truyền chat_history.
+// 1. Bọc chain bằng RunnableWithMessageHistory.
+// 2. Khai báo getMessageHistory(sessionId): lấy/lưu lịch sử ở đâu.
+// 3. Mỗi lần gọi chỉ cần truyền { input } + sessionId.
+//    Tự nạp lịch sử trước khi gọi, tự lưu Q&A sau khi xong.
+//
+// Khi nào dùng: nhiều cuộc hội thoại song song (mỗi user 1 sessionId).
+// Ví dụ thật: 11-tool-routing/06-agent-executor.js, 11-tool-routing/07-cli-chatbot.js.
 async function demoAuto() {
   const chain = prompt.pipe(model).pipe(new StringOutputParser());
 
+  // Mỗi sessionId có 1 lịch sử riêng, lưu trong RAM (tắt chương trình là mất).
   const messageHistories = {};
   const chainWithHistory = new RunnableWithMessageHistory({
     runnable: chain,
@@ -82,10 +78,11 @@ async function demoAuto() {
       }
       return messageHistories[sessionId];
     },
-    inputMessagesKey: "input",
-    historyMessagesKey: "chat_history",
+    inputMessagesKey: "input", // Key chứa câu hỏi mới
+    historyMessagesKey: "chat_history", // Key của MessagesPlaceholder trong prompt
   });
 
+  // Cùng sessionId cho cả 2 câu -> câu 2 thấy được câu 1.
   const config = { configurable: { sessionId: "demo-session" } };
 
   const answer1 = await chainWithHistory.invoke({ input: "Tên tôi là An." }, config);
@@ -96,6 +93,8 @@ async function demoAuto() {
   console.log("Q2: Tên tôi là gì? -> A2:", answer2);
 }
 
+// ===== KỊCH BẢN MINH HỌA =====
+// Cả 2 cách đều trả lời đúng "An" ở câu hỏi thứ 2.
 async function main() {
   try {
     await demoManual();

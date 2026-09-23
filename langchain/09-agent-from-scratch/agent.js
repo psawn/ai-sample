@@ -1,17 +1,20 @@
-// =======================================================
-// ReAct Agent (cách viết CŨ)
+// =======================================================================
+// AGENT FROM SCRATCH - ReAct AGENT (CÁCH CŨ)
 //
-// "Bộ não" dùng chung cho 01-react-manual-steps.js và 02-react-auto-loop.js.
+// Phần dùng chung cho 01-react-manual-steps.js và 02-react-auto-loop.js:
+// LLM, system prompt, class Agent (giữ lịch sử + gọi LLM).
 //
-// ReAct = Agent tự lặp theo 1 vòng:
-//   Thought (nghĩ) -> Action (chọn hành động) -> PAUSE
-//   -> Observation (kết quả) -> ... -> Answer (câu trả lời cuối)
+// ReAct: model lặp theo vòng, viết bằng text:
+// 1. Thought: nghĩ cần làm gì.
+// 2. Action: chọn action + input, rồi viết PAUSE để dừng.
+// 3. Observation: code chạy action, gửi kết quả lại.
+// 4. Lặp 1-3 tới khi model viết Answer (câu trả lời cuối).
 //
-// Cách mới hơn, nên dùng cho sản phẩm thật: Native Tool Calling.
-// Xem cùng ví dụ này viết lại bằng Native Tool Calling ở
-// 03-native-tool-calling-manual-messages.js
+// Cách mới, nên dùng cho sản phẩm thật: Native Tool Calling.
+// Cùng ví dụ viết lại: 03-native-tool-calling-manual-messages.js
 // (hoặc ../11-tool-routing/05-routing.js, ../11-tool-routing/06-agent-executor.js).
-// =======================================================
+// =======================================================================
+
 require("../_polyfill");
 require("dotenv").config();
 
@@ -22,16 +25,13 @@ const {
   SystemMessage,
 } = require("@langchain/core/messages");
 
-// LLM = "bộ não" của Agent - đọc lịch sử hội thoại, rồi quyết định trả lời luôn hay cần
-// chạy Action nào trước.
+// LLM: đọc lịch sử, quyết định trả lời luôn hay chạy Action.
 //
-// thinkingConfig { thinkingBudget: 0 }: tắt "thinking" (Gemini tự suy nghĩ ngầm trước khi
-// trả lời). Tại sao phải tắt:
-// - ReAct ở đây bắt model viết TIẾP đúng theo 1 cú pháp text cố định, không dùng Tool
-//   Calling chuẩn.
-// - Nếu để thinking bật, từ lượt Observation thứ 2 trở đi, Gemini hay trả về nội dung
-//   RỖNG kèm lỗi "MALFORMED_RESPONSE".
-// - Tắt thinking đi thì model trả lời thẳng, đúng format, hết lỗi trên.
+// thinkingBudget: 0 -> tắt "thinking" (Gemini suy nghĩ ngầm trước khi trả lời).
+// Vì sao tắt?
+// - ReAct ở đây bắt model viết theo cú pháp text cố định, không dùng Tool Calling.
+// - Bật thinking -> từ lượt Observation thứ 2, Gemini hay trả rỗng + lỗi "MALFORMED_RESPONSE".
+// - Tắt thinking -> model trả lời thẳng, đúng format.
 const llm = new ChatGoogleGenerativeAI({
   apiKey: process.env.GEMINI_API_KEY,
   model: "gemini-3.5-flash",
@@ -39,8 +39,8 @@ const llm = new ChatGoogleGenerativeAI({
   thinkingConfig: { thinkingBudget: 0 },
 });
 
-// System prompt: "dạy" model cách trả lời theo đúng vòng lặp ReAct ở trên, kèm ví dụ mẫu
-// để model bắt chước đúng format (Thought/Action/PAUSE).
+// System prompt: dạy model vòng lặp ReAct.
+// Gồm: luật vòng lặp, danh sách action, 1 ví dụ mẫu để model bắt chước format.
 const SYSTEM_PROMPT = `
 You run in a loop of Thought, Action, PAUSE, Observation.
 At the end of the loop you output an Answer
@@ -74,9 +74,10 @@ You then output:
 Answer: A bulldog weights 51 lbs
 `.trim();
 
-// response.content của Gemini không phải lúc nào cũng là string. Đôi khi nó là 1 mảng
-// (rỗng, hoặc gồm nhiều "part" dạng { text: "..." }). Hàm này gom lại thành 1 string duy
-// nhất, để nơi gọi luôn nhận đúng kiểu string mà không cần tự kiểm tra.
+// response.content của Gemini không phải lúc nào cũng là string.
+// Đôi khi là mảng (rỗng, hoặc nhiều part { text: "..." }).
+// Gom thành 1 string để nơi gọi khỏi phải kiểm tra kiểu.
+// Vd: [{ text: "Thought: " }, { text: "..." }] -> "Thought: ...".
 function messageContentToString(content) {
   if (typeof content === "string") return content;
   if (Array.isArray(content)) {
@@ -87,20 +88,19 @@ function messageContentToString(content) {
   return String(content ?? "");
 }
 
-// In ra toàn bộ mảng messages sắp gửi cho LLM, cho dễ hình dung agent đang "nhớ" những gì.
+// In mảng messages sắp gửi cho LLM, để thấy agent đang "nhớ" gì.
 function logMessages(messages) {
   console.log("\n----- Messages gửi cho LLM -----");
   console.log(messages);
   console.log("---------------------------------");
 }
 
-// Class Agent: giữ toàn bộ lịch sử hội thoại (messages), gọi LLM mỗi khi có tin nhắn mới.
+// Agent: giữ lịch sử hội thoại (messages), gọi LLM mỗi khi có tin nhắn mới.
 //
-// Đây là cách lưu lịch sử THỦ CÔNG (manual): this.messages chỉ là 1 mảng JS bình thường,
-// tự push() vào, tự truyền cả mảng vào llm.invoke() mỗi lần gọi - không có LangChain
-// component nào (RunnableWithMessageHistory, session...) đứng ra quản lý giúp. Nhờ mảng
-// này mà model mới "nhớ" được các bước Thought/Action/Observation trước đó.
-// So sánh với cách quản lý tự động: xem ../chat-history-manual-vs-auto.js.
+// Lịch sử lưu thủ công: this.messages là mảng JS thường.
+// Mỗi lần gọi: push tin nhắn mới, gửi cả mảng cho llm.invoke().
+// Nhờ vậy model "nhớ" các bước Thought/Action/Observation trước đó.
+// So sánh cách tự động: ../01-basics/chat-history-manual-vs-auto.js.
 class Agent {
   constructor(system = "") {
     this.system = system;
@@ -110,7 +110,7 @@ class Agent {
     }
   }
 
-  // Gửi 1 tin nhắn user, gọi LLM, lưu câu trả lời vào lịch sử rồi trả về.
+  // 1 lượt: lưu tin nhắn user -> gọi LLM -> lưu câu trả lời -> trả về.
   async call(message) {
     this.messages.push(new HumanMessage(message));
     const result = await this.execute();
@@ -118,11 +118,9 @@ class Agent {
     return result;
   }
 
-  // Gọi LLM với toàn bộ lịch sử messages hiện có.
-  //
-  // Thử gọi lại tối đa 3 lần nếu content rỗng - phòng khi có lỗi tạm thời (vd: mạng
-  // chập chờn). Nguyên nhân chính gây content rỗng (thinking) đã tắt ở trên rồi, nên bình
-  // thường sẽ thành công ngay từ lần gọi đầu tiên.
+  // Gọi LLM với toàn bộ lịch sử.
+  // Content rỗng -> thử lại, tối đa 3 lần (phòng lỗi tạm thời).
+  // Nguyên nhân chính (thinking) đã tắt ở trên, nên thường thành công ngay lần đầu.
   async execute() {
     const maxRetries = 3;
     for (let attempt = 1; attempt <= maxRetries; attempt++) {

@@ -1,11 +1,12 @@
-// LangGraph Components - bản DỰNG GRAPH BẰNG TAY (StateGraph)
-// Mục tiêu:
-//   - Dựng Graph thủ công (StateGraph, addNode, addConditionalEdges) để thấy rõ bên trong
-//     Agent hoạt động thế nào - tốt cho việc HỌC cơ chế.
-//   - Chạy thử Agent ở agent.js với câu hỏi từ đơn giản (1 tool call) tới phức tạp (nhiều
-//     tool call nối tiếp).
-// Lưu ý:
-//   Muốn code nhanh cho dự án thật (production) thì xem bản createAgent ở 01-components-create-agent.js.
+// =======================================================================
+// LANGGRAPH - BƯỚC 1: COMPONENTS (BẢN DỰNG GRAPH BẰNG TAY)
+//
+// Agent nghiên cứu: trả lời câu hỏi, cần thì gọi tool web_search để tra cứu.
+// Agent dựng tay bằng StateGraph ở agent.js -> thấy rõ từng node chạy thế nào.
+// Hỏi từ dễ (không gọi tool) tới khó (nhiều tool nối tiếp).
+//
+// Bản createAgent (code gọn, hợp cho dự án thật): 01-components-create-agent.js.
+// =======================================================================
 
 require("../_polyfill");
 require("dotenv").config();
@@ -15,19 +16,19 @@ const { HumanMessage } = require("@langchain/core/messages");
 const { Agent } = require("./agent");
 const { webSearch } = require("./tool");
 
+// System prompt: trợ lý nghiên cứu, được gọi tool nhiều lần (song song hoặc nối tiếp).
 const prompt = `You are a smart research assistant. Use the search engine to look up information. \
 You are allowed to make multiple calls (either together or in sequence). \
 Only look up information when you are sure of what you want. \
 If you need to look up some information before asking a follow up question, you are allowed to do that!`;
 
-// In câu trả lời cuối cùng, tách biệt rõ với log của các Node bên trên để dễ phân biệt
-// đâu là kết quả, đâu là log debug.
+// In câu trả lời cuối, tách riêng khỏi log của các node.
 function printAnswer(result) {
   console.log(`\n>>> KẾT QUẢ CUỐI: ${result.messages.at(-1).content}\n`);
 }
 
-// In sơ đồ graph dạng Mermaid text - dán đoạn text này vào https://mermaid.live để xem
-// hình trực quan (node nào nối node nào, rẽ nhánh ở đâu).
+// In sơ đồ graph dạng Mermaid.
+// Dán vào https://mermaid.live để xem hình: node nào nối node nào, rẽ nhánh ở đâu.
 async function printGraph(agent) {
   const mermaid = await agent.graph.getGraph().drawMermaid();
   console.log(
@@ -36,17 +37,20 @@ async function printGraph(agent) {
   console.log(mermaid);
 }
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
   const llm = new ChatGoogleGenerativeAI({
     apiKey: process.env.GEMINI_API_KEY,
     model: "gemini-3.5-flash",
     temperature: 0,
   });
+  // Agent ở agent.js: Model + tools + system prompt.
   const abot = new Agent(llm, [webSearch], prompt);
 
-  // Debug: bật dòng dưới nếu muốn xem sơ đồ Graph dạng Mermaid trước khi chạy.
+  // Bật dòng dưới để in sơ đồ graph trước khi chạy.
   // await printGraph(abot);
 
+  // Câu 1: kiến thức phổ thông -> Model tự trả lời, không gọi tool.
   console.log(
     "\n========== Câu 1: câu hỏi phổ thông - model tự trả lời, KHÔNG gọi tool ==========",
   );
@@ -55,6 +59,7 @@ async function main() {
   });
   printAnswer(result1);
 
+  // Câu 2: thông tin ít phổ biến -> Model không chắc, phải gọi tool.
   console.log(
     "\n========== Câu 2: câu hỏi ít phổ biến - model KHÔNG tự tin, phải gọi tool ==========",
   );
@@ -67,7 +72,7 @@ async function main() {
   });
   printAnswer(result2);
 
-  // Câu 3 & 4 tạm tắt cho gọn - bật lại nếu muốn xem (đã bật sẵn ở bản createAgent).
+  // Câu 3 và 4: tạm tắt cho gọn log. Bản createAgent đã bật sẵn.
   // console.log("\n========== Câu 3: nhiều tool call cùng lúc ==========");
   // const result3 = await abot.graph.invoke({
   //   messages: [

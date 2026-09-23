@@ -1,27 +1,20 @@
+// =======================================================================
+// CHAINS - BƯỚC 3: SequentialChain (CÁCH CŨ - LEGACY)
+//
+// Giống SimpleSequentialChain (file 02) nhưng mạnh hơn:
+// 1. Mỗi chain con có nhiều input/output, mỗi biến có tên riêng.
+// 2. Chain sau dùng được output của bất kỳ chain nào trước nó.
+//    Vd: chain 4 dùng cùng lúc "summary" (chain 2) và "language" (chain 3).
+//
+// LLMChain và SequentialChain đã deprecated.
+// Cách mới: 03-sequential-chain-lcel.js.
+// =======================================================================
+
 require("../_polyfill");
 require("dotenv").config();
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { ChatPromptTemplate } = require("@langchain/core/prompts");
 const { LLMChain, SequentialChain } = require("@langchain/classic/chains");
-
-// =======================================================
-// SequentialChain (cách viết CŨ)
-//
-// Giống SimpleSequentialChain (file 02) ở chỗ nối nhiều chain chạy nối
-// tiếp nhau, nhưng mạnh hơn:
-// - Mỗi chain con có thể có NHIỀU input/output, và mỗi biến đều có TÊN
-//   riêng (không bị giới hạn 1 input/1 output không tên như bản Simple).
-// - Một chain con có thể dùng lại output của BẤT KỲ chain nào đã chạy
-//   trước nó, không nhất thiết phải là chain ngay liền trước.
-//   Ví dụ trong file này: chain 4 (followupChain) không lấy output của
-//   chain 3 (languageChain, đứng ngay trước nó), mà lấy output của CẢ
-//   chain 2 (summaryChain -> "summary") LẪN chain 3 (languageChain ->
-//   "language") cộng lại.
-//
-// Lưu ý: LLMChain và SequentialChain đều đã bị đánh dấu lỗi thời
-// (deprecated), sẽ bị xóa ở LangChain 1.0.0. Xem file
-// "03-sequential-chain-lcel.js" để so sánh cách viết mới bằng LCEL.
-// =======================================================
 
 const apiKey = process.env.GEMINI_API_KEY;
 
@@ -31,10 +24,8 @@ const model = new ChatGoogleGenerativeAI({
   temperature: 0.7,
 });
 
-// Chain 1: Gọi API Gemini để dịch review sang tiếng Anh.
-// input: Review -> output: English_Review
-// (outputKey đặt TÊN cho kết quả của chain này, để các chain sau có thể
-// tham chiếu tới nó qua {English_Review}, giống như 1 biến)
+// Chain 1: dịch review sang tiếng Anh. Review -> English_Review.
+// outputKey: đặt tên cho kết quả, để chain sau dùng lại qua {English_Review}.
 const translateChain = new LLMChain({
   llm: model,
   prompt: ChatPromptTemplate.fromTemplate(
@@ -43,8 +34,7 @@ const translateChain = new LLMChain({
   outputKey: "English_Review",
 });
 
-// Chain 2: Gọi API Gemini để tóm tắt bản tiếng Anh trong 1 câu.
-// input: English_Review -> output: summary
+// Chain 2: tóm tắt bản tiếng Anh trong 1 câu. English_Review -> summary.
 const summaryChain = new LLMChain({
   llm: model,
   prompt: ChatPromptTemplate.fromTemplate(
@@ -53,8 +43,7 @@ const summaryChain = new LLMChain({
   outputKey: "summary",
 });
 
-// Chain 3: Gọi API Gemini để xác định ngôn ngữ gốc của review.
-// input: Review -> output: language
+// Chain 3: xác định ngôn ngữ gốc. Review -> language.
 const languageChain = new LLMChain({
   llm: model,
   prompt: ChatPromptTemplate.fromTemplate(
@@ -63,9 +52,7 @@ const languageChain = new LLMChain({
   outputKey: "language",
 });
 
-// Chain 4: Gọi API Gemini để viết tin nhắn phản hồi.
-// input: "summary" (output của chain 2) + "language" (output của chain 3)
-// -> output: followup_message
+// Chain 4: viết tin nhắn phản hồi. summary + language -> followup_message.
 const followupChain = new LLMChain({
   llm: model,
   prompt: ChatPromptTemplate.fromTemplate(
@@ -76,14 +63,16 @@ const followupChain = new LLMChain({
 
 const overallChain = new SequentialChain({
   chains: [translateChain, summaryChain, languageChain, followupChain],
-  inputVariables: ["Review"], // (các) biến bắt buộc phải cung cấp khi gọi overallChain.call(...)
-  outputVariables: ["English_Review", "summary", "language", "followup_message"], // các biến muốn lấy ra ở kết quả cuối cùng
+  inputVariables: ["Review"], // Biến bắt buộc truyền vào khi gọi
+  outputVariables: ["English_Review", "summary", "language", "followup_message"], // Biến muốn lấy ra ở kết quả
 });
 
+// ===== KỊCH BẢN MINH HỌA =====
+// Input: 1 review tiếng Pháp.
 async function main() {
   const review = `Je trouve le goût médiocre. La mousse ne tient pas, c'est bizarre.`;
 
-  // Chạy lần lượt 4 chain trên, mỗi chain là 1 lần gọi API Gemini.
+  // Chạy lần lượt 4 chain, mỗi chain gọi Gemini 1 lần.
   const result = await overallChain.call({ Review: review });
 
   console.log("English_Review:", result.English_Review);

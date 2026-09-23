@@ -1,9 +1,12 @@
-// 2 tool để Agent quản lý memory:
-// - manage_memory: lưu, cập nhật, xoá.
-// - search_memory: tìm memory.
+// =======================================================================
+// EMAIL ASSISTANT - 2 TOOL ĐỂ AGENT TỰ QUẢN LÝ BỘ NHỚ DÀI HẠN (STORE)
 //
-// Cả 2 dùng chung một InMemoryStore.
-// getStore(config) lấy Store được gắn vào Agent/Graph.
+// - manage_memory: tạo, cập nhật, xoá memory.
+// - search_memory: tìm memory liên quan.
+//
+// Tool không giữ Store riêng: getStore(config) lấy Store đã gắn vào agent hoặc graph.
+// Namespace truyền vào khi tạo tool, userId lấy từ config lúc chạy.
+// =======================================================================
 
 require("../_polyfill");
 
@@ -12,7 +15,9 @@ const { z } = require("zod");
 const { tool } = require("@langchain/core/tools");
 const { getStore } = require("@langchain/langgraph");
 
-// Thay placeholder bằng user id từ config.
+// Thay "{langgraph_user_id}" trong namespace bằng userId lấy từ config.
+// Ví dụ: ["email_assistant", "{langgraph_user_id}", "collection"]
+//     -> ["email_assistant", "lance", "collection"]
 function resolveNamespace(namespaceTemplate, config) {
   const userId = config?.configurable?.langgraph_user_id ?? "default";
 
@@ -21,6 +26,7 @@ function resolveNamespace(namespaceTemplate, config) {
   );
 }
 
+// Tool manage_memory: tạo, cập nhật hoặc xoá 1 memory trong Store.
 function createManageMemoryTool(namespaceTemplate) {
   return tool(
     async ({ content, action = "create", id }, config) => {
@@ -31,10 +37,10 @@ function createManageMemoryTool(namespaceTemplate) {
         `[manage_memory] action=${action} id=${id ?? "(new)"} namespace=${namespace.join("/")} content=${content}`,
       );
 
-      // Bọc try/catch: lỗi Store (mất kết nối, embedding API lỗi...) trả về
-      // thành message cho LLM đọc, thay vì throw làm crash cả Agent.
-      // switch khớp 1-1 với 3 giá trị của enum action - thêm action mới sẽ
-      // buộc phải thêm case tương ứng, khó bỏ sót hơn if-chain.
+      // try/catch: lỗi Store (mất kết nối, embedding lỗi) trả về thành message
+      // cho LLM đọc, thay vì throw làm crash agent.
+      //
+      // switch liệt kê đủ 3 giá trị của enum action, dễ đối chiếu hơn chuỗi if.
       try {
         switch (action) {
           case "delete": {
@@ -83,6 +89,7 @@ function createManageMemoryTool(namespaceTemplate) {
   );
 }
 
+// Tool search_memory: tìm memory liên quan theo ý nghĩa.
 function createSearchMemoryTool(namespaceTemplate) {
   return tool(
     async ({ query, limit = 10 }, config) => {
@@ -98,8 +105,7 @@ function createSearchMemoryTool(namespaceTemplate) {
 
         if (results.length === 0) return "No memories found.";
 
-        // Kết quả đã được xếp theo độ liên quan - không gọi lại tool này nữa
-        // trong cùng 1 email, dù kết quả rỗng hay chưa ưng ý.
+        // In kèm key để agent dùng làm id khi update/delete memory.
         const list = results
           .map((item) => `- [${item.key}] ${item.value.content}`)
           .join("\n");

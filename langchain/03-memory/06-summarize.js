@@ -1,3 +1,14 @@
+// =======================================================================
+// MEMORY - BƯỚC 6: TÓM TẮT LỊCH SỬ (SUMMARY MEMORY)
+//
+// 1. History vượt MAX_MESSAGES -> dùng chính LLM tóm tắt các message cũ.
+// 2. Bản tóm tắt gộp vào SystemMessage, thay cho các message cũ.
+//
+// - Ưu: vừa giảm token, vừa giữ được thông tin quan trọng (tên, nghề, nơi ở...).
+//   Khắc phục nhược điểm "quên" của window memory (04) và token limit (05).
+// - Nhược: tốn thêm 1 lần gọi LLM mỗi khi tóm tắt. Chi tiết nhỏ có thể bị mất.
+// =======================================================================
+
 require("../_polyfill");
 require("dotenv").config();
 
@@ -8,17 +19,6 @@ const {
   SystemMessage,
 } = require("@langchain/core/messages");
 
-// =======================================================
-// Memory Strategy: Tóm tắt lịch sử hội thoại
-//
-// Ý tưởng:
-// - Khi Conversation History quá dài (vượt quá MAX_MESSAGES),
-//   dùng chính LLM để tóm tắt các message cũ thành một đoạn ngắn gọn.
-// - Bản tóm tắt được gộp vào SystemMessage, thay thế cho các message cũ.
-// - Giữ lại thông tin quan trọng (tên, nghề nghiệp, sở thích...)
-//   trong khi vẫn giảm được số token cần gửi cho LLM.
-// =======================================================
-
 const model = new ChatGoogleGenerativeAI({
   apiKey: process.env.GEMINI_API_KEY,
   model: "gemini-3.5-flash",
@@ -27,16 +27,17 @@ const model = new ChatGoogleGenerativeAI({
 
 const BASE_SYSTEM_PROMPT = "Bạn là AI Assistant thân thiện.";
 
-// Chỉ giữ tối đa 4 message gần nhất (không tính SystemMessage) ở dạng chi tiết,
-// phần còn lại sẽ được tóm tắt.
+// Giữ nguyên văn tối đa 4 message gần nhất (không tính SystemMessage).
+// Phần cũ hơn được tóm tắt.
 const MAX_MESSAGES = 4;
 
-// Bản tóm tắt hội thoại cũ, sẽ được cập nhật dần theo thời gian
+// Bản tóm tắt hội thoại cũ, cập nhật dần mỗi lần tóm tắt.
 let summary = "";
 
 const history = [new SystemMessage(BASE_SYSTEM_PROMPT)];
 
-// Gọi API Gemini để tóm tắt các message cũ, gộp với bản tóm tắt trước đó (nếu có)
+// Tóm tắt các message cũ, gộp với bản tóm tắt trước đó (nếu có).
+// Gửi bản tóm tắt cũ kèm theo -> thông tin từ các lần tóm tắt trước không bị mất.
 async function summarizeOldMessages(oldMessages) {
   const summarizePrompt = [
     new SystemMessage(
@@ -52,27 +53,28 @@ async function summarizeOldMessages(oldMessages) {
     ),
   ];
 
-  // Gọi API Gemini để sinh bản tóm tắt mới.
   const summaryResponse = await model.invoke(summarizePrompt);
   summary = summaryResponse.content;
 
-  // Cập nhật SystemMessage đầu tiên với bản tóm tắt mới nhất
+  // Ghi bản tóm tắt mới vào SystemMessage đầu tiên.
   history[0] = new SystemMessage(
     `${BASE_SYSTEM_PROMPT}\nTóm tắt hội thoại trước đó: ${summary}`
   );
 }
 
+// Hỏi 1 câu. Nếu history quá dài thì tóm tắt phần cũ.
 async function ask(input) {
-  // Lưu câu hỏi của user
+  // Lưu câu hỏi của user.
   history.push(new HumanMessage(input));
 
-  // Gọi API Gemini, gửi kèm history (SystemMessage đã kèm bản tóm tắt) để lấy câu trả lời.
+  // SystemMessage đã chứa bản tóm tắt -> model vẫn "nhớ" thông tin cũ.
   const response = await model.invoke(history);
 
-  // Lưu câu trả lời của AI
+  // Lưu câu trả lời của AI.
   history.push(new AIMessage(response.content));
 
-  // Nếu số message chi tiết vượt quá giới hạn, tóm tắt bớt phần cũ
+  // Vượt giới hạn -> cắt các message cũ ra, đem đi tóm tắt.
+  // Vd: lượt 3, history có 6 message -> cắt 2 message đầu (lượt 1) đi tóm tắt.
   if (history.length > MAX_MESSAGES + 1) {
     const oldMessages = history.splice(1, history.length - 1 - MAX_MESSAGES);
     await summarizeOldMessages(oldMessages);
@@ -88,6 +90,9 @@ async function ask(input) {
   console.log(history);
 }
 
+// ===== KỊCH BẢN MINH HỌA =====
+// Kỳ vọng: dù message cũ đã bị cắt, model vẫn trả lời đúng tên, nơi ở, nghề
+// nhờ bản tóm tắt.
 async function main() {
   await ask("Xin chào, tôi tên là An.");
   console.log("\n==============================\n");

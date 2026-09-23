@@ -1,27 +1,22 @@
+// =======================================================================
+// CHAINS - BƯỚC 1: LLMChain (CÁCH MỚI - LCEL)
+//
+// LCEL (LangChain Expression Language): nối các bước bằng .pipe(),
+// thay cho các class chain cũ (LLMChain, SequentialChain...).
+//
+// prompt.pipe(model):
+// 1. Điền biến vào prompt.
+// 2. Gửi prompt cho model.
+//
+// Kết quả .pipe() cũng là 1 Runnable, chạy bằng chain.invoke({...biến}).
+//
+// So sánh với cách cũ: 01-llm-chain-legacy.js.
+// =======================================================================
+
 require("../_polyfill");
 require("dotenv").config();
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { ChatPromptTemplate } = require("@langchain/core/prompts");
-
-// =======================================================
-// LLMChain (cách viết MỚI, dùng LCEL)
-//
-// LCEL (LangChain Expression Language) là cách viết chain mới, thay thế
-// cho các class chain cũ (LLMChain, SequentialChain...). Thay vì tạo ra
-// 1 class riêng, mình chỉ cần "nối" các bước lại bằng hàm .pipe():
-//
-//   prompt.pipe(model)
-//
-// nghĩa là:
-// 1. Nhận input.
-// 2. Đưa qua prompt để điền biến.
-// 3. Đưa tiếp kết quả đó qua model để gọi API Gemini lấy câu trả lời.
-//
-// Chuỗi các bước nối bằng .pipe() như vậy được gọi là 1 "Runnable", và được
-// chạy bằng chain.invoke({...biến}) (tương đương chain.call() ở bản cũ).
-//
-// So sánh với cách viết cũ ở file "01-llm-chain-legacy.js".
-// =======================================================
 
 const apiKey = process.env.GEMINI_API_KEY;
 
@@ -37,14 +32,15 @@ const prompt = ChatPromptTemplate.fromTemplate(
 
 const chain = prompt.pipe(model);
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
-  // chain.invoke() điền input vào prompt rồi gọi API Gemini để lấy câu trả lời.
+  // Điền {product} vào prompt rồi gọi Gemini.
   const result = await chain.invoke({
     product: "Queen Size Sheet Set",
   });
 
-  // Kết quả trả về là 1 AIMessage (khác với LLMChain cũ trả về { text: "..." }),
-  // nên lấy câu trả lời qua result.content.
+  // Kết quả là AIMessage -> lấy text qua result.content.
+  // LLMChain cũ trả { text: "..." }. Muốn ra string thẳng: thêm .pipe(new StringOutputParser()) (file 02).
   console.log("Company name:", result.content);
 }
 

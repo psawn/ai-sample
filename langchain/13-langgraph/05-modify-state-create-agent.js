@@ -1,13 +1,18 @@
-// Human in the Loop - Bản dùng createAgent (sửa Tool call bằng decision "edit")
-// Cùng bài toán "sửa Tool call trước khi cho chạy tiếp" như 05-modify-state-manual-graph.js,
-// nhưng dùng `createAgent` + `humanInTheLoopMiddleware` thay vì tự dựng StateGraph.
+// =======================================================================
+// LANGGRAPH - BƯỚC 5: SỬA TOOL CALL TRƯỚC KHI CHẠY TIẾP - BẢN createAgent
 //
-// Khác biệt so với bản manual-graph:
-//   - Bản manual-graph phải tự đọc `state.values.messages`, sửa tay `tool_calls`, rồi gọi
-//     `updateState()` - vì reducer của MessagesAnnotation tự thay thế message trùng `id`.
-//   - Bản này không cần đụng tới message/id gì cả: chỉ cần trả về quyết định
-//     `{ type: "edit", editedAction: { name, args } }` khi resume - middleware tự lo phần
-//     còn lại (tương đương "sửa state" nhưng qua 1 API rõ ràng hơn).
+// Agent bị chặn trước khi gọi tool. Ta sửa tham số tool call rồi mới cho chạy.
+// Ví dụ: Model định tìm "weather in LA" (Los Angeles) -> đổi thành Louisiana.
+//
+// Luồng:
+// 1. agent.invoke() -> bị chặn, đọc tool call trong result.__interrupt__.
+// 2. Tạo decision { type: "edit", editedAction: { name, args } }.
+// 3. agent.invoke(new Command({ resume: { decisions } })) -> middleware thay tool call rồi chạy.
+//
+// Cùng bài toán với 05-modify-state-manual-graph.js. Khác biệt:
+// - Bản đó tự sửa tool_calls trong message, rồi gọi updateState() (dựa vào message id).
+// - Bản này không đụng tới message hay id. Middleware tự thay tool call.
+// =======================================================================
 
 require("../_polyfill");
 require("dotenv").config();
@@ -17,11 +22,13 @@ const { MemorySaver, Command } = require("@langchain/langgraph");
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { webSearch } = require("./tool");
 
+// System prompt: trợ lý nghiên cứu, được gọi tool nhiều lần.
 const prompt = `You are a smart research assistant. Use the search engine to look up information. \
 You are allowed to make multiple calls (either together or in sequence). \
 Only look up information when you are sure of what you want. \
 If you need to look up some information before asking a follow up question, you are allowed to do that!`;
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
   const llm = new ChatGoogleGenerativeAI({
     apiKey: process.env.GEMINI_API_KEY,
@@ -31,8 +38,8 @@ async function main() {
 
   const memory = new MemorySaver();
 
-  // interruptOn: { web_search: true } -> mỗi lần Model gọi Tool "web_search" đều bị chặn
-  // lại chờ duyệt, tương đương interruptBefore: ["action"] ở bản manual-graph.
+  // Mỗi lần Model gọi tool "web_search" đều bị chặn chờ duyệt.
+  // Tương đương interruptBefore: ["action"] ở bản manual-graph.
   const hitlMiddleware = humanInTheLoopMiddleware({
     interruptOn: { web_search: true },
   });
@@ -47,6 +54,7 @@ async function main() {
 
   const thread = { configurable: { thread_id: "1" } };
 
+  // Bước 1: hỏi thời tiết LA -> Model muốn gọi web_search -> bị chặn.
   let result = await agent.invoke(
     { messages: [{ role: "user", content: "Whats the weather in LA?" }] },
     thread,
@@ -55,7 +63,8 @@ async function main() {
   const originalAction = result.__interrupt__[0].value.actionRequests[0];
   console.log("\nTool call ban đầu Model muốn gọi:", originalAction);
 
-  // Decision "edit": đổi thẳng tên/args của Tool call, không cần biết message id là gì.
+  // Bước 2: sửa tool call bằng decision "edit".
+  // Chỉ cần tên tool + args mới, không cần message id.
   const decisions = [
     {
       type: "edit",
@@ -66,10 +75,10 @@ async function main() {
     },
   ];
 
+  // Bước 3: chạy tiếp với tool call đã sửa.
   console.log("\n========== Chạy tiếp với Tool call đã sửa ==========");
-  // Command({ resume }) chạy tiếp Graph đang bị interrupt() tạm dừng, gửi `decisions` vào
-  // đúng chỗ đang chờ để middleware biết cách xử lý Tool call (xem thêm giải thích ở
-  // 04-human-approval-create-agent.js).
+  // resume gửi decisions vào chỗ graph đang dừng, middleware đọc để xử lý tool call.
+  // Giải thích Command xem 04-human-approval-create-agent.js.
   result = await agent.invoke(new Command({ resume: { decisions } }), thread);
   console.log("\n>>> KẾT QUẢ CUỐI:", result.messages.at(-1).content);
 }

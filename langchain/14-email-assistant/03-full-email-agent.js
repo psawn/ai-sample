@@ -1,14 +1,13 @@
-// Email Assistant - Bước 3: GHÉP TOÀN BỘ thành 1 Graph hoàn chỉnh
+// =======================================================================
+// EMAIL ASSISTANT - BƯỚC 3: GHÉP TRIAGE + RESPONSE AGENT THÀNH 1 GRAPH
 //
-// Luồng: mỗi email đi qua Node "triage_router" trước. LLM phân loại xong sẽ dùng
-// Command({ goto }) để tự điều hướng: email "respond" mới đi tiếp sang Node
-// "response_agent" (LLM có Tool, có thể trả lời/xếp lịch); email "ignore"/"notify" thì
-// dừng luôn (END), không tốn thêm 1 lượt gọi LLM nào để soạn trả lời.
+// Ghép bước 01 và 02: phân loại email trước, chỉ email cần trả lời mới tới agent.
 //
-// START -> triage_router
-//                ├── ignore -> END
-//                ├── notify -> END
-//                └── respond -> response_agent -> END
+// Graph 2 node, triage_router tự điều hướng bằng Command({ goto }):
+//   1. START -> triage_router: phân loại email.
+//   2. respond -> response_agent (có tool) -> END.
+//   3. ignore / notify -> END, không gọi LLM thêm.
+// =======================================================================
 
 require("../_polyfill");
 require("dotenv").config();
@@ -42,6 +41,7 @@ const {
   checkCalendarAvailability,
 } = require("./tools");
 
+// Schema đầu ra của bộ phân loại.
 const Router = z.object({
   reasoning: z
     .string()
@@ -63,6 +63,7 @@ const llm = new ChatGoogleGenerativeAI({
 
 const llmRouter = llm.withStructuredOutput(Router);
 
+// Response agent giống bước 02: model + 3 tool xử lý email và lịch họp.
 const responseAgent = createAgent({
   model: llm,
   tools: [writeEmail, scheduleMeeting, checkCalendarAvailability],
@@ -73,15 +74,10 @@ const responseAgent = createAgent({
   }),
 });
 
-// State = "bộ nhớ chung" của Graph, nơi các Node đọc và cập nhật dữ liệu.
-// Annotation.Root định nghĩa State gồm 2 field và cách mỗi field được cập nhật.
-// - emailInput: có giá trị mới thì thay giá trị cũ, không có thì giữ nguyên.
-//   Dùng để lưu email gốc trong suốt vòng chạy.
-// - messages: dùng messagesStateReducer để merge message mới vào lịch sử hội thoại.
-//   Dùng cho conversation giữa response_agent và Tool.
-//
-// VD: Khi gọi emailAgent.invoke({ emailInput }), State ban đầu là:
-// { emailInput: {...}, messages: [] }
+// State: dữ liệu chung, các node đọc và ghi.
+// - emailInput: có giá trị mới thì thay, không thì giữ. Không đổi suốt lượt chạy.
+// - messages  : messagesStateReducer nối message mới vào lịch sử.
+// invoke({ emailInput }) tạo state ban đầu { emailInput: {...}, messages: [] }.
 const EmailAgentState = Annotation.Root({
   emailInput: Annotation({
     reducer: (current, update) => update ?? current,
@@ -93,18 +89,14 @@ const EmailAgentState = Annotation.Root({
   }),
 });
 
-// Node "triage_router": LLM đọc email và tự quyết định luôn Node kế tiếp của Graph.
-//
-// Command là một class đặc biệt cho phép Node/Agent vừa cập nhật State vừa điều khiển
-// hướng đi của Graph:
-//   - goto:   chọn Node tiếp theo hoặc END.
-//   - update: cập nhật State theo reducer của từng field.
-//   - resume: cung cấp giá trị để tiếp tục Graph tại chỗ interrupt() đang tạm dừng.
+// Node 1: phân loại email, rồi chọn node kế tiếp.
+// Command gồm 2 phần: update ghi vào state, goto chọn node tiếp theo.
 async function triageRouterNode(state) {
   console.log("\n📍 Node: triage_router - đang phân loại email...");
 
   const { author, to, subject, emailThread } = state.emailInput;
 
+  // Prompt phân loại: hồ sơ người dùng + 3 quy tắc. Chưa dùng ví dụ mẫu.
   const systemPrompt = buildTriageSystemPrompt({
     fullName: profile.fullName,
     name: profile.name,
@@ -128,11 +120,13 @@ async function triageRouterNode(state) {
 
   console.log(`🧠 Reasoning: ${result.reasoning}`);
 
+  // Điều hướng theo nhãn LLM trả về.
   if (result.classification === "respond") {
     console.log("📧 Classification: RESPOND - This email requires a response");
     return new Command({
       goto: "response_agent",
       update: {
+        // Giao email cho response_agent dưới dạng 1 message của user.
         messages: [
           {
             role: "user",
@@ -148,14 +142,14 @@ async function triageRouterNode(state) {
     return new Command({ goto: END });
   }
 
-  // "notify": trong thực tế sẽ đẩy thông báo riêng cho người dùng, ở demo này chỉ dừng lại.
+  // "notify": bản thật sẽ gửi thông báo cho người dùng, demo này chỉ dừng.
   console.log(
     "🔔 Classification: NOTIFY - This email contains important information",
   );
   return new Command({ goto: END });
 }
 
-// Node "response_agent": chuyển tiếp messages hiện tại cho Agent có Tool ở bước 2 xử lý.
+// Node 2: chuyển messages hiện tại cho agent có tool (bước 02) xử lý.
 async function responseAgentNode(state) {
   console.log("\n📍 Node: response_agent - đang gọi Agent xử lý (tool call)...");
 
@@ -163,18 +157,20 @@ async function responseAgentNode(state) {
   return { messages: result.messages };
 }
 
+// Khai báo và biên dịch graph.
 const emailAgent = new StateGraph(EmailAgentState)
-  // "ends" khai báo trước các đích mà Command.goto có thể trỏ tới. Nhờ đó LangGraph biết
-  // "response_agent" có thể được gọi tới dù không có addEdge tĩnh nào trỏ vào nó.
+  // ends: các node mà Command({ goto }) có thể nhảy tới.
+  // Bắt buộc khai báo vì không có addEdge nào trỏ vào response_agent.
   .addNode(
     "triage_router", // tên node
-    triageRouterNode, // function sẽ chạy khi tới node này
-    { ends: ["response_agent", END] }, // các nơi nó có thể goto
+    triageRouterNode, // hàm chạy khi tới node này
+    { ends: ["response_agent", END] }, // các đích node này có thể goto
   )
   .addNode("response_agent", responseAgentNode)
   .addEdge(START, "triage_router")
   .compile();
 
+// Chạy graph với 1 email, in toàn bộ lịch sử message.
 async function runEmail(emailInput) {
   console.log(`\n========== Email: "${emailInput.subject}" ==========`);
   const result = await emailAgent.invoke({ emailInput });
@@ -186,9 +182,10 @@ async function runEmail(emailInput) {
   }
 }
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
-  // await runEmail(spamEmail); // Kỳ vọng: bị IGNORE, response_agent không chạy.
-  await runEmail(questionEmail); // Kỳ vọng: RESPOND, response_agent trả lời/gọi Tool.
+  // await runEmail(spamEmail); // Kỳ vọng: IGNORE, response_agent không chạy.
+  await runEmail(questionEmail); // Kỳ vọng: RESPOND, response_agent gọi tool để trả lời.
 }
 
 main();

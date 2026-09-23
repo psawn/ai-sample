@@ -1,3 +1,11 @@
+// =======================================================================
+// GEMINI - LIỆT KÊ CÁC MODEL ĐANG DÙNG ĐƯỢC
+//
+// Gọi REST API của Google lấy danh sách model, chỉ in các model
+// hỗ trợ "generateContent" (dùng được để sinh văn bản/chat).
+// Dùng để kiểm tra tên model trước khi điền vào các file khác (vd "gemini-3.5-flash").
+// =======================================================================
+
 require("dotenv").config();
 
 async function checkAvailableModels() {
@@ -11,6 +19,7 @@ async function checkAvailableModels() {
     if (data.models) {
       console.log("=== CÁC MÔ HÌNH GOOGLE ĐANG HỖ TRỢ ===");
 
+      // Bỏ qua model chỉ dùng cho embedding (chỉ có "embedContent"), giữ model sinh nội dung.
       data.models.forEach((model) => {
         if (
           model.supportedGenerationMethods &&

@@ -1,3 +1,13 @@
+// =======================================================================
+// QA - BƯỚC 4: RAG BẰNG CHAIN CÓ SẴN
+//
+// Thay 3 bước làm tay ở file 03 bằng 2 chain có sẵn:
+// 1. createStuffDocumentsChain: nhét tất cả document vào {context} -> gọi LLM.
+// 2. createRetrievalChain: nối retriever + document chain thành 1 pipeline.
+//
+// Output: { input, context, answer }. Câu trả lời ở response.answer.
+// =======================================================================
+
 require("../_polyfill");
 require("dotenv").config();
 
@@ -13,13 +23,13 @@ const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { ChatPromptTemplate } = require("@langchain/core/prompts");
 const path = require("path");
 
-// Embedding Model: gọi API Gemini (model gemini-embedding-001) để biến Document / Query thành vector.
+// Model embedding: đổi Document và câu hỏi thành vector.
 const embeddings = new GoogleGenerativeAIEmbeddings({
   apiKey: process.env.GEMINI_API_KEY,
   model: "gemini-embedding-001",
 });
 
-// LLM: gọi API Gemini (model gemini-3.5-flash) để sinh câu trả lời cuối cùng.
+// LLM: viết câu trả lời cuối.
 const llm = new ChatGoogleGenerativeAI({
   apiKey: process.env.GEMINI_API_KEY,
   model: "gemini-3.5-flash",
@@ -29,36 +39,33 @@ const llm = new ChatGoogleGenerativeAI({
 const filePath = path.join(__dirname, "OutdoorClothingCatalog_1000.csv");
 const loader = new CSVLoader(filePath);
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
   const docs = await loader.load();
 
   console.log("Loaded documents:", docs.length);
 
-  // Gọi API Gemini để tạo vector cho từng Document, rồi lưu Document + vector vào MemoryVectorStore trong RAM.
+  // Embed từng Document, lưu vào RAM.
   const db = await MemoryVectorStore.fromDocuments(docs, embeddings);
 
-  // Retriever: khi invoke sẽ:
-  // 1. Gọi API Gemini để tạo vector cho query.
-  // 2. So sánh với các vector Document trong RAM (xử lý local) để trả về những document liên quan nhất.
+  // Retriever: nhận câu hỏi -> trả k document liên quan nhất.
+  // Thay cho db.similaritySearch(query, k) ở file 03, và ghép được vào chain.
   const retriever = db.asRetriever({
     k: 4,
   });
 
-  // {context} sẽ được điền bằng nội dung các document mà Retriever tìm được.
+  // {context}: điền bằng nội dung các document retriever tìm được.
+  // {input}: câu hỏi.
   const prompt = ChatPromptTemplate.fromTemplate(`{context} Question: {input}`);
 
-  // Document Chain:
-  // 1. Ghép Document + câu hỏi vào prompt.
-  // 2. Gọi API Gemini (LLM) để sinh câu trả lời.
-  // "stuff" = đưa tất cả document vào cùng một context.
+  // Document chain: ghép document + câu hỏi vào prompt -> gọi LLM.
+  // "stuff" = nhét tất cả document vào cùng 1 context.
   const documentChain = await createStuffDocumentsChain({
     llm,
     prompt,
   });
 
-  // Retrieval Chain nối 2 bước thành 1 pipeline duy nhất:
-  // 1. Retriever: gọi API Gemini lấy document liên quan.
-  // 2. Document Chain: gọi API Gemini sinh câu trả lời.
+  // Retrieval chain: retriever tìm document -> document chain trả lời.
   const ragChain = await createRetrievalChain({
     retriever,
     combineDocsChain: documentChain,

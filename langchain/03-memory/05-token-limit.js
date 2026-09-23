@@ -1,3 +1,14 @@
+// =======================================================================
+// MEMORY - BƯỚC 5: GIỚI HẠN THEO SỐ TOKEN (TOKEN BUFFER MEMORY)
+//
+// 1. Sau mỗi lượt hỏi-đáp, tính tổng token của history.
+// 2. Vượt MAX_TOKENS -> xóa dần message cũ nhất tới khi đủ giới hạn.
+//
+// Kiểm soát chi phí tốt hơn window memory (04, đếm số message),
+// vì mỗi message dài ngắn khác nhau.
+// Nhược điểm vẫn như 04: quên thông tin cũ.
+// =======================================================================
+
 require("../_polyfill");
 require("dotenv").config();
 
@@ -8,54 +19,43 @@ const {
   SystemMessage,
 } = require("@langchain/core/messages");
 
-// =======================================================
-// Memory Strategy: Giới hạn theo số lượng token
-//
-// Ý tưởng:
-// - Chỉ giữ Conversation History trong một giới hạn token nhất định.
-// - Sau mỗi lượt hỏi/đáp, tính tổng số token của history.
-// - Nếu vượt giới hạn, xóa dần message cũ nhất cho đến khi
-//   tổng token quay về dưới giới hạn.
-// - Giúp kiểm soát chi phí tốt hơn so với việc chỉ đếm số lượt hội thoại,
-//   vì mỗi message có độ dài (số token) khác nhau.
-// =======================================================
-
 const model = new ChatGoogleGenerativeAI({
   apiKey: process.env.GEMINI_API_KEY,
   model: "gemini-3.5-flash",
   temperature: 0,
 });
 
-// Giới hạn số token tối đa cho phần Conversation History
+// Số token tối đa cho history.
 const MAX_TOKENS = 200;
 
-// Ước lượng số token của một chuỗi text.
-// Không dùng tokenizer thật (vd: tiktoken) để giữ ví dụ đơn giản,
-// quy ước tạm: trung bình 1 token ~ 4 ký tự.
+// Ước lượng số token: 1 token ≈ 4 ký tự (quy ước cho tiếng Anh).
+// Tiếng Việt có dấu thường tốn nhiều token hơn -> số thật cao hơn.
+// Không dùng tokenizer thật (vd: tiktoken, xem ../04-document-processing/05-token-splitting.js)
+// để ví dụ đơn giản.
 function countTokens(text) {
   return Math.ceil(text.length / 4);
 }
 
-// Tính tổng số token của toàn bộ history
+// Tính tổng token của toàn bộ history (tính cả SystemMessage).
 function countHistoryTokens(messages) {
   return messages.reduce((total, msg) => total + countTokens(msg.content), 0);
 }
 
 const history = [new SystemMessage("Bạn là AI Assistant thân thiện.")];
 
+// Hỏi 1 câu, sau đó cắt history về dưới MAX_TOKENS.
 async function ask(input) {
-  // Lưu câu hỏi của user
+  // Lưu câu hỏi của user.
   history.push(new HumanMessage(input));
 
-  // Gọi API Gemini, gửi kèm history (đã giới hạn theo MAX_TOKENS) để lấy câu trả lời.
   const response = await model.invoke(history);
 
-  // Lưu câu trả lời của AI
+  // Lưu câu trả lời của AI.
   history.push(new AIMessage(response.content));
 
-  // Cắt bớt history cho đến khi tổng token <= MAX_TOKENS:
-  // 1. Giữ lại SystemMessage (không xóa).
-  // 2. Xóa dần message cũ nhất, theo đúng thứ tự thời gian.
+  // Cắt history tới khi tổng token <= MAX_TOKENS:
+  // giữ SystemMessage, xóa dần message cũ nhất.
+  // history.length > 1: chỉ còn SystemMessage thì dừng, không xóa nó.
   while (countHistoryTokens(history) > MAX_TOKENS && history.length > 1) {
     history.splice(1, 1);
   }
@@ -70,6 +70,8 @@ async function ask(input) {
   console.log(history);
 }
 
+// ===== KỊCH BẢN MINH HỌA =====
+// Theo dõi "Tổng số token ước lượng" để thấy message cũ bị xóa khi vượt giới hạn.
 async function main() {
   await ask("Xin chào, tôi tên là An.");
   console.log("\n==============================\n");

@@ -1,3 +1,17 @@
+// =======================================================================
+// RETRIEVAL QA - BƯỚC 7: CHATBOT CLI CHỌN ĐƯỢC CHAIN TYPE
+//
+// Giống 06-cli-chatbot.js, nhưng chọn được chainType
+// (stuff / map_reduce / refine) thay vì cố định "stuff".
+//
+// Đánh đổi: prompt mặc định của loadQAChain chỉ có {context}/{question},
+// không có chỗ cho chat_history.
+// - Bước viết lại câu hỏi (rephraseChain): vẫn dùng history.
+// - Bước trả lời: không "thấy" history.
+//
+// Chỉ dùng khi cần thử map_reduce/refine. Bình thường ưu tiên file 06 (API mới).
+// =======================================================================
+
 require("../_polyfill");
 require("dotenv").config();
 const readline = require("readline");
@@ -14,20 +28,11 @@ const {
   MessagesPlaceholder,
 } = require("@langchain/core/prompts");
 const { StringOutputParser } = require("@langchain/core/output_parsers");
-// loadQAChain: thuộc API "Chain" đời cũ của LangChain, bản thân thư viện đã đánh dấu
-// @deprecated - KHÔNG khuyến khích dùng cho code mới. Chỉ dùng ở đây vì đây là cách
-// duy nhất hỗ trợ sẵn cả 3 chain_type "stuff" / "map_reduce" / "refine" (API mới
-// createStuffDocumentsChain hiện chỉ có bản LCEL cho "stuff").
+// loadQAChain đã deprecated, không nên dùng cho code mới.
+// Dùng ở đây vì là cách duy nhất hỗ trợ đủ 3 type: stuff / map_reduce / refine.
 const { loadQAChain } = require("@langchain/classic/chains");
 const { HumanMessage, AIMessage } = require("@langchain/core/messages");
 
-// Giống 06-cli-chatbot.js (chatbot hỏi đáp 1 file PDF, chạy trên terminal, không UI),
-// nhưng cho chọn chainType thay vì cố định "stuff". Chỉ nên dùng file này khi cần thử
-// hoặc so sánh map_reduce/refine - nếu không, ưu tiên dùng file 06 (API mới hơn).
-//
-// Đánh đổi: loadQAChain dùng prompt mặc định riêng (chỉ có {context}/{question}, không
-// có chỗ nhét chat_history), nên bước TRẢ LỜI CUỐI sẽ không "thấy" lịch sử chat nữa -
-// chỉ bước rephraseChain (viết lại câu hỏi) là còn dùng chat_history.
 const loadedFile = path.join(
   __dirname,
   "../../docs/cs229_lectures/MachineLearning-Lecture01.pdf",
@@ -44,17 +49,14 @@ const llm = new ChatGoogleGenerativeAI({
   temperature: 0,
 });
 
-// loadDb: chuẩn bị mọi thứ cần cho hội thoại.
-// 1. Load 1 file PDF.
-// 2. Split thành chunk.
-// 3. Embed từng chunk.
-// 4. Dựng retriever + 2 chain: 1 chain viết lại câu hỏi, 1 chain trả lời dựa trên
-//    document tìm được.
+// Chuẩn bị cho hội thoại:
+// 1. Load PDF -> split -> embed.
+// 2. Tạo retriever + 2 chain: rephraseChain (viết lại câu hỏi), answerChain (trả lời).
 //
-// chainType mặc định "stuff", có thể đổi thành:
-// - "stuff": nhét hết document vào 1 prompt - nhanh, rẻ.
-// - "map_reduce": tóm tắt từng document rồi gộp - xử lý được nhiều document hơn.
-// - "refine": tinh chỉnh câu trả lời dần qua từng document - mạch tốt nhất nhưng chậm.
+// chainType (mặc định "stuff", chi tiết: 03-chain-types.js):
+// - "stuff": nhét hết document vào 1 prompt. Nhanh, rẻ.
+// - "map_reduce": tóm tắt từng document rồi gộp. Xử lý được nhiều document.
+// - "refine": sửa dần câu trả lời qua từng document. Giữ mạch tốt nhất, nhưng chậm.
 async function loadDb(file, k, chainType = "stuff") {
   const documents = await new PDFLoader(file).load();
 
@@ -67,16 +69,9 @@ async function loadDb(file, k, chainType = "stuff") {
   const vectordb = await MemoryVectorStore.fromDocuments(docs, embeddings);
   const retriever = vectordb.asRetriever({ k });
 
-  // rephraseChain: giúp AI "hiểu" câu hỏi tiếp theo đang nói về điều gì, bằng cách viết
-  // lại nó thành 1 câu hỏi rõ nghĩa. LangChain gọi bước này là "contextualize question"
-  // (đặt câu hỏi vào đúng ngữ cảnh), kết quả gọi là "Standalone Question" (câu hỏi độc
-  // lập).
-  // Cấu trúc prompt theo thứ tự:
-  // 1. system: hướng dẫn.
-  // 2. chat_history: lịch sử chat.
-  // 3. human: câu hỏi mới.
-  // Nhờ vậy retriever vẫn tìm đúng document dù câu hỏi gốc mơ hồ, phụ thuộc câu trước
-  // (vd "why is that needed?").
+  // rephraseChain: viết lại câu hỏi mơ hồ (vd "why is that needed?") thành
+  // standalone question dựa vào chat history -> retriever tìm đúng document.
+  // Thứ tự prompt: system -> chat_history -> human (câu hỏi mới).
   const rephrasePrompt = ChatPromptTemplate.fromMessages([
     [
       "system",
@@ -87,20 +82,20 @@ async function loadDb(file, k, chainType = "stuff") {
   ]);
   const rephraseChain = rephrasePrompt.pipe(llm).pipe(new StringOutputParser());
 
-  // answerChain: nhét document tìm được vào prompt mặc định sẵn của loadQAChain (theo
-  // đúng chainType đã chọn) để LLM trả lời câu hỏi gốc.
+  // answerChain: prompt mặc định của loadQAChain theo chainType đã chọn.
   const answerChain = loadQAChain(llm, { type: chainType });
 
   return { retriever, rephraseChain, answerChain };
 }
 
-// Xử lý 1 lượt hỏi-đáp: nhận câu hỏi + chat_history hiện có, trả về answer (câu trả lời),
-// generatedQuestion (Standalone Question - câu hỏi đã viết lại, dùng để tìm document)
-// và sourceDocuments (các đoạn tài liệu đã dùng làm ngữ cảnh trả lời).
+// Xử lý 1 lượt hỏi-đáp. Trả về:
+// - answer: câu trả lời.
+// - generatedQuestion: câu hỏi đã viết lại (dùng để tìm document).
+// - sourceDocuments: các document đã dùng làm context.
 async function askQuestion(qa, query, chatHistory) {
   const { retriever, rephraseChain, answerChain } = qa;
 
-  // Chưa có lịch sử chat thì dùng thẳng câu hỏi gốc, còn có lịch sử thì cần viết lại thành Standalone Question.
+  // Chưa có history -> dùng thẳng câu hỏi gốc. Có history -> viết lại cho rõ nghĩa.
   const generatedQuestion =
     chatHistory.length === 0
       ? query
@@ -108,8 +103,8 @@ async function askQuestion(qa, query, chatHistory) {
 
   const sourceDocuments = await retriever.invoke(generatedQuestion);
 
-  // loadQAChain cố định tên 2 key đầu vào là input_documents/question, và luôn trả về
-  // object có key "text" (không phải string trực tiếp như answerChain.invoke() ở file 06).
+  // loadQAChain cố định key đầu vào: input_documents, question.
+  // Output là object { text } (file 06 trả string trực tiếp).
   const result = await answerChain.invoke({
     input_documents: sourceDocuments,
     question: query,
@@ -118,14 +113,14 @@ async function askQuestion(qa, query, chatHistory) {
   return { answer: result.text, generatedQuestion, sourceDocuments };
 }
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
   console.log(`Đang load database từ: ${loadedFile}`);
-  // Tham số thứ 3 là chainType, mặc định "stuff". Đổi thành "map_reduce" hoặc
-  // "refine" ở đây nếu muốn thử cách gộp document khác (xem giải thích ở loadDb()).
+  // Tham số thứ 3 là chainType. Đổi thành "map_reduce" hoặc "refine" để thử.
   const qa = await loadDb(loadedFile, 4, "stuff");
   console.log("Đã sẵn sàng! Gõ câu hỏi rồi Enter, gõ 'exit' để thoát.\n");
 
-  // Lưu lịch sử hội thoại trong 1 mảng, dùng lại cho các câu hỏi tiếp theo.
+  // Lịch sử hội thoại, dùng lại cho các câu hỏi sau.
   const chatHistory = [];
 
   const rl = readline.createInterface({
@@ -133,6 +128,7 @@ async function main() {
     output: process.stdout,
   });
 
+  // Vòng lặp hỏi-đáp: hỏi 1 câu -> trả lời -> hỏi tiếp, tới khi gõ "exit".
   const askLoop = () => {
     rl.question("User: ", async (query) => {
       if (query.trim().toLowerCase() === "exit") {
@@ -150,7 +146,7 @@ async function main() {
       console.log("Số document tìm được:", sourceDocuments.length);
       console.log("ChatBot:", answer, "\n");
 
-      // Lưu lượt hỏi-đáp này vào lịch sử để dùng cho câu hỏi tiếp theo.
+      // Lưu Q&A vào history cho câu hỏi sau.
       chatHistory.push(new HumanMessage(query), new AIMessage(answer));
 
       askLoop();

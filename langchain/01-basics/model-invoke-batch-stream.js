@@ -1,3 +1,11 @@
+// =======================================================================
+// LANGCHAIN BASICS - 3 CÁCH GỌI MODEL: invoke / batch / stream
+//
+// 1. invoke(): 1 input -> đợi xong -> nhận toàn bộ kết quả.
+// 2. batch(): nhiều input -> chạy song song -> nhận mảng kết quả.
+// 3. stream(): 1 input -> nhận từng mẩu text ngay khi model sinh ra.
+// =======================================================================
+
 require("../_polyfill");
 require("dotenv").config();
 
@@ -9,8 +17,8 @@ const llm = new ChatGoogleGenerativeAI({
   temperature: 0,
 });
 
-// 1. invoke() — Gửi 1 input, đợi model trả lời xong toàn bộ rồi mới nhận kết quả.
-// Dùng khi chỉ cần 1 câu trả lời và không quan tâm hiển thị dần theo thời gian thực.
+// 1. invoke(): đợi model trả lời xong rồi mới nhận kết quả.
+// Dùng khi chỉ cần 1 câu trả lời, không cần hiển thị dần.
 async function demoInvoke() {
   const response = await llm.invoke("Give me 4 good books to read");
 
@@ -18,9 +26,10 @@ async function demoInvoke() {
   console.log(response.content);
 }
 
-// 2. batch() — Gửi nhiều input độc lập cùng lúc, model xử lý song song,
-// kết quả trả về là mảng đúng theo thứ tự input. Dùng khi có nhiều câu hỏi
-// không phụ thuộc nhau, thay vì gọi invoke() tuần tự cho từng cái.
+// 2. batch(): gửi nhiều input độc lập, xử lý song song.
+// Kết quả là mảng, đúng thứ tự input.
+// Dùng khi có nhiều câu hỏi không phụ thuộc nhau (nhanh hơn gọi invoke() lần lượt).
+// Nhiều input quá -> dễ bị rate limit. Giới hạn số request song song: batch(inputs, { maxConcurrency }).
 async function demoBatch() {
   const responses = await llm.batch(["Hello", "Give me 4 good books to read"]);
 
@@ -28,10 +37,9 @@ async function demoBatch() {
   responses.forEach((response, i) => console.log(`[${i}]`, response.content));
 }
 
-// 3. stream() — Nhận kết quả dần theo từng chunk ngay khi model sinh ra, thay vì
-// đợi xong toàn bộ như invoke(). Dùng khi muốn hiển thị chữ chạy dần (như ChatGPT).
-// Mỗi chunk chỉ là 1 mẩu text ngắn, console.log() sẽ tự xuống dòng sau mỗi chunk
-// -> in rời rạc, nên dùng process.stdout.write() để nối liền chunk trên cùng dòng.
+// 3. stream(): nhận từng chunk ngay khi model sinh ra.
+// Dùng khi muốn hiển thị chữ chạy dần, người dùng không phải chờ.
+// process.stdout.write() thay console.log(): các chunk nối liền, không xuống dòng sau mỗi chunk.
 async function demoStream() {
   console.log("\n=== llm.stream ===");
 
@@ -44,6 +52,7 @@ async function demoStream() {
   console.log();
 }
 
+// ===== KỊCH BẢN MINH HỌA =====
 async function main() {
   await demoInvoke();
   await demoBatch();
