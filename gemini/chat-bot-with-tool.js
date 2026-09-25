@@ -15,43 +15,123 @@ const { GoogleGenerativeAI, SchemaType } = require("@google/generative-ai");
 
 const API_KEY = process.env.GEMINI_API_KEY;
 const MODEL_NAME = "gemini-3.5-flash";
+const today = new Date().toISOString().split('T')[0];
 const SYSTEM_INSTRUCTION =
-  "You are a helpful flight booking assistant. Help users look up flights and book tickets. Always answer in Vietnamese.";
+  `You are a helpful flight booking assistant. Help users look up flights and book tickets. Always answer in Vietnamese. Today's date is ${today}.`;
 const MAX_TOOL_STEPS = 5;
 
 // Chuyến bay giả lập. Key: điểm đến, viết thường, có dấu.
 // "Da Nang" (không dấu) không khớp "đà nẵng" -> không tìm thấy.
+// Mỗi điểm đến có nhiều chuyến với giờ khởi hành khác nhau trong ngày.
 const MOCK_FLIGHTS = {
-  "đà nẵng": {
-    flightNumber: "VN204",
-    airline: "Vietnam Airlines",
-    price: 1500000,
-    duration: "1h20p",
-  },
-  "phú quốc": {
-    flightNumber: "VJ642",
-    airline: "VietJet Air",
-    price: 1800000,
-    duration: "2h",
-  },
-  "nha trang": {
-    flightNumber: "QH301",
-    airline: "Bamboo Airways",
-    price: 1400000,
-    duration: "1h10p",
-  },
-  tokyo: {
-    flightNumber: "VN300",
-    airline: "Vietnam Airlines",
-    price: 12000000,
-    duration: "5h30p",
-  },
-  singapore: {
-    flightNumber: "VJ800",
-    airline: "VietJet Air",
-    price: 3500000,
-    duration: "1h50p",
-  },
+  "đà nẵng": [
+    {
+      flightNumber: "VN204",
+      airline: "Vietnam Airlines",
+      price: 1500000,
+      duration: "1h20p",
+      departureTime: "06:00",
+    },
+    {
+      flightNumber: "VN206",
+      airline: "Vietnam Airlines",
+      price: 1650000,
+      duration: "1h20p",
+      departureTime: "12:30",
+    },
+    {
+      flightNumber: "VJ640",
+      airline: "VietJet Air",
+      price: 1400000,
+      duration: "1h15p",
+      departureTime: "18:45",
+    },
+  ],
+  "phú quốc": [
+    {
+      flightNumber: "VJ642",
+      airline: "VietJet Air",
+      price: 1800000,
+      duration: "2h",
+      departureTime: "07:15",
+    },
+    {
+      flightNumber: "QH1142",
+      airline: "Bamboo Airways",
+      price: 1950000,
+      duration: "2h05p",
+      departureTime: "14:00",
+    },
+    {
+      flightNumber: "VJ648",
+      airline: "VietJet Air",
+      price: 1700000,
+      duration: "2h",
+      departureTime: "20:30",
+    },
+  ],
+  "nha trang": [
+    {
+      flightNumber: "QH301",
+      airline: "Bamboo Airways",
+      price: 1400000,
+      duration: "1h10p",
+      departureTime: "05:45",
+    },
+    {
+      flightNumber: "VN360",
+      airline: "Vietnam Airlines",
+      price: 1550000,
+      duration: "1h10p",
+      departureTime: "11:20",
+    },
+    {
+      flightNumber: "QH305",
+      airline: "Bamboo Airways",
+      price: 1350000,
+      duration: "1h10p",
+      departureTime: "19:00",
+    },
+  ],
+  tokyo: [
+    {
+      flightNumber: "VN300",
+      airline: "Vietnam Airlines",
+      price: 12000000,
+      duration: "5h30p",
+      departureTime: "08:00",
+    },
+    {
+      flightNumber: "VN302",
+      airline: "Vietnam Airlines",
+      price: 11500000,
+      duration: "5h35p",
+      departureTime: "23:10",
+    },
+  ],
+  singapore: [
+    {
+      flightNumber: "VJ800",
+      airline: "VietJet Air",
+      price: 3500000,
+      duration: "1h50p",
+      departureTime: "09:30",
+    },
+    {
+      flightNumber: "VJ802",
+      airline: "VietJet Air",
+      price: 3800000,
+      duration: "1h50p",
+      departureTime: "16:15",
+    },
+    {
+      flightNumber: "TR802",
+      airline: "Scoot",
+      price: 3300000,
+      duration: "1h55p",
+      departureTime: "21:40",
+    },
+  ],
 };
 
 // Chuẩn hóa tên điểm đến để tra key: bỏ khoảng trắng thừa, viết thường.
@@ -59,28 +139,43 @@ function normalizeDestination(destination) {
   return String(destination).trim().toLowerCase();
 }
 
-// Giả lập tra cứu chuyến bay theo điểm đến.
+// Giả lập tra cứu các chuyến bay theo điểm đến.
 // Không tìm thấy -> trả found: false (không throw), để model đọc và báo lại cho user.
 function getFlightInfo({ destination }) {
-  const flight = MOCK_FLIGHTS[normalizeDestination(destination)];
-  if (!flight) {
+  const flights = MOCK_FLIGHTS[normalizeDestination(destination)];
+  if (!flights || flights.length === 0) {
     return {
       found: false,
       message: `Không tìm thấy chuyến bay tới "${destination}".`,
     };
   }
-  return { found: true, destination, ...flight };
+  return { found: true, destination, flights };
 }
 
 // Giả lập đặt vé tới điểm đến đã cho, trả mã đặt chỗ (bookingId).
-function bookFlight({ destination, date, passengerName }) {
-  const flight = MOCK_FLIGHTS[normalizeDestination(destination)];
-  if (!flight) {
+// Không chỉ định flightNumber -> lấy chuyến đầu tiên trong ngày.
+function bookFlight({ destination, date, passengerName, flightNumber }) {
+  const flights = MOCK_FLIGHTS[normalizeDestination(destination)];
+  if (!flights || flights.length === 0) {
     return {
       success: false,
       message: `Không có chuyến bay tới "${destination}" để đặt.`,
     };
   }
+
+  const flight = flightNumber
+    ? flights.find(
+        (f) => f.flightNumber.toLowerCase() === String(flightNumber).toLowerCase()
+      )
+    : flights[0];
+
+  if (!flight) {
+    return {
+      success: false,
+      message: `Không tìm thấy chuyến bay "${flightNumber}" tới "${destination}".`,
+    };
+  }
+
   return {
     success: true,
     bookingId: `BK${Date.now()}`,
@@ -90,6 +185,7 @@ function bookFlight({ destination, date, passengerName }) {
     flightNumber: flight.flightNumber,
     airline: flight.airline,
     price: flight.price,
+    departureTime: flight.departureTime,
   };
 }
 
@@ -110,7 +206,7 @@ const model = genAI.getGenerativeModel({
         {
           name: "getFlightInfo",
           description:
-            "Tra cứu thông tin chuyến bay (giả lập) theo địa điểm muốn đến.",
+            "Tra cứu danh sách các chuyến bay (giả lập) theo địa điểm muốn đến, kèm giờ khởi hành khác nhau trong ngày.",
           parameters: {
             type: SchemaType.OBJECT,
             properties: {
@@ -124,7 +220,8 @@ const model = genAI.getGenerativeModel({
         },
         {
           name: "bookFlight",
-          description: "Đặt vé máy bay (giả lập) tới địa điểm đã cho.",
+          description:
+            "Đặt vé máy bay (giả lập) tới địa điểm đã cho. Nếu không chỉ định flightNumber, hệ thống sẽ chọn chuyến sớm nhất trong ngày.",
           parameters: {
             type: SchemaType.OBJECT,
             properties: {
@@ -139,6 +236,11 @@ const model = genAI.getGenerativeModel({
               passengerName: {
                 type: SchemaType.STRING,
                 description: "Tên hành khách.",
+              },
+              flightNumber: {
+                type: SchemaType.STRING,
+                description:
+                  "Số hiệu chuyến bay muốn đặt (lấy từ kết quả getFlightInfo), dùng khi có nhiều chuyến trong ngày ở các giờ khác nhau.",
               },
             },
             required: ["destination", "date", "passengerName"],
