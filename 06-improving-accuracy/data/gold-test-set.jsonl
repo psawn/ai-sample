@@ -1,0 +1,10 @@
+{"question": "What is the median weight in the NBA?", "answer": "225", "sql": "SELECT CAST(SPLIT_PART(wt, ' ', 1) AS INTEGER) AS percentile FROM nba_roster ORDER BY percentile LIMIT 1 OFFSET (SELECT COUNT(*) FROM nba_roster) / 2;"}
+{"question": "Who is the highest paid NBA player?", "answer": "Stephen Curry", "sql": "SELECT name, salary FROM nba_roster WHERE salary != '--' ORDER BY CAST(REPLACE(REPLACE(salary, '$', ''), ',', '') AS BIGINT) DESC LIMIT 1;"}
+{"question": "How many players are on the Toronto Raptors?", "answer": "3", "sql": "SELECT COUNT(*) FROM nba_roster WHERE team = 'Toronto Raptors';"}
+{"question": "What is the average age of NBA players?", "answer": "27.73", "sql": "SELECT AVG(age) FROM nba_roster;"}
+{"question": "Which team has the most players?", "answer": "Toronto Raptors", "sql": "SELECT team, COUNT(*) AS num_players FROM nba_roster GROUP BY team ORDER BY num_players DESC LIMIT 1;"}
+{"question": "Who is the oldest player?", "answer": "LeBron James", "sql": "SELECT name, age FROM nba_roster ORDER BY age DESC LIMIT 1;"}
+{"question": "Who is the tallest player?", "answer": "Victor Wembanyama", "sql": "SELECT name, ht FROM nba_roster ORDER BY CAST(SPLIT_PART(ht, '''', 1) AS INTEGER) * 12 + CAST(REPLACE(SPLIT_PART(ht, ' ', 2), '\"', '') AS INTEGER) DESC LIMIT 1;"}
+{"question": "How many players did not go to college?", "answer": "5", "sql": "SELECT COUNT(*) FROM nba_roster WHERE college = '--';"}
+{"question": "What is the total salary of the Golden State Warriors?", "answer": "55403535", "sql": "SELECT SUM(CAST(REPLACE(REPLACE(salary, '$', ''), ',', '') AS BIGINT)) AS total_salary FROM nba_roster WHERE team = 'Golden State Warriors' AND salary != '--';"}
+{"question": "Which players are point guards?", "answer": "Stephen Curry, Luka Doncic, Shai Gilgeous-Alexander", "sql": "SELECT name FROM nba_roster WHERE pos = 'PG';"}

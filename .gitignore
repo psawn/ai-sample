@@ -2,3 +2,4 @@
 .env
 .vscode
 /chroma-data
+/06-improving-accuracy/data/results
