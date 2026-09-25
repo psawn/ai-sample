@@ -1,0 +1,47 @@
+// =======================================================================
+// UTIL - EMBED AN TOÀN (CÓ RETRY KHI LỖI)
+//
+// Vấn đề: 2 cách embed của thư viện xử lý lỗi khác nhau.
+// 1. embedDocuments(): gửi theo batch lớn (~100 chunk/request).
+//    Batch lỗi (thường do rate limit) -> không throw, âm thầm trả vector rỗng.
+//    Cơ chế retry (AsyncCaller) không biết có lỗi -> không retry -> mất dữ liệu.
+// 2. embedQuery(): gọi từng chunk, có đi qua AsyncCaller -> tự retry khi lỗi.
+//
+// Giải pháp: chia chunk thành từng nhóm nhỏ, gọi embedQuery song song trong nhóm.
+// Vừa nhanh, vừa không bắn quá nhiều request cùng lúc gây rate limit.
+// Chi tiết lỗi gốc: extra-debug-embedding-errors.js.
+//
+// File này chỉ export embedChunksSafely() cho các bài demo dùng lại (không tự chạy).
+//
+// Các file đang sử dụng:
+//   - 01-similarity-vs-mmr.js
+//   - 02-metadata-filter.js
+//   - 03-self-query.js
+//   - 04-contextual-compression.js
+//   - ../../08-retrieval-qa/01-basic.js
+//   - ../../08-retrieval-qa/02-custom-prompt.js
+//   - ../../08-retrieval-qa/03a-chain-types.js
+//   - ../../08-retrieval-qa/03b-chain-types-manual.js
+//   - ../../08-retrieval-qa/04-limitations.js
+//   - ../../08-retrieval-qa/05-conversational-chat.js
+// =======================================================================
+
+/**
+ * Embed danh sách docs, mỗi lần chạy song song tối đa `concurrency` request.
+ * Trả mảng vector đúng thứ tự docs.
+ */
+async function embedChunksSafely(embeddings, docs, concurrency = 5) {
+  const vectors = new Array(docs.length);
+  for (let i = 0; i < docs.length; i += concurrency) {
+    const group = docs.slice(i, i + concurrency);
+    const groupVectors = await Promise.all(
+      group.map((doc) => embeddings.embedQuery(doc.pageContent)),
+    );
+    groupVectors.forEach((v, j) => {
+      vectors[i + j] = v;
+    });
+  }
+  return vectors;
+}
+
+module.exports = { embedChunksSafely };
