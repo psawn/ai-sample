@@ -17,9 +17,10 @@ require("../_polyfill");
 require("dotenv").config();
 const readline = require("node:readline/promises");
 
-const { MemorySaver } = require("@langchain/langgraph");
-const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { HumanMessage } = require("@langchain/core/messages");
+const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
+const { MemorySaver } = require("@langchain/langgraph");
+
 const { Agent } = require("./agent-with-interrupt");
 const { webSearch } = require("./tool");
 
@@ -29,7 +30,7 @@ You are allowed to make multiple calls (either together or in sequence). \
 Only look up information when you are sure of what you want. \
 If you need to look up some information before asking a follow up question, you are allowed to do that!`;
 
-// In dữ liệu trả về sau mỗi node chạy xong.
+/** In dữ liệu trả về sau mỗi node chạy xong. */
 function printStepEvent(event) {
   // console.log("[event thô]", event);
 
@@ -42,8 +43,10 @@ function printStepEvent(event) {
   }
 }
 
-// Kịch bản 1: code tự duyệt, không hỏi người dùng.
-// Mục đích: minh họa getState() và stream(null).
+/**
+ * Kịch bản 1: code tự duyệt, không hỏi người dùng.
+ * Mục đích: minh họa getState() và stream(null).
+ */
 async function runAutoApprove(abot) {
   console.log(
     '\n========== Thread 1: Chạy và tự dừng trước Node "action" ==========',
@@ -79,7 +82,7 @@ async function runAutoApprove(abot) {
   console.log("-> Node sắp chạy tiếp:", state.next, "(rỗng nghĩa là đã xong)");
 }
 
-// Kịch bản 2: hỏi người dùng (y/n) trước mỗi lần gọi tool.
+/** Kịch bản 2: hỏi người dùng (y/n) trước mỗi lần gọi tool. */
 async function runManualApprove(abot) {
   console.log(
     "\n========== Thread 2: Vòng lặp chờ người dùng xác nhận gọi Tool ==========",

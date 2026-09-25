@@ -16,19 +16,21 @@
 require("../_polyfill");
 require("dotenv").config();
 const path = require("path");
-const { PDFLoader } = require("@langchain/community/document_loaders/fs/pdf");
-const { RecursiveCharacterTextSplitter } = require("@langchain/textsplitters");
-const {
-  GoogleGenerativeAIEmbeddings,
-  ChatGoogleGenerativeAI,
-} = require("@langchain/google-genai");
-const { MemoryVectorStore } = require("@langchain/classic/vectorstores/memory");
+
 const {
   ContextualCompressionRetriever,
 } = require("@langchain/classic/retrievers/contextual_compression");
 const {
   LLMChainExtractor,
 } = require("@langchain/classic/retrievers/document_compressors/chain_extract");
+const { MemoryVectorStore } = require("@langchain/classic/vectorstores/memory");
+const { PDFLoader } = require("@langchain/community/document_loaders/fs/pdf");
+const {
+  GoogleGenerativeAIEmbeddings,
+  ChatGoogleGenerativeAI,
+} = require("@langchain/google-genai");
+const { RecursiveCharacterTextSplitter } = require("@langchain/textsplitters");
+
 const { embedChunksSafely } = require("./util-embed-safely");
 
 const lecturesDir = path.join(__dirname, "../../docs/cs229_lectures");
@@ -46,7 +48,7 @@ const llm = new ChatGoogleGenerativeAI({
   temperature: 0,
 });
 
-// In các document, ngăn bằng đường kẻ.
+/** In các document, ngăn bằng đường kẻ. */
 function prettyPrintDocs(docs) {
   console.log(
     docs

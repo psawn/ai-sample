@@ -13,18 +13,20 @@ require("../_polyfill");
 require("dotenv").config();
 
 const path = require("path");
+
+const {
+  createStuffDocumentsChain,
+} = require("@langchain/classic/chains/combine_documents");
+const { createRetrievalChain } = require("@langchain/classic/chains/retrieval");
+const { MemoryVectorStore } = require("@langchain/classic/vectorstores/memory");
 const { PDFLoader } = require("@langchain/community/document_loaders/fs/pdf");
-const { RecursiveCharacterTextSplitter } = require("@langchain/textsplitters");
+const { ChatPromptTemplate } = require("@langchain/core/prompts");
 const {
   GoogleGenerativeAIEmbeddings,
   ChatGoogleGenerativeAI,
 } = require("@langchain/google-genai");
-const { MemoryVectorStore } = require("@langchain/classic/vectorstores/memory");
-const { createRetrievalChain } = require("@langchain/classic/chains/retrieval");
-const {
-  createStuffDocumentsChain,
-} = require("@langchain/classic/chains/combine_documents");
-const { ChatPromptTemplate } = require("@langchain/core/prompts");
+const { RecursiveCharacterTextSplitter } = require("@langchain/textsplitters");
+
 const { embedChunksSafely } = require("../06-retrieval/util-embed-safely");
 
 const lecturesDir = path.join(__dirname, "../../docs/cs229_lectures");
@@ -42,12 +44,14 @@ const llm = new ChatGoogleGenerativeAI({
   temperature: 0,
 });
 
-// Xây vectorDB:
-// 1. Load 3 file PDF bài giảng.
-// 2. Split thành chunk.
-// 3. Embed từng chunk, lưu vào MemoryVectorStore.
-// Dựng lại trong RAM mỗi lần chạy cho đơn giản, giống 06-retrieval/.
-// Muốn lưu lâu dài, không embed lại: dùng Chroma (../05-vectorstores-and-embeddings/02-vectorstore-chroma.js).
+/**
+ * Xây vectorDB:
+ * 1. Load 3 file PDF bài giảng.
+ * 2. Split thành chunk.
+ * 3. Embed từng chunk, lưu vào MemoryVectorStore.
+ * Dựng lại trong RAM mỗi lần chạy cho đơn giản, giống 06-retrieval/.
+ * Muốn lưu lâu dài, không embed lại: dùng Chroma (../05-vectorstores-and-embeddings/02-vectorstore-chroma.js).
+ */
 async function buildVectorDb() {
   const pdfPaths = [
     path.join(lecturesDir, "MachineLearning-Lecture01.pdf"),

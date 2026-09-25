@@ -12,6 +12,7 @@
 require("dotenv").config();
 const fs = require("fs");
 const path = require("path");
+
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const apiKey = process.env.GEMINI_API_KEY;
@@ -21,13 +22,15 @@ const INPUT_FILE = path.join(__dirname, "movie.json");
 const OUTPUT_FILE = path.join(__dirname, "movie-embeddings.json");
 const EMBEDDING_MODEL = "gemini-embedding-001";
 
-// Gộp thông tin phim thành 1 đoạn text. Càng đủ thông tin, vector càng "hiểu" phim.
-// Vd: "Interstellar. Genres: Sci-Fi, Drama, Adventure. Astronauts travel through a wormhole..."
+/**
+ * Gộp thông tin phim thành 1 đoạn text. Càng đủ thông tin, vector càng "hiểu" phim.
+ * Vd: "Interstellar. Genres: Sci-Fi, Drama, Adventure. Astronauts travel through a wormhole..."
+ */
 function toEmbeddingText(movie) {
   return `${movie.title}. Genres: ${movie.genres.join(", ")}. ${movie.description}`;
 }
 
-// Gọi model lấy vector embedding của 1 đoạn text.
+/** Gọi model lấy vector embedding của 1 đoạn text. */
 async function embedText(model, text) {
   const result = await model.embedContent(text);
   return result.embedding.values;

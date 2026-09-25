@@ -10,11 +10,11 @@
 require("../_polyfill");
 require("dotenv").config();
 
-const { z } = require("zod");
 const { tool } = require("@langchain/core/tools");
 const { toJsonSchema } = require("@langchain/core/utils/json_schema");
+const { z } = require("zod");
 
-// Cách 1: không khai báo schema -> input luôn là 1 string.
+/** Cách 1: không khai báo schema -> input luôn là 1 string. */
 const search = tool(
   async () => {
     // Giả lập kết quả tìm kiếm.

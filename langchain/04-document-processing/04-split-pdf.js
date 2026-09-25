@@ -13,8 +13,9 @@
 require("../_polyfill");
 require("dotenv").config();
 const path = require("path");
-const { CharacterTextSplitter } = require("@langchain/textsplitters");
+
 const { PDFLoader } = require("@langchain/community/document_loaders/fs/pdf");
+const { CharacterTextSplitter } = require("@langchain/textsplitters");
 
 // ===== KỊCH BẢN MINH HỌA =====
 async function main() {

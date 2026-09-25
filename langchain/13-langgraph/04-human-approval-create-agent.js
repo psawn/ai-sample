@@ -19,9 +19,10 @@ require("../_polyfill");
 require("dotenv").config();
 const readline = require("node:readline/promises");
 
-const { createAgent, humanInTheLoopMiddleware } = require("langchain");
-const { MemorySaver, Command } = require("@langchain/langgraph");
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
+const { MemorySaver, Command } = require("@langchain/langgraph");
+const { createAgent, humanInTheLoopMiddleware } = require("langchain");
+
 const { webSearch } = require("./tool");
 
 // System prompt: trợ lý nghiên cứu, được gọi tool nhiều lần.
@@ -46,6 +47,8 @@ async function main() {
     interruptOn: { web_search: true },
   });
 
+  // Khai báo tools: Agent sẽ tự động chạy tool và gửi lại kết quả cho LLM theo vòng lặp cho đến khi hoàn tất.
+  // Riêng web_search: hitlMiddleware dừng lại chờ người duyệt trước khi chạy.
   const agent = createAgent({
     model: llm,
     tools: [webSearch],

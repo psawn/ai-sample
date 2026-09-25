@@ -22,15 +22,16 @@
 require("../_polyfill");
 require("dotenv").config();
 
-const { z } = require("zod");
+const { ChatPromptTemplate } = require("@langchain/core/prompts");
 const { tool } = require("@langchain/core/tools");
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
-const { ChatPromptTemplate } = require("@langchain/core/prompts");
+const { z } = require("zod");
+
 const { calculate, averageDogWeight } = require("./actions");
 
 // ===== TOOLS: GIỐNG FILE 03 =====
 
-// Bọc 2 hàm ở actions.js thành Tool.
+/** Bọc 2 hàm ở actions.js thành Tool. */
 const calculateTool = tool(({ expression }) => String(calculate(expression)), {
   name: "calculate",
   description: "Runs a basic arithmetic calculation, e.g. '37 + 20'.",
@@ -73,7 +74,7 @@ const prompt = ChatPromptTemplate.fromMessages([
   ["human", "{input}"],
 ]);
 
-// Vòng lặp agent: giống file 03, chỉ khác cách dựng messages ban đầu.
+/** Vòng lặp agent: giống file 03, chỉ khác cách dựng messages ban đầu. */
 async function query(question, maxTurns = 5) {
   // Điền câu hỏi vào {input} -> [SystemMessage, HumanMessage],
   // giống kết quả viết tay ở file 03.

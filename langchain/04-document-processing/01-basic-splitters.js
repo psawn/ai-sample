@@ -20,7 +20,7 @@ const {
   RecursiveCharacterTextSplitter,
 } = require("@langchain/textsplitters");
 
-// In từng chunk có đánh số { 1: chunk, 2: chunk, ... } cho dễ nhìn.
+/** In từng chunk có đánh số { 1: chunk, 2: chunk, ... } cho dễ nhìn. */
 function show(title, chunks) {
   console.log(`\n=== ${title} ===`);
   console.log(Object.fromEntries(chunks.map((chunk, i) => [i + 1, chunk])));

@@ -16,9 +16,9 @@
 // =======================================================================
 
 require("dotenv").config();
-const { ChromaClient } = require("chromadb");
 const { DefaultEmbeddingFunction } = require("@chroma-core/default-embed");
 const { GoogleGeminiEmbeddingFunction } = require("@chroma-core/google-gemini");
+const { ChromaClient } = require("chromadb");
 
 // Kết nối Chroma server. Không set biến môi trường -> dùng localhost:8000.
 const client = new ChromaClient({
@@ -44,11 +44,13 @@ const geminiEmbeddingFunction = new GoogleGeminiEmbeddingFunction({
   modelName: "gemini-embedding-001",
 });
 
-// Chạy trọn luồng với 1 embedding model:
-// 1. Tạo (hoặc lấy) collection, gắn embeddingFunction.
-// 2. add(): Chroma tự embed documents, lưu vào collection.
-// 3. query(): Chroma embed câu hỏi bằng cùng model, trả document gần nhất.
-// name: tên collection, mỗi model 1 tên riêng.
+/**
+ * Chạy trọn luồng với 1 embedding model:
+ * 1. Tạo (hoặc lấy) collection, gắn embeddingFunction.
+ * 2. add(): Chroma tự embed documents, lưu vào collection.
+ * 3. query(): Chroma embed câu hỏi bằng cùng model, trả document gần nhất.
+ * name: tên collection, mỗi model 1 tên riêng.
+ */
 async function queryWith(name, embeddingFunction) {
   const collection = await client.getOrCreateCollection({ name, embeddingFunction });
 

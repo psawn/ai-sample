@@ -18,8 +18,8 @@
 require("../_polyfill");
 require("dotenv").config();
 
-const { Agent, SYSTEM_PROMPT } = require("./agent");
 const { averageDogWeight } = require("./actions");
+const { Agent, SYSTEM_PROMPT } = require("./agent");
 
 // ===== KỊCH BẢN MINH HỌA =====
 async function main() {

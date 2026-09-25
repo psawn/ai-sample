@@ -12,11 +12,13 @@
 require("../_polyfill");
 require("dotenv").config();
 
-const { CSVLoader } = require("@langchain/community/document_loaders/fs/csv");
+const path = require("path");
+
 const { MemoryVectorStore } = require("@langchain/classic/vectorstores/memory");
+const { CSVLoader } = require("@langchain/community/document_loaders/fs/csv");
 const { GoogleGenerativeAIEmbeddings } = require("@langchain/google-genai");
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
-const path = require("path");
+
 
 // Model embedding: đổi Document và câu hỏi thành vector.
 const embeddings = new GoogleGenerativeAIEmbeddings({

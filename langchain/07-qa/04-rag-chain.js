@@ -11,17 +11,18 @@
 require("../_polyfill");
 require("dotenv").config();
 
-const { CSVLoader } = require("@langchain/community/document_loaders/fs/csv");
-const { MemoryVectorStore } = require("@langchain/classic/vectorstores/memory");
-const { createRetrievalChain } = require("@langchain/classic/chains/retrieval");
+const path = require("path");
+
 const {
   createStuffDocumentsChain,
 } = require("@langchain/classic/chains/combine_documents");
-
+const { createRetrievalChain } = require("@langchain/classic/chains/retrieval");
+const { MemoryVectorStore } = require("@langchain/classic/vectorstores/memory");
+const { CSVLoader } = require("@langchain/community/document_loaders/fs/csv");
+const { ChatPromptTemplate } = require("@langchain/core/prompts");
 const { GoogleGenerativeAIEmbeddings } = require("@langchain/google-genai");
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
-const { ChatPromptTemplate } = require("@langchain/core/prompts");
-const path = require("path");
+
 
 // Model embedding: đổi Document và câu hỏi thành vector.
 const embeddings = new GoogleGenerativeAIEmbeddings({

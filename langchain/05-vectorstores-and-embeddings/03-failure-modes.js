@@ -15,10 +15,11 @@ require("../_polyfill");
 require("dotenv").config();
 const fs = require("fs");
 const path = require("path");
-const { PDFLoader } = require("@langchain/community/document_loaders/fs/pdf");
-const { RecursiveCharacterTextSplitter } = require("@langchain/textsplitters");
-const { GoogleGenerativeAIEmbeddings } = require("@langchain/google-genai");
+
 const { MemoryVectorStore } = require("@langchain/classic/vectorstores/memory");
+const { PDFLoader } = require("@langchain/community/document_loaders/fs/pdf");
+const { GoogleGenerativeAIEmbeddings } = require("@langchain/google-genai");
+const { RecursiveCharacterTextSplitter } = require("@langchain/textsplitters");
 
 const lecturesDir = path.join(__dirname, "../../docs/cs229_lectures");
 
@@ -28,7 +29,7 @@ const embeddings = new GoogleGenerativeAIEmbeddings({
   model: "gemini-embedding-001",
 });
 
-// Load các file lecture PDF có trong thư mục. File nào thiếu thì bỏ qua.
+/** Load các file lecture PDF có trong thư mục. File nào thiếu thì bỏ qua. */
 async function loadDocs() {
   // Cố ý load Lecture01 2 lần để tạo dữ liệu trùng lặp (vấn đề 1).
   const pdfPaths = [

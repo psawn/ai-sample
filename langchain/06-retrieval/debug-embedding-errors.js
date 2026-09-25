@@ -16,10 +16,11 @@
 require("../_polyfill");
 require("dotenv").config();
 const path = require("path");
-const { PDFLoader } = require("@langchain/community/document_loaders/fs/pdf");
-const { RecursiveCharacterTextSplitter } = require("@langchain/textsplitters");
-const { GoogleGenerativeAIEmbeddings } = require("@langchain/google-genai");
+
 const { MemoryVectorStore } = require("@langchain/classic/vectorstores/memory");
+const { PDFLoader } = require("@langchain/community/document_loaders/fs/pdf");
+const { GoogleGenerativeAIEmbeddings } = require("@langchain/google-genai");
+const { RecursiveCharacterTextSplitter } = require("@langchain/textsplitters");
 
 const lecturesDir = path.join(__dirname, "../../docs/cs229_lectures");
 

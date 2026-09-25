@@ -12,12 +12,12 @@
 
 require("../_polyfill");
 require("dotenv").config();
-const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const {
   HumanMessage,
   AIMessage,
   SystemMessage,
 } = require("@langchain/core/messages");
+const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 
 const model = new ChatGoogleGenerativeAI({
   apiKey: process.env.GEMINI_API_KEY,
@@ -28,7 +28,7 @@ const model = new ChatGoogleGenerativeAI({
 // Lịch sử hội thoại, bắt đầu bằng SystemMessage.
 const history = [new SystemMessage("Bạn là AI Assistant thân thiện.")];
 
-// Hỏi 1 câu, gửi kèm toàn bộ history.
+/** Hỏi 1 câu, gửi kèm toàn bộ history. */
 async function ask(input) {
   // Lưu câu hỏi của user.
   history.push(new HumanMessage(input));

@@ -15,12 +15,12 @@
 
 require("../_polyfill");
 require("dotenv").config();
-const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
-const { ChatPromptTemplate } = require("@langchain/core/prompts");
 const {
   StructuredOutputParser,
   CommaSeparatedListOutputParser,
 } = require("@langchain/core/output_parsers");
+const { ChatPromptTemplate } = require("@langchain/core/prompts");
+const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 
 const apiKey = process.env.GEMINI_API_KEY;
 
@@ -46,7 +46,7 @@ const structuredPrompt = ChatPromptTemplate.fromTemplate(`
 {format_instructions}
 `);
 
-// Trích thông tin từ 1 review sản phẩm thành object.
+/** Trích thông tin từ 1 review sản phẩm thành object. */
 async function structuredOutputDemo() {
   console.log(structuredParser.getFormatInstructions());
 
@@ -79,7 +79,7 @@ const listPrompt = ChatPromptTemplate.fromTemplate(
   `Liệt kê 5 nguyên liệu chính để làm {dish}, phân tách bằng dấu phẩy.\n\n{format_instructions}`,
 );
 
-// Lấy danh sách nguyên liệu của 1 món ăn dưới dạng mảng.
+/** Lấy danh sách nguyên liệu của 1 món ăn dưới dạng mảng. */
 async function commaSeparatedListDemo() {
   console.log("\n\n" + listParser.getFormatInstructions());
 

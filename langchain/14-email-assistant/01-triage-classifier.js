@@ -11,8 +11,9 @@
 require("../_polyfill");
 require("dotenv").config();
 
-const { z } = require("zod");
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
+const { z } = require("zod");
+
 const { profile, triageRules, questionEmail, spamEmail } = require("./profile");
 const { buildTriageSystemPrompt, buildTriageUserPrompt } = require("./prompts");
 
@@ -52,7 +53,7 @@ const systemPrompt = buildTriageSystemPrompt({
   examples: null,
 });
 
-// Phân loại 1 email, in lý do và nhãn LLM chọn.
+/** Phân loại 1 email, in lý do và nhãn LLM chọn. */
 async function runTriage(emailInput) {
   const { author, to, subject, emailThread } = emailInput;
   const userPrompt = buildTriageUserPrompt({

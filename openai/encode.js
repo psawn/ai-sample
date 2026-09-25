@@ -13,7 +13,7 @@ const { encodingForModel } = require("js-tiktoken");
 // cùng 1 câu có thể ra số token khác nhau.
 const encoder = encodingForModel("gpt-3.5-turbo");
 
-// Chuyển prompt thành mảng token.
+/** Chuyển prompt thành mảng token. */
 function encodePrompt(prompt) {
   return encoder.encode(prompt);
 }

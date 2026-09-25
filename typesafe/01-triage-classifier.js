@@ -22,6 +22,7 @@
 require("dotenv").config();
 
 const { choice, noul, score, TypeSafeClient } = require("@typesafe-ai/sdk");
+
 const {
   profile,
   triageRules,

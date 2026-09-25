@@ -15,21 +15,23 @@
 require("../_polyfill");
 require("dotenv").config();
 
-const { CSVLoader } = require("@langchain/community/document_loaders/fs/csv");
+const path = require("path");
+
+const { QAEvalChain } = require("@langchain/classic/evaluation");
 const { MemoryVectorStore } = require("@langchain/classic/vectorstores/memory");
-const {
-  GoogleGenerativeAIEmbeddings,
-  ChatGoogleGenerativeAI,
-} = require("@langchain/google-genai");
+const { CSVLoader } = require("@langchain/community/document_loaders/fs/csv");
+const { StringOutputParser } = require("@langchain/core/output_parsers");
 const { ChatPromptTemplate } = require("@langchain/core/prompts");
 const {
   RunnableSequence,
   RunnablePassthrough,
 } = require("@langchain/core/runnables");
-const { StringOutputParser } = require("@langchain/core/output_parsers");
+const {
+  GoogleGenerativeAIEmbeddings,
+  ChatGoogleGenerativeAI,
+} = require("@langchain/google-genai");
 // QAEvalChain: chain "giám khảo" dựng sẵn, chấm CORRECT/INCORRECT.
-const { QAEvalChain } = require("@langchain/classic/evaluation");
-const path = require("path");
+
 
 // Model embedding: đổi Document và câu hỏi thành vector.
 const embeddings = new GoogleGenerativeAIEmbeddings({
@@ -47,7 +49,7 @@ const llm = new ChatGoogleGenerativeAI({
 const filePath = path.join(__dirname, "OutdoorClothingCatalog_1000.csv");
 const loader = new CSVLoader(filePath);
 
-// Ghép nội dung các document thành 1 đoạn text.
+/** Ghép nội dung các document thành 1 đoạn text. */
 function formatDocuments(docs) {
   return docs.map((doc) => doc.pageContent).join("\n\n");
 }
@@ -88,6 +90,9 @@ async function main() {
   // Bước 1: hệ thống RAG cần kiểm tra (giống 05-rag-chain-lcel.js).
   // Tìm document -> nhét vào prompt -> LLM trả lời.
   const qaChain = RunnableSequence.from([
+    // - Pipe thường (không bọc assign): output bước trước = TOÀN BỘ input bước sau -> ĐÈ MẤT 'input'.
+    // - Bọc .assign(): GIỮ NGUYÊN 'input' và BỔ SUNG thêm 'documents'.
+    // { input } -> { input, documents }
     RunnablePassthrough.assign({
       documents: async (input) => {
         const relevantDocs = await retriever.invoke(input.input);

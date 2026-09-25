@@ -8,13 +8,17 @@
 // - Hỏi nhiều lượt mà không cần tự gửi lại lịch sử.
 // - Chạy nhiều cuộc hội thoại độc lập, mỗi thread_id là 1 cuộc.
 //
-// Dùng cho 02-persistence-manual-graph.js và 03-streaming-tokens-manual-graph.js.
+// File này chỉ export lớp `Agent` cho các bài demo dùng lại (không tự chạy).
+//
+// Các file đang sử dụng:
+//   - 02-persistence-manual-graph.js
+//   - 03-streaming-tokens-manual-graph.js
 // =======================================================================
 
 require("../_polyfill");
 
-const { StateGraph, END, MessagesAnnotation } = require("@langchain/langgraph");
 const { SystemMessage, ToolMessage } = require("@langchain/core/messages");
+const { StateGraph, END, MessagesAnnotation } = require("@langchain/langgraph");
 
 // State: dữ liệu chung, các node cùng đọc và ghi. Giống agent.js.
 const AgentState = MessagesAnnotation;

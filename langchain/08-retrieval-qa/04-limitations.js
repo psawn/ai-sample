@@ -12,18 +12,20 @@ require("../_polyfill");
 require("dotenv").config();
 
 const path = require("path");
+
+const {
+  createStuffDocumentsChain,
+} = require("@langchain/classic/chains/combine_documents");
+const { createRetrievalChain } = require("@langchain/classic/chains/retrieval");
+const { MemoryVectorStore } = require("@langchain/classic/vectorstores/memory");
 const { PDFLoader } = require("@langchain/community/document_loaders/fs/pdf");
-const { RecursiveCharacterTextSplitter } = require("@langchain/textsplitters");
+const { ChatPromptTemplate } = require("@langchain/core/prompts");
 const {
   GoogleGenerativeAIEmbeddings,
   ChatGoogleGenerativeAI,
 } = require("@langchain/google-genai");
-const { MemoryVectorStore } = require("@langchain/classic/vectorstores/memory");
-const { createRetrievalChain } = require("@langchain/classic/chains/retrieval");
-const {
-  createStuffDocumentsChain,
-} = require("@langchain/classic/chains/combine_documents");
-const { ChatPromptTemplate } = require("@langchain/core/prompts");
+const { RecursiveCharacterTextSplitter } = require("@langchain/textsplitters");
+
 const { embedChunksSafely } = require("../06-retrieval/util-embed-safely");
 
 const lecturesDir = path.join(__dirname, "../../docs/cs229_lectures");
@@ -39,7 +41,7 @@ const llm = new ChatGoogleGenerativeAI({
   temperature: 0,
 });
 
-// Xây vectorDB: load 3 PDF -> split -> embed -> MemoryVectorStore (giống 01-basic.js).
+/** Xây vectorDB: load 3 PDF -> split -> embed -> MemoryVectorStore (giống 01-basic.js). */
 async function buildVectorDb() {
   const pdfPaths = [
     path.join(lecturesDir, "MachineLearning-Lecture01.pdf"),

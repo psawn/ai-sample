@@ -10,6 +10,7 @@
 
 require("dotenv").config();
 const readline = require("readline");
+
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const API_KEY = process.env.GEMINI_API_KEY;
@@ -39,8 +40,10 @@ const rl = readline.createInterface({
 // Lịch sử hội thoại, gửi kèm mỗi lần gọi model.
 let history = [];
 
-// Thêm 1 message vào history theo format của Gemini: { role, parts: [{ text }] }.
-// role: "user" hoặc "model" (không phải "assistant" như OpenAI).
+/**
+ * Thêm 1 message vào history theo format của Gemini: { role, parts: [{ text }] }.
+ * role: "user" hoặc "model" (không phải "assistant" như OpenAI).
+ */
 function addMessage(role, text) {
   history.push({
     role,
@@ -48,7 +51,7 @@ function addMessage(role, text) {
   });
 }
 
-// Đếm token bằng tokenizer của Gemini: chính xác, nhưng mỗi lần đếm = 1 API call.
+/** Đếm token bằng tokenizer của Gemini: chính xác, nhưng mỗi lần đếm = 1 API call. */
 async function getHistoryTokens() {
   const { totalTokens } = await model.countTokens({
     contents: history,
@@ -57,10 +60,12 @@ async function getHistoryTokens() {
   return totalTokens;
 }
 
-// Xóa các turn cũ nhất tới khi đủ token budget.
-// Mỗi turn gồm 1 user message + 1 model message -> xóa 2 phần tử 1 lần,
-// để history luôn bắt đầu bằng "user".
-// history.length > 2: luôn giữ lại câu hỏi mới nhất.
+/**
+ * Xóa các turn cũ nhất tới khi đủ token budget.
+ * Mỗi turn gồm 1 user message + 1 model message -> xóa 2 phần tử 1 lần,
+ * để history luôn bắt đầu bằng "user".
+ * history.length > 2: luôn giữ lại câu hỏi mới nhất.
+ */
 async function trimHistory() {
   let totalTokens = await getHistoryTokens();
 
@@ -74,7 +79,7 @@ async function trimHistory() {
   return totalTokens;
 }
 
-// In history hiện tại và số token đã dùng.
+/** In history hiện tại và số token đã dùng. */
 async function logContext() {
   const totalTokens = await getHistoryTokens();
 
@@ -86,7 +91,7 @@ async function logContext() {
   console.log("=============================\n");
 }
 
-// Gửi toàn bộ history lên Gemini, trả câu trả lời.
+/** Gửi toàn bộ history lên Gemini, trả câu trả lời. */
 async function askGemini() {
   // Trim trước khi gửi request, để không vượt budget.
   await trimHistory();
@@ -100,7 +105,7 @@ async function askGemini() {
   return result.response.text();
 }
 
-// Vòng lặp chat: hỏi -> gọi model -> in kết quả -> hỏi tiếp.
+/** Vòng lặp chat: hỏi -> gọi model -> in kết quả -> hỏi tiếp. */
 function chat() {
   rl.question("\nBạn: ", async (input) => {
     if (input.trim().toLowerCase() === "exit") {

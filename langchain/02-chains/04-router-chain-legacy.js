@@ -16,8 +16,8 @@
 
 require("../_polyfill");
 require("dotenv").config();
-const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { MultiPromptChain } = require("@langchain/classic/chains");
+const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 
 const apiKey = process.env.GEMINI_API_KEY;
 
@@ -52,7 +52,7 @@ const chain = MultiPromptChain.fromLLMAndPrompts(model, {
   promptTemplates,
 });
 
-// Hỏi 1 câu. Gọi Gemini 2 lần: 1 lần chọn destination, 1 lần trả lời.
+/** Hỏi 1 câu. Gọi Gemini 2 lần: 1 lần chọn destination, 1 lần trả lời. */
 async function ask(input) {
   const result = await chain.call({ input });
 

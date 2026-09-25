@@ -14,16 +14,18 @@ require("../_polyfill");
 require("dotenv").config();
 
 const path = require("path");
+
+const { loadQAChain } = require("@langchain/classic/chains");
+const { MemoryVectorStore } = require("@langchain/classic/vectorstores/memory");
 const { PDFLoader } = require("@langchain/community/document_loaders/fs/pdf");
-const { RecursiveCharacterTextSplitter } = require("@langchain/textsplitters");
 const {
   GoogleGenerativeAIEmbeddings,
   ChatGoogleGenerativeAI,
 } = require("@langchain/google-genai");
-const { MemoryVectorStore } = require("@langchain/classic/vectorstores/memory");
+const { RecursiveCharacterTextSplitter } = require("@langchain/textsplitters");
 // loadQAChain: chain kiểu cũ, hỗ trợ đủ 3 type: stuff, map_reduce, refine.
 // Bản LCEL (createStuffDocumentsChain) chỉ có "stuff".
-const { loadQAChain } = require("@langchain/classic/chains");
+
 const { embedChunksSafely } = require("../06-retrieval/util-embed-safely");
 
 const lecturesDir = path.join(__dirname, "../../docs/cs229_lectures");
@@ -39,7 +41,7 @@ const llm = new ChatGoogleGenerativeAI({
   temperature: 0,
 });
 
-// Xây vectorDB: load 3 PDF -> split -> embed -> MemoryVectorStore (giống 01-basic.js).
+/** Xây vectorDB: load 3 PDF -> split -> embed -> MemoryVectorStore (giống 01-basic.js). */
 async function buildVectorDb() {
   const pdfPaths = [
     path.join(lecturesDir, "MachineLearning-Lecture01.pdf"),
@@ -64,7 +66,7 @@ async function buildVectorDb() {
   return vectordb;
 }
 
-// Hỏi với 1 chain type, trả câu trả lời.
+/** Hỏi với 1 chain type, trả câu trả lời. */
 async function askWithChainType(chainType, retriever, question) {
   // loadQAChain không tự gọi retriever -> tự lấy document rồi truyền vào.
   const relevantDocs = await retriever.invoke(question);

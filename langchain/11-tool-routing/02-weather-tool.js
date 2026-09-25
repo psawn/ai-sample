@@ -4,14 +4,22 @@
 // Tool gọi API Open-Meteo, lấy nhiệt độ hiện tại theo tọa độ.
 // Bên trong Tool làm gì cũng được (gọi API, tính toán...).
 // LLM chỉ cần biết name / description / schema.
+//
+// Chạy trực tiếp file này: gọi thử Tool, không qua LLM.
+//
+// Các file đang sử dụng Tool này:
+//   - 05-routing.js
+//   - 06-agent-executor.js
+//   - 06-agent-executor-createagent.js
+//   - 07-cli-chatbot.js
 // =======================================================================
 
 require("../_polyfill");
 require("dotenv").config();
 
-const { z } = require("zod");
 const { tool } = require("@langchain/core/tools");
 const { convertToOpenAIFunction } = require("@langchain/core/utils/function_calling");
+const { z } = require("zod");
 
 // Schema tham số: Tool nhận tọa độ, không nhận tên địa điểm.
 // LLM phải tự đổi tên -> tọa độ trước khi gọi.
@@ -21,7 +29,7 @@ const OpenMeteoInput = z.object({
   longitude: z.number().describe("Longitude of the location to fetch weather data for"),
 });
 
-// Hàm thực thi của Tool: gọi API, trả nhiệt độ dạng text.
+/** Hàm thực thi của Tool: gọi API, trả nhiệt độ dạng text. */
 async function fetchCurrentTemperature({ latitude, longitude }) {
   const BASE_URL = "https://api.open-meteo.com/v1/forecast";
   const params = new URLSearchParams({
@@ -57,8 +65,10 @@ async function fetchCurrentTemperature({ latitude, longitude }) {
   return result;
 }
 
-// tool(fn, options): chỉ gắn name / description / schema cho fn, không đổi cách fn chạy.
-// .invoke(args) -> gọi fetchCurrentTemperature(args).
+/**
+ * tool(fn, options): chỉ gắn name / description / schema cho fn, không đổi cách fn chạy.
+ * .invoke(args) -> gọi fetchCurrentTemperature(args).
+ */
 const getCurrentTemperature = tool(fetchCurrentTemperature, {
   name: "get_current_temperature",
   description: "Fetch current temperature for given coordinates.",

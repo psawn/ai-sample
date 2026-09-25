@@ -16,10 +16,11 @@
 require("../_polyfill");
 require("dotenv").config();
 
-const { z } = require("zod");
-const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { ChatPromptTemplate } = require("@langchain/core/prompts");
 const { RunnableLambda } = require("@langchain/core/runnables");
+const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
+const { z } = require("zod");
+
 const { zodToFunctionTool } = require("./util-zod-to-tool");
 
 const model = new ChatGoogleGenerativeAI({

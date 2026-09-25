@@ -12,9 +12,9 @@
 
 require("../_polyfill");
 require("dotenv").config();
-const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
-const { ChatPromptTemplate } = require("@langchain/core/prompts");
 const { LLMChain } = require("@langchain/classic/chains");
+const { ChatPromptTemplate } = require("@langchain/core/prompts");
+const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 
 const apiKey = process.env.GEMINI_API_KEY;
 

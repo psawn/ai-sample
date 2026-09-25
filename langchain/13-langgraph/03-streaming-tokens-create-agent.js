@@ -11,9 +11,10 @@
 require("../_polyfill");
 require("dotenv").config();
 
-const { createAgent } = require("langchain");
-const { MemorySaver } = require("@langchain/langgraph");
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
+const { MemorySaver } = require("@langchain/langgraph");
+const { createAgent } = require("langchain");
+
 const { webSearch } = require("./tool");
 
 // System prompt: trợ lý nghiên cứu, được gọi tool nhiều lần.
@@ -31,6 +32,7 @@ async function main() {
   });
 
   const memory = new MemorySaver();
+  // Khai báo tools: Agent sẽ tự động chạy tool và gửi lại kết quả cho LLM theo vòng lặp cho đến khi hoàn tất.
   const agent = createAgent({
     model: llm,
     tools: [webSearch],

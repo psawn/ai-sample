@@ -22,7 +22,7 @@ Carriage returns are the "backslash n" you see embedded in this string. \
 Sentences have a period at the end, but also, have a space.\
 and words are separated by space.`;
 
-// In từng chunk có đánh số { 1: chunk, 2: chunk, ... } và tổng số chunk.
+/** In từng chunk có đánh số { 1: chunk, 2: chunk, ... } và tổng số chunk. */
 function show(title, chunks) {
   console.log(`\n=== ${title} ===`);
   console.log(Object.fromEntries(chunks.map((chunk, i) => [i + 1, chunk])));

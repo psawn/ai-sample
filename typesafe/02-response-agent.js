@@ -20,8 +20,9 @@
 require("../langchain/_polyfill");
 require("dotenv").config();
 
-const { choice, TypeSafeClient } = require("@typesafe-ai/sdk");
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
+const { choice, TypeSafeClient } = require("@typesafe-ai/sdk");
+
 const {
   profile,
   agentInstructions,

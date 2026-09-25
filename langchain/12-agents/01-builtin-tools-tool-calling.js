@@ -20,13 +20,13 @@
 require("../_polyfill");
 require("dotenv").config();
 
-const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
+const { AgentExecutor, createToolCallingAgent } = require("@langchain/classic/agents");
 const { Calculator } = require("@langchain/community/tools/calculator");
 const {
   WikipediaQueryRun,
 } = require("@langchain/community/tools/wikipedia_query_run");
-const { AgentExecutor, createToolCallingAgent } = require("@langchain/classic/agents");
 const { ChatPromptTemplate } = require("@langchain/core/prompts");
+const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 
 // LLM: "bộ não" của Agent, quyết định gọi Tool nào.
 const llm = new ChatGoogleGenerativeAI({

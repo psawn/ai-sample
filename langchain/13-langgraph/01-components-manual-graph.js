@@ -11,8 +11,9 @@
 require("../_polyfill");
 require("dotenv").config();
 
-const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { HumanMessage } = require("@langchain/core/messages");
+const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
+
 const { Agent } = require("./agent");
 const { webSearch } = require("./tool");
 
@@ -22,13 +23,15 @@ You are allowed to make multiple calls (either together or in sequence). \
 Only look up information when you are sure of what you want. \
 If you need to look up some information before asking a follow up question, you are allowed to do that!`;
 
-// In câu trả lời cuối, tách riêng khỏi log của các node.
+/** In câu trả lời cuối, tách riêng khỏi log của các node. */
 function printAnswer(result) {
   console.log(`\n>>> KẾT QUẢ CUỐI: ${result.messages.at(-1).content}\n`);
 }
 
-// In sơ đồ graph dạng Mermaid.
-// Dán vào https://mermaid.live để xem hình: node nào nối node nào, rẽ nhánh ở đâu.
+/**
+ * In sơ đồ graph dạng Mermaid.
+ * Dán vào https://mermaid.live để xem hình: node nào nối node nào, rẽ nhánh ở đâu.
+ */
 async function printGraph(agent) {
   const mermaid = await agent.graph.getGraph().drawMermaid();
   console.log(

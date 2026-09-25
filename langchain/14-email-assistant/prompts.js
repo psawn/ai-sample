@@ -4,12 +4,23 @@
 // 3 hàm dựng prompt: system + user prompt cho triage, system prompt cho agent.
 // Prompt chia thành từng khối (Role, Background, Rules, Few-shot) để LLM bám
 // đúng vai trò và quy tắc, thay vì nhận 1 câu lệnh chung chung.
+//
+// Các file đang sử dụng:
+//   - 01-triage-classifier.js
+//   - 02-response-agent.js
+//   - 03-full-email-agent.js
+//   - 04-semantic-memory-agent.js
+//   - 05-episodic-memory-triage.js
+//   - 06-procedural-memory-agent.js
+//   - 07-security-guardrails.js
 // =======================================================================
 
-// System prompt của bước triage. LLM chỉ xếp loại email, không làm gì khác.
-// - Rules             : truyền vào từ ngoài (triageRules trong profile.js, hoặc Store ở bước 06).
-// - Few shot examples : ví dụ mẫu cho các trường hợp khó, bước 05 mới dùng.
-//                       Chưa có ví dụ thì ghi "No examples yet.".
+/**
+ * System prompt của bước triage. LLM chỉ xếp loại email, không làm gì khác.
+ * - Rules             : truyền vào từ ngoài (triageRules trong profile.js, hoặc Store ở bước 06).
+ * - Few shot examples : ví dụ mẫu cho các trường hợp khó, bước 05 mới dùng.
+ *                       Chưa có ví dụ thì ghi "No examples yet.".
+ */
 function buildTriageSystemPrompt({
   fullName,
   name,
@@ -53,8 +64,10 @@ ${examples ?? "No examples yet."}
 </ Few shot examples >`;
 }
 
-// User prompt của bước triage: chỉ chứa nội dung email.
-// Quy tắc phân loại đã nằm ở system prompt.
+/**
+ * User prompt của bước triage: chỉ chứa nội dung email.
+ * Quy tắc phân loại đã nằm ở system prompt.
+ */
 function buildTriageUserPrompt({ author, to, subject, emailThread }) {
   return `Please determine how to handle the below email thread:
 
@@ -64,9 +77,11 @@ Subject: ${subject}
 ${emailThread}`;
 }
 
-// System prompt của agent trả lời email, có quyền gọi tool.
-// Khối Instructions là chỗ tuỳ biến hành vi agent theo từng user.
-// Bước 04-06 dùng bản riêng (buildAgentSystemPromptMemory) vì có thêm 2 memory tool.
+/**
+ * System prompt của agent trả lời email, có quyền gọi tool.
+ * Khối Instructions là chỗ tuỳ biến hành vi agent theo từng user.
+ * Bước 04-06 dùng bản riêng (buildAgentSystemPromptMemory) vì có thêm 2 memory tool.
+ */
 function buildAgentSystemPrompt({ fullName, name, instructions }) {
   return `< Role >
 You are ${fullName}'s executive assistant. You are a top-notch executive assistant who cares about performing as well as possible.

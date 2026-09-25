@@ -2,19 +2,29 @@
 // AGENT FROM SCRATCH - DANH SÁCH ACTION (TOOL) CHO VÒNG LẶP ReAct
 //
 // Mỗi action nhận 1 chuỗi input, trả 1 kết quả (Observation) cho model đọc.
-// Dùng chung cho cả bản ReAct (01, 02) và bản Tool Calling (03, 04).
+// File này chỉ export các action cho các bài demo dùng lại (không tự chạy).
+//
+// Các file đang sử dụng:
+//   - 01-react-manual-steps.js (ReAct)
+//   - 02-react-auto-loop.js (ReAct)
+//   - 03-native-tool-calling-manual-messages.js (Tool Calling)
+//   - 04-native-tool-calling-prompt-template.js (Tool Calling)
 // =======================================================================
 
-// Action "calculate": tính biểu thức số học. Vd: "4 * 7 / 3".
-// Lưu ý: eval() chạy được mọi code JS -> chỉ dùng cho bài học.
-// Không dùng ở dự án thật, nhất là khi input đến từ người dùng.
+/**
+ * Action "calculate": tính biểu thức số học. Vd: "4 * 7 / 3".
+ * Lưu ý: eval() chạy được mọi code JS -> chỉ dùng cho bài học.
+ * Không dùng ở dự án thật, nhất là khi input đến từ người dùng.
+ */
 function calculate(what) {
   return eval(what);
 }
 
-// Action "average_dog_weight": tra cân nặng trung bình theo giống chó (dữ liệu giả lập).
-// So khớp kiểu "tên giống chứa input", phân biệt hoa/thường.
-// Vd: "Collie" khớp "Border Collie". "border collie" không khớp -> rơi vào mặc định 50 lbs.
+/**
+ * Action "average_dog_weight": tra cân nặng trung bình theo giống chó (dữ liệu giả lập).
+ * So khớp kiểu "tên giống chứa input", phân biệt hoa/thường.
+ * Vd: "Collie" khớp "Border Collie". "border collie" không khớp -> rơi vào mặc định 50 lbs.
+ */
 function averageDogWeight(name) {
   if ("Scottish Terrier".includes(name)) {
     return "Scottish Terriers average 20 lbs";

@@ -44,21 +44,23 @@ const AgentState = Annotation.Root({
   }),
 });
 
-// Node 1: ghi tên node, tăng count thêm 1.
+/** Node 1: ghi tên node, tăng count thêm 1. */
 async function node1(state) {
   console.log(`Node1, count hiện tại: ${state.count}`);
   return { lnode: "node_1", count: 1 };
 }
 
-// Node 2: ghi tên node, tăng count thêm 1.
+/** Node 2: ghi tên node, tăng count thêm 1. */
 async function node2(state) {
   console.log(`Node2, count hiện tại: ${state.count}`);
   return { lnode: "node_2", count: 1 };
 }
 
-// Rẽ nhánh sau Node2:
-// - true: quay lại Node1, lặp tiếp.
-// - false: count >= 3 -> dừng.
+/**
+ * Rẽ nhánh sau Node2:
+ * - true: quay lại Node1, lặp tiếp.
+ * - false: count >= 3 -> dừng.
+ */
 function shouldContinue(state) {
   return state.count < 3;
 }
@@ -78,7 +80,7 @@ builder.addConditionalEdges("Node2", shouldContinue, {
 const memory = new MemorySaver();
 const graph = builder.compile({ checkpointer: memory });
 
-// Demo 1: chạy graph tới khi xong, rồi in lịch sử checkpoint.
+/** Demo 1: chạy graph tới khi xong, rồi in lịch sử checkpoint. */
 async function demoStateHistoryAndSetup(graph, thread) {
   console.log("========== Chạy graph tới khi kết thúc ==========");
   const result = await graph.invoke({ count: 0, scratch: "hi" }, thread);
@@ -97,8 +99,10 @@ async function demoStateHistoryAndSetup(graph, thread) {
   return states;
 }
 
-// Demo 2: time travel - chạy tiếp từ 1 checkpoint cũ, không chạy lại từ đầu.
-// Dùng để: debug bước lỗi, undo, so sánh nhiều nhánh từ cùng 1 mốc.
+/**
+ * Demo 2: time travel - chạy tiếp từ 1 checkpoint cũ, không chạy lại từ đầu.
+ * Dùng để: debug bước lỗi, undo, so sánh nhiều nhánh từ cùng 1 mốc.
+ */
 async function demoTimeTravel(graph, states) {
   // Checkpoint ngay sau lần đầu Node1 chạy.
   const early = states[states.length - 3];
@@ -115,8 +119,10 @@ async function demoTimeTravel(graph, states) {
   console.log("Kết quả sau khi chạy tiếp từ quá khứ:", replayed);
 }
 
-// Demo 3: updateState - sửa dữ liệu đã lưu trong checkpoint.
-// Dùng cho human in the loop: sửa lỗi của Model/tool, duyệt hành động nhạy cảm trước khi chạy tiếp.
+/**
+ * Demo 3: updateState - sửa dữ liệu đã lưu trong checkpoint.
+ * Dùng cho human in the loop: sửa lỗi của Model/tool, duyệt hành động nhạy cảm trước khi chạy tiếp.
+ */
 async function demoUpdateState(graph) {
   console.log(
     "\n========== Sửa state rồi update (không truyền asNode) ==========",

@@ -16,20 +16,22 @@ require("../_polyfill");
 require("dotenv").config();
 
 const readline = require("readline");
-const { z } = require("zod");
-const { tool } = require("@langchain/core/tools");
-const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
+
+const { AgentExecutor, createToolCallingAgent } = require("@langchain/classic/agents");
+const { InMemoryChatMessageHistory } = require("@langchain/core/chat_history");
 const {
   ChatPromptTemplate,
   MessagesPlaceholder,
 } = require("@langchain/core/prompts");
 const { RunnableWithMessageHistory } = require("@langchain/core/runnables");
-const { InMemoryChatMessageHistory } = require("@langchain/core/chat_history");
-const { AgentExecutor, createToolCallingAgent } = require("@langchain/classic/agents");
+const { tool } = require("@langchain/core/tools");
+const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
+const { z } = require("zod");
+
 const { getCurrentTemperature } = require("./02-weather-tool");
 const { searchWikipedia } = require("./03-wikipedia-tool");
 
-// Tool tự viết để minh họa: đảo ngược chuỗi. Muốn Tool làm gì thì sửa logic ở đây.
+/** Tool tự viết để minh họa: đảo ngược chuỗi. Muốn Tool làm gì thì sửa logic ở đây. */
 const createYourOwn = tool(
   async (query) => query.split("").reverse().join(""),
   {

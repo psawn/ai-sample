@@ -21,10 +21,11 @@ require("../_polyfill");
 require("dotenv").config();
 
 const vm = require("vm");
-const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
-const { Tool } = require("@langchain/core/tools");
+
 const { AgentExecutor, createToolCallingAgent } = require("@langchain/classic/agents");
 const { ChatPromptTemplate } = require("@langchain/core/prompts");
+const { Tool } = require("@langchain/core/tools");
+const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 
 // LLM: viết code JavaScript, không tự chạy code.
 const llm = new ChatGoogleGenerativeAI({

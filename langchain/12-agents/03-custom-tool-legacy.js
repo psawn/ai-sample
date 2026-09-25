@@ -19,14 +19,14 @@
 require("../_polyfill");
 require("dotenv").config();
 
-const { z } = require("zod");
-const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
-const { tool } = require("@langchain/core/tools");
+const { initializeAgentExecutorWithOptions } = require("@langchain/classic/agents");
 const { Calculator } = require("@langchain/community/tools/calculator");
 const {
   WikipediaQueryRun,
 } = require("@langchain/community/tools/wikipedia_query_run");
-const { initializeAgentExecutorWithOptions } = require("@langchain/classic/agents");
+const { tool } = require("@langchain/core/tools");
+const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
+const { z } = require("zod");
 
 // LLM: "bộ não" của Agent, quyết định gọi Tool nào.
 const llm = new ChatGoogleGenerativeAI({
@@ -35,9 +35,11 @@ const llm = new ChatGoogleGenerativeAI({
   temperature: 0,
 });
 
-// tool(hàm, { name, description, schema }): biến hàm JS thành Tool.
-// - name + description: LLM đọc để quyết định khi nào gọi.
-// - schema: kiểu tham số LLM phải truyền.
+/**
+ * tool(hàm, { name, description, schema }): biến hàm JS thành Tool.
+ * - name + description: LLM đọc để quyết định khi nào gọi.
+ * - schema: kiểu tham số LLM phải truyền.
+ */
 const time = tool(
   // Hàm không cần tham số. tool() bắt buộc có schema nên vẫn khai báo z.string(),
   // LLM truyền gì cũng bị bỏ qua.

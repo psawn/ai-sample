@@ -17,24 +17,25 @@
 
 require("../_polyfill");
 require("dotenv").config();
-const readline = require("readline");
 const path = require("path");
-const { PDFLoader } = require("@langchain/community/document_loaders/fs/pdf");
-const { RecursiveCharacterTextSplitter } = require("@langchain/textsplitters");
+const readline = require("readline");
+
 const {
-  GoogleGenerativeAIEmbeddings,
-  ChatGoogleGenerativeAI,
-} = require("@langchain/google-genai");
+  createStuffDocumentsChain,
+} = require("@langchain/classic/chains/combine_documents");
 const { MemoryVectorStore } = require("@langchain/classic/vectorstores/memory");
+const { PDFLoader } = require("@langchain/community/document_loaders/fs/pdf");
+const { HumanMessage, AIMessage } = require("@langchain/core/messages");
+const { StringOutputParser } = require("@langchain/core/output_parsers");
 const {
   ChatPromptTemplate,
   MessagesPlaceholder,
 } = require("@langchain/core/prompts");
-const { StringOutputParser } = require("@langchain/core/output_parsers");
 const {
-  createStuffDocumentsChain,
-} = require("@langchain/classic/chains/combine_documents");
-const { HumanMessage, AIMessage } = require("@langchain/core/messages");
+  GoogleGenerativeAIEmbeddings,
+  ChatGoogleGenerativeAI,
+} = require("@langchain/google-genai");
+const { RecursiveCharacterTextSplitter } = require("@langchain/textsplitters");
 
 const loadedFile = path.join(
   __dirname,
@@ -52,9 +53,11 @@ const llm = new ChatGoogleGenerativeAI({
   temperature: 0,
 });
 
-// Chuẩn bị cho hội thoại:
-// 1. Load PDF -> split -> embed.
-// 2. Tạo retriever + 2 chain: rephraseChain (viết lại câu hỏi), answerChain (trả lời).
+/**
+ * Chuẩn bị cho hội thoại:
+ * 1. Load PDF -> split -> embed.
+ * 2. Tạo retriever + 2 chain: rephraseChain (viết lại câu hỏi), answerChain (trả lời).
+ */
 async function loadDb(file, k) {
   const documents = await new PDFLoader(file).load();
 
@@ -95,10 +98,12 @@ async function loadDb(file, k) {
   return { retriever, rephraseChain, answerChain };
 }
 
-// Xử lý 1 lượt hỏi-đáp. Trả về:
-// - answer: câu trả lời.
-// - generatedQuestion: câu hỏi đã viết lại (dùng để tìm document).
-// - sourceDocuments: các document đã dùng làm context.
+/**
+ * Xử lý 1 lượt hỏi-đáp. Trả về:
+ * - answer: câu trả lời.
+ * - generatedQuestion: câu hỏi đã viết lại (dùng để tìm document).
+ * - sourceDocuments: các document đã dùng làm context.
+ */
 async function askQuestion(qa, query, chatHistory) {
   const { retriever, rephraseChain, answerChain } = qa;
 

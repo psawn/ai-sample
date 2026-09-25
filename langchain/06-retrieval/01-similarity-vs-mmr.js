@@ -12,10 +12,12 @@
 require("../_polyfill");
 require("dotenv").config();
 const path = require("path");
-const { PDFLoader } = require("@langchain/community/document_loaders/fs/pdf");
-const { RecursiveCharacterTextSplitter } = require("@langchain/textsplitters");
-const { GoogleGenerativeAIEmbeddings } = require("@langchain/google-genai");
+
 const { MemoryVectorStore } = require("@langchain/classic/vectorstores/memory");
+const { PDFLoader } = require("@langchain/community/document_loaders/fs/pdf");
+const { GoogleGenerativeAIEmbeddings } = require("@langchain/google-genai");
+const { RecursiveCharacterTextSplitter } = require("@langchain/textsplitters");
+
 const { embedChunksSafely } = require("./util-embed-safely");
 
 const lecturesDir = path.join(__dirname, "../../docs/cs229_lectures");
@@ -26,7 +28,7 @@ const embeddings = new GoogleGenerativeAIEmbeddings({
   model: "gemini-embedding-001",
 });
 
-// Demo 1: 3 câu ngắn về nấm. Thấy rõ điểm yếu của MMR chỉ trong vài dòng.
+/** Demo 1: 3 câu ngắn về nấm. Thấy rõ điểm yếu của MMR chỉ trong vài dòng. */
 async function demoMmrTradeoff() {
   const texts = [
     "The Amanita phalloides has a large and imposing fruiting body.", // Chỉ nói "thân to"
@@ -53,7 +55,7 @@ async function demoMmrTradeoff() {
   docsMmr.forEach((d) => console.log("-", d.pageContent));
 }
 
-// Demo 2: so sánh trên PDF thật (3 lecture CS229).
+/** Demo 2: so sánh trên PDF thật (3 lecture CS229). */
 async function demoMmrOnRealPdf() {
   const pdfPaths = [
     path.join(lecturesDir, "MachineLearning-Lecture01.pdf"),

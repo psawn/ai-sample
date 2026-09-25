@@ -18,7 +18,7 @@ const model = new ChatGoogleGenerativeAI({
   temperature: 0,
 });
 
-// Chỉ gửi câu hỏi hiện tại, không kèm lịch sử.
+/** Chỉ gửi câu hỏi hiện tại, không kèm lịch sử. */
 async function ask(input) {
   const response = await model.invoke(input);
 

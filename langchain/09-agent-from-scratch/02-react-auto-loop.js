@@ -15,15 +15,17 @@
 require("../_polyfill");
 require("dotenv").config();
 
-const { Agent, SYSTEM_PROMPT } = require("./agent");
 const { knownActions } = require("./actions");
+const { Agent, SYSTEM_PROMPT } = require("./agent");
 
 // Bắt dòng "Action: <tên_action>: <input>".
 // Vd: "Action: calculate: 37 + 20" -> action = "calculate", input = "37 + 20".
 const ACTION_REGEX = /^Action: (\w+): (.*)$/;
 
-// Chạy vòng lặp ReAct cho 1 câu hỏi.
-// maxTurns: số lượt tối đa, chống lặp vô hạn. Hết lượt -> dừng, không có Answer.
+/**
+ * Chạy vòng lặp ReAct cho 1 câu hỏi.
+ * maxTurns: số lượt tối đa, chống lặp vô hạn. Hết lượt -> dừng, không có Answer.
+ */
 async function query(question, maxTurns = 5) {
   const bot = new Agent(SYSTEM_PROMPT);
   let nextPrompt = question;

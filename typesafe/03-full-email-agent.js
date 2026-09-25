@@ -27,7 +27,7 @@
 require("../langchain/_polyfill");
 require("dotenv").config();
 
-const { choice, TypeSafeClient } = require("@typesafe-ai/sdk");
+const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const {
   StateGraph,
   START,
@@ -35,7 +35,8 @@ const {
   Annotation,
   Command,
 } = require("@langchain/langgraph");
-const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
+const { choice, TypeSafeClient } = require("@typesafe-ai/sdk");
+
 const {
   profile,
   triageRules,
@@ -98,7 +99,7 @@ const actionQuestion = choice(
 
 // ===== HÀM TRỢ GIÚP =====
 
-// Gọi systemOne(), in request và response.
+/** Gọi systemOne(), in request và response. */
 async function askTypeSafe(params) {
   console.log("📤 TypeSafe request params:");
   console.dir(params, { depth: null });

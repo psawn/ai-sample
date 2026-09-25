@@ -18,14 +18,15 @@
 require("../_polyfill");
 require("dotenv").config();
 
-const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
+const { AgentExecutor, createToolCallingAgent } = require("@langchain/classic/agents");
+const { InMemoryChatMessageHistory } = require("@langchain/core/chat_history");
 const {
   ChatPromptTemplate,
   MessagesPlaceholder,
 } = require("@langchain/core/prompts");
 const { RunnableWithMessageHistory } = require("@langchain/core/runnables");
-const { InMemoryChatMessageHistory } = require("@langchain/core/chat_history");
-const { AgentExecutor, createToolCallingAgent } = require("@langchain/classic/agents");
+const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
+
 const { getCurrentTemperature } = require("./02-weather-tool");
 const { searchWikipedia } = require("./03-wikipedia-tool");
 

@@ -14,14 +14,23 @@
 require("../_polyfill");
 require("dotenv").config();
 const path = require("path");
-const { getEncoding } = require("js-tiktoken");
-const { PDFLoader } = require("@langchain/community/document_loaders/fs/pdf");
 
-// Cắt text thành các chunk, mỗi chunk tối đa chunkSize token.
-// 1. Encode text thành mảng token id.
-// 2. Cắt mảng theo cửa sổ chunkSize, lùi lại chunkOverlap token ở mỗi chunk mới.
-// 3. Decode từng đoạn token về lại text.
-// chunkOverlap phải nhỏ hơn chunkSize, nếu không vòng lặp không tiến -> lặp vô hạn.
+const { PDFLoader } = require("@langchain/community/document_loaders/fs/pdf");
+const { getEncoding } = require("js-tiktoken");
+
+/**
+ * Cắt text thành các chunk, mỗi chunk tối đa chunkSize token.
+ * 1. Encode text thành mảng token id.
+ * 2. Cắt mảng theo cửa sổ chunkSize, lùi lại chunkOverlap token ở mỗi chunk mới.
+ * 3. Decode từng đoạn token về lại text.
+ * chunkOverlap phải nhỏ hơn chunkSize, nếu không vòng lặp không tiến -> lặp vô hạn.
+ *
+ * Cách cắt: cứ đủ chunkSize token là cắt => dễ đứt giữa câu, giữa từ.
+ *
+ * Khác ../../udemy-course/agentic-rag/ingestion.js (hàm splitDocuments):
+ * - File đó: ưu tiên cắt ở cuối đoạn văn -> cuối dòng -> dấu cách => không đứt câu.
+ * - Token chỉ dùng để đo, đảm bảo chunk không vượt quá giới hạn.
+ */
 function splitTextByToken(text, encoding, { chunkSize, chunkOverlap }) {
   const tokenIds = encoding.encode(text);
   const chunks = [];

@@ -10,10 +10,25 @@
 // Giải pháp: chia chunk thành từng nhóm nhỏ, gọi embedQuery song song trong nhóm.
 // Vừa nhanh, vừa không bắn quá nhiều request cùng lúc gây rate limit.
 // Chi tiết lỗi gốc: debug-embedding-errors.js.
+//
+// File này chỉ export embedChunksSafely() cho các bài demo dùng lại (không tự chạy).
+//
+// Các file đang sử dụng:
+//   - 01-similarity-vs-mmr.js
+//   - 02-metadata-filter.js
+//   - 03-self-query.js
+//   - 04-contextual-compression.js
+//   - ../08-retrieval-qa/01-basic.js
+//   - ../08-retrieval-qa/02-custom-prompt.js
+//   - ../08-retrieval-qa/03-chain-types.js
+//   - ../08-retrieval-qa/04-limitations.js
+//   - ../08-retrieval-qa/05-conversational-chat.js
 // =======================================================================
 
-// Embed danh sách docs, mỗi lần chạy song song tối đa `concurrency` request.
-// Trả mảng vector đúng thứ tự docs.
+/**
+ * Embed danh sách docs, mỗi lần chạy song song tối đa `concurrency` request.
+ * Trả mảng vector đúng thứ tự docs.
+ */
 async function embedChunksSafely(embeddings, docs, concurrency = 5) {
   const vectors = new Array(docs.length);
   for (let i = 0; i < docs.length; i += concurrency) {

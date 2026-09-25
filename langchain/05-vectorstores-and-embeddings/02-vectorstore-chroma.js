@@ -19,12 +19,13 @@
 require("../_polyfill");
 require("dotenv").config();
 const path = require("path");
+
 const { PDFLoader } = require("@langchain/community/document_loaders/fs/pdf");
+const { Chroma } = require("@langchain/community/vectorstores/chroma");
+const { GoogleGenerativeAIEmbeddings } = require("@langchain/google-genai");
 const {
   RecursiveCharacterTextSplitter,
 } = require("@langchain/textsplitters");
-const { GoogleGenerativeAIEmbeddings } = require("@langchain/google-genai");
-const { Chroma } = require("@langchain/community/vectorstores/chroma");
 
 // Model embedding: đổi chunk và câu hỏi thành vector.
 const embeddings = new GoogleGenerativeAIEmbeddings({

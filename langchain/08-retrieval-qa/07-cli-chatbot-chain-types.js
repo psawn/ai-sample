@@ -14,24 +14,25 @@
 
 require("../_polyfill");
 require("dotenv").config();
-const readline = require("readline");
 const path = require("path");
-const { PDFLoader } = require("@langchain/community/document_loaders/fs/pdf");
-const { RecursiveCharacterTextSplitter } = require("@langchain/textsplitters");
-const {
-  GoogleGenerativeAIEmbeddings,
-  ChatGoogleGenerativeAI,
-} = require("@langchain/google-genai");
+const readline = require("readline");
+
+const { loadQAChain } = require("@langchain/classic/chains");
 const { MemoryVectorStore } = require("@langchain/classic/vectorstores/memory");
+const { PDFLoader } = require("@langchain/community/document_loaders/fs/pdf");
+const { HumanMessage, AIMessage } = require("@langchain/core/messages");
+const { StringOutputParser } = require("@langchain/core/output_parsers");
 const {
   ChatPromptTemplate,
   MessagesPlaceholder,
 } = require("@langchain/core/prompts");
-const { StringOutputParser } = require("@langchain/core/output_parsers");
+const {
+  GoogleGenerativeAIEmbeddings,
+  ChatGoogleGenerativeAI,
+} = require("@langchain/google-genai");
+const { RecursiveCharacterTextSplitter } = require("@langchain/textsplitters");
 // loadQAChain đã deprecated, không nên dùng cho code mới.
 // Dùng ở đây vì là cách duy nhất hỗ trợ đủ 3 type: stuff / map_reduce / refine.
-const { loadQAChain } = require("@langchain/classic/chains");
-const { HumanMessage, AIMessage } = require("@langchain/core/messages");
 
 const loadedFile = path.join(
   __dirname,
@@ -49,14 +50,16 @@ const llm = new ChatGoogleGenerativeAI({
   temperature: 0,
 });
 
-// Chuẩn bị cho hội thoại:
-// 1. Load PDF -> split -> embed.
-// 2. Tạo retriever + 2 chain: rephraseChain (viết lại câu hỏi), answerChain (trả lời).
-//
-// chainType (mặc định "stuff", chi tiết: 03-chain-types.js):
-// - "stuff": nhét hết document vào 1 prompt. Nhanh, rẻ.
-// - "map_reduce": tóm tắt từng document rồi gộp. Xử lý được nhiều document.
-// - "refine": sửa dần câu trả lời qua từng document. Giữ mạch tốt nhất, nhưng chậm.
+/**
+ * Chuẩn bị cho hội thoại:
+ * 1. Load PDF -> split -> embed.
+ * 2. Tạo retriever + 2 chain: rephraseChain (viết lại câu hỏi), answerChain (trả lời).
+ *
+ * chainType (mặc định "stuff", chi tiết: 03-chain-types.js):
+ * - "stuff": nhét hết document vào 1 prompt. Nhanh, rẻ.
+ * - "map_reduce": tóm tắt từng document rồi gộp. Xử lý được nhiều document.
+ * - "refine": sửa dần câu trả lời qua từng document. Giữ mạch tốt nhất, nhưng chậm.
+ */
 async function loadDb(file, k, chainType = "stuff") {
   const documents = await new PDFLoader(file).load();
 
@@ -88,10 +91,12 @@ async function loadDb(file, k, chainType = "stuff") {
   return { retriever, rephraseChain, answerChain };
 }
 
-// Xử lý 1 lượt hỏi-đáp. Trả về:
-// - answer: câu trả lời.
-// - generatedQuestion: câu hỏi đã viết lại (dùng để tìm document).
-// - sourceDocuments: các document đã dùng làm context.
+/**
+ * Xử lý 1 lượt hỏi-đáp. Trả về:
+ * - answer: câu trả lời.
+ * - generatedQuestion: câu hỏi đã viết lại (dùng để tìm document).
+ * - sourceDocuments: các document đã dùng làm context.
+ */
 async function askQuestion(qa, query, chatHistory) {
   const { retriever, rephraseChain, answerChain } = qa;
 

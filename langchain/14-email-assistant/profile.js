@@ -6,6 +6,20 @@
 // - triageRules      : quy tắc phân loại email thành ignore / notify / respond.
 // - agentInstructions: chỉ dẫn làm việc cho response agent.
 // - 2 email mẫu để chạy thử.
+//
+// Các file đang sử dụng:
+//   - 01-triage-classifier.js
+//   - 02-response-agent.js
+//   - 03-full-email-agent.js
+//   - 04-semantic-memory-agent.js
+//   - 05-episodic-memory-triage.js
+//   - 06-procedural-memory-agent.js
+//   - 07-security-guardrails.js
+//   - ../../typesafe/01-triage-classifier.js
+//   - ../../typesafe/02-response-agent.js
+//   - ../../typesafe/03-full-email-agent.js
+//   - ../../typesafe/04-semantic-memory-agent.js
+//   - ../../typesafe/04-semantic-memory-multi-node.js
 // =======================================================================
 
 const profile = {
