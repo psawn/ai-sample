@@ -30,8 +30,10 @@ const MAX_MESSAGES = 4;
 
 const history = [new SystemMessage("Bạn là AI Assistant thân thiện.")];
 
-// Hỏi 1 câu, sau đó cắt history về đúng kích thước cửa sổ.
-// Cắt sau khi trả lời -> lượt sau gửi tối đa MAX_MESSAGES message cũ + 1 câu hỏi mới.
+/**
+ * Hỏi 1 câu, sau đó cắt history về đúng kích thước cửa sổ.
+ * Cắt sau khi trả lời -> lượt sau gửi tối đa MAX_MESSAGES message cũ + 1 câu hỏi mới.
+ */
 async function ask(input) {
   // Lưu câu hỏi của user.
   history.push(new HumanMessage(input));

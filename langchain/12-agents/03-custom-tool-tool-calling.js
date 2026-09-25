@@ -37,9 +37,11 @@ const llm = new ChatGoogleGenerativeAI({
   temperature: 0,
 });
 
-// tool(hàm, { name, description, schema }): biến hàm JS thành Tool.
-// - name + description: LLM đọc để quyết định khi nào gọi.
-// - schema: kiểu tham số LLM phải truyền.
+/**
+ * tool(hàm, { name, description, schema }): biến hàm JS thành Tool.
+ * - name + description: LLM đọc để quyết định khi nào gọi.
+ * - schema: kiểu tham số LLM phải truyền.
+ */
 const time = tool(
   // Hàm không cần tham số. tool() bắt buộc có schema nên vẫn khai báo z.string(),
   // LLM truyền gì cũng bị bỏ qua.

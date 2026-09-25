@@ -20,8 +20,10 @@ const {
   NotionLoader,
 } = require("@langchain/community/document_loaders/fs/notion");
 
-// PDFLoader: đọc file PDF, mỗi trang -> 1 Document.
-// Bản tự viết bằng pdf-parse: 02-document-loading-native.js.
+/**
+ * PDFLoader: đọc file PDF, mỗi trang -> 1 Document.
+ * Bản tự viết bằng pdf-parse: 02-document-loading-native.js.
+ */
 async function loadPdf() {
   console.log("=== PDFLoader ===");
   const filePath = path.join(
@@ -36,9 +38,11 @@ async function loadPdf() {
   console.log(pages[0].metadata);
 }
 
-// YoutubeLoader: lấy transcript (phụ đề) có sẵn của video.
-// Không cần tự chuyển giọng nói thành văn bản (speech-to-text).
-// Video không có phụ đề -> không lấy được.
+/**
+ * YoutubeLoader: lấy transcript (phụ đề) có sẵn của video.
+ * Không cần tự chuyển giọng nói thành văn bản (speech-to-text).
+ * Video không có phụ đề -> không lấy được.
+ */
 async function loadYoutube() {
   console.log("\n=== YoutubeLoader ===");
   // Dùng import() động vì "youtubei.js" chỉ hỗ trợ ESM, không require() được.
@@ -54,7 +58,7 @@ async function loadYoutube() {
   console.log(docs[0].pageContent.slice(0, 500));
 }
 
-// CheerioWebBaseLoader: tải HTML trang web, bỏ tag, giữ text -> Document.
+/** CheerioWebBaseLoader: tải HTML trang web, bỏ tag, giữ text -> Document. */
 async function loadUrl() {
   console.log("\n=== CheerioWebBaseLoader ===");
   const url =
@@ -65,7 +69,7 @@ async function loadUrl() {
   console.log(docs[0].pageContent.slice(0, 500));
 }
 
-// NotionLoader: đọc các file .md export từ Notion, mỗi file -> 1 Document.
+/** NotionLoader: đọc các file .md export từ Notion, mỗi file -> 1 Document. */
 async function loadNotion() {
   console.log("\n=== NotionLoader ===");
   const dirPath = path.join(__dirname, "../../docs/Notion_DB");

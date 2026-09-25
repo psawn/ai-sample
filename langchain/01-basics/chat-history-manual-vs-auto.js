@@ -33,13 +33,15 @@ const prompt = ChatPromptTemplate.fromMessages([
 ]);
 
 // ===== CÁCH 1: MANUAL - TỰ QUẢN LÝ chat_history =====
-// chat_history chỉ là mảng JS bình thường. LangChain không đụng vào nó.
-// 1. Tự khai báo mảng chatHistory.
-// 2. Mỗi lần hỏi, tự truyền chatHistory vào invoke().
-// 3. Có câu trả lời -> tự push HumanMessage + AIMessage vào mảng.
-//
-// Khi nào dùng: chỉ 1 cuộc hội thoại, không cần phân biệt nhiều user.
-// Ví dụ thật: 08-retrieval-qa/05-conversational-chat.js.
+/**
+ * chat_history chỉ là mảng JS bình thường. LangChain không đụng vào nó.
+ * 1. Tự khai báo mảng chatHistory.
+ * 2. Mỗi lần hỏi, tự truyền chatHistory vào invoke().
+ * 3. Có câu trả lời -> tự push HumanMessage + AIMessage vào mảng.
+ *
+ * Khi nào dùng: chỉ 1 cuộc hội thoại, không cần phân biệt nhiều user.
+ * Ví dụ thật: 08-retrieval-qa/05-conversational-chat.js.
+ */
 async function demoManual() {
   const chain = prompt.pipe(model).pipe(new StringOutputParser());
   const chatHistory = [];
@@ -57,14 +59,16 @@ async function demoManual() {
 }
 
 // ===== CÁCH 2: AUTO - RunnableWithMessageHistory =====
-// Không tự tạo mảng, không tự push, không tự truyền chat_history.
-// 1. Bọc chain bằng RunnableWithMessageHistory.
-// 2. Khai báo getMessageHistory(sessionId): lấy/lưu lịch sử ở đâu.
-// 3. Mỗi lần gọi chỉ cần truyền { input } + sessionId.
-//    Tự nạp lịch sử trước khi gọi, tự lưu Q&A sau khi xong.
-//
-// Khi nào dùng: nhiều cuộc hội thoại song song (mỗi user 1 sessionId).
-// Ví dụ thật: 11-tool-routing/06-agent-executor.js, 11-tool-routing/07-cli-chatbot.js.
+/**
+ * Không tự tạo mảng, không tự push, không tự truyền chat_history.
+ * 1. Bọc chain bằng RunnableWithMessageHistory.
+ * 2. Khai báo getMessageHistory(sessionId): lấy/lưu lịch sử ở đâu.
+ * 3. Mỗi lần gọi chỉ cần truyền { input } + sessionId.
+ *    Tự nạp lịch sử trước khi gọi, tự lưu Q&A sau khi xong.
+ *
+ * Khi nào dùng: nhiều cuộc hội thoại song song (mỗi user 1 sessionId).
+ * Ví dụ thật: 11-tool-routing/06-agent-executor.js, 11-tool-routing/07-cli-chatbot.js.
+ */
 async function demoAuto() {
   const chain = prompt.pipe(model).pipe(new StringOutputParser());
 

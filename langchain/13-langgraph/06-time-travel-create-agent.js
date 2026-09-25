@@ -35,7 +35,7 @@ You are allowed to make multiple calls (either together or in sequence). \
 Only look up information when you are sure of what you want. \
 If you need to look up some information before asking a follow up question, you are allowed to do that!`;
 
-// In dữ liệu trả về sau mỗi node chạy xong.
+/** In dữ liệu trả về sau mỗi node chạy xong. */
 function printStepEvent(event) {
   for (const [node, value] of Object.entries(event)) {
     // Lúc bị middleware chặn, stream() trả thêm event phụ "__interrupt__".
@@ -47,10 +47,12 @@ function printStepEvent(event) {
   }
 }
 
-// Chạy tiếp từ config tới khi xong (state.next rỗng).
-// - Lần đầu: dùng firstInput + config -> chạy từ đúng checkpoint rẽ nhánh.
-// - Lần sau: dùng thread (không kèm checkpoint) -> chạy từ checkpoint mới nhất.
-// Nếu dùng lại config cũ, graph cứ chạy lại từ cùng 1 điểm -> lặp vô hạn.
+/**
+ * Chạy tiếp từ config tới khi xong (state.next rỗng).
+ * - Lần đầu: dùng firstInput + config -> chạy từ đúng checkpoint rẽ nhánh.
+ * - Lần sau: dùng thread (không kèm checkpoint) -> chạy từ checkpoint mới nhất.
+ * Nếu dùng lại config cũ, graph cứ chạy lại từ cùng 1 điểm -> lặp vô hạn.
+ */
 async function resumeUntilDone(agent, config, firstInput, thread) {
   let events = await agent.stream(firstInput, config);
   for await (const event of events) {
@@ -88,6 +90,8 @@ async function main() {
     interruptOn: { web_search: true },
   });
 
+  // Khai báo tools: Agent sẽ tự động chạy tool và gửi lại kết quả cho LLM theo vòng lặp cho đến khi hoàn tất.
+  // Riêng web_search: hitlMiddleware dừng lại chờ người duyệt trước khi chạy.
   const agent = createAgent({
     model: llm,
     tools: [webSearch],

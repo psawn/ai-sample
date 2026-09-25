@@ -58,14 +58,18 @@ const embeddings = new GoogleGenerativeAIEmbeddings({
 // dims = số chiều vector của gemini-embedding-001.
 const store = new InMemoryStore({ index: { embeddings, dims: 3072 } });
 
-// Đường dẫn lưu ví dụ mẫu, chia theo user.
-// Ví dụ: ["email_assistant", "lance", "examples"].
+/**
+ * Đường dẫn lưu ví dụ mẫu, chia theo user.
+ * Ví dụ: ["email_assistant", "lance", "examples"].
+ */
 function examplesNamespace(userId) {
   return ["email_assistant", userId, "examples"];
 }
 
-// Chuyển 1 cặp email + nhãn thành đoạn văn bản để chèn vào prompt.
-// Cắt thread còn 400 ký tự đầu để tiết kiệm token.
+/**
+ * Chuyển 1 cặp email + nhãn thành đoạn văn bản để chèn vào prompt.
+ * Cắt thread còn 400 ký tự đầu để tiết kiệm token.
+ */
 function formatExample({ email, label }) {
   return `Email Subject: ${email.subject}
 Email From: ${email.author}
@@ -77,8 +81,10 @@ ${email.emailThread.slice(0, 400)}
 > Triage Result: ${label}`;
 }
 
-// Gộp các ví dụ tìm được thành 1 khối few-shot.
-// Trả về null nếu Store chưa có ví dụ nào.
+/**
+ * Gộp các ví dụ tìm được thành 1 khối few-shot.
+ * Trả về null nếu Store chưa có ví dụ nào.
+ */
 function formatFewShotExamples(matches) {
   if (matches.length === 0) return null;
 
@@ -88,7 +94,7 @@ function formatFewShotExamples(matches) {
   );
 }
 
-// Nạp sẵn 2 ví dụ mẫu vào Store để triage có cái tham khảo ngay từ đầu.
+/** Nạp sẵn 2 ví dụ mẫu vào Store để triage có cái tham khảo ngay từ đầu. */
 async function seedExamples(userId) {
   const namespace = examplesNamespace(userId);
 
@@ -129,7 +135,7 @@ Sarah`,
 
 // ===== PROCEDURAL MEMORY: CHỈ DẪN LÀM VIỆC LƯU TRONG STORE =====
 
-// Đường dẫn lưu chỉ dẫn, chia theo user. Ví dụ: ["lance"].
+/** Đường dẫn lưu chỉ dẫn, chia theo user. Ví dụ: ["lance"]. */
 function proceduralNamespace(userId) {
   return [userId];
 }
@@ -142,7 +148,7 @@ const PROCEDURAL_KEYS = {
   triageRespond: "triage_respond",
 };
 
-// Đọc chỉ dẫn từ Store. Chưa có thì ghi giá trị mặc định rồi trả về.
+/** Đọc chỉ dẫn từ Store. Chưa có thì ghi giá trị mặc định rồi trả về. */
 async function getOrSeedInstruction({ store, userId, key, defaultPrompt }) {
   const namespace = proceduralNamespace(userId);
   const existing = await store.get(namespace, key);
@@ -153,7 +159,7 @@ async function getOrSeedInstruction({ store, userId, key, defaultPrompt }) {
   return defaultPrompt;
 }
 
-// Cập nhật chỉ dẫn trong Store.
+/** Cập nhật chỉ dẫn trong Store. */
 async function setInstruction({ store, userId, key, prompt }) {
   await store.put(proceduralNamespace(userId), key, { prompt });
 }
@@ -180,7 +186,7 @@ const llm = new ChatGoogleGenerativeAI({
 
 const llmRouter = llm.withStructuredOutput(Router);
 
-// System prompt của response agent, kèm danh sách tool.
+/** System prompt của response agent, kèm danh sách tool. */
 function buildAgentSystemPromptMemory({ fullName, name, instructions }) {
   return `< Role >
 You are ${fullName}'s executive assistant. You are a top-notch executive assistant who cares about ${name} performing as well as possible.
@@ -226,7 +232,7 @@ const EmailAgentState = Annotation.Root({
   }),
 });
 
-// Node 1: phân loại email.
+/** Node 1: phân loại email. */
 async function triageRouterNode(state, config) {
   console.log("\n📍 Node: triage_router - đang phân loại email...");
 
@@ -314,7 +320,7 @@ async function triageRouterNode(state, config) {
   return new Command({ goto: END });
 }
 
-// Node 2: soạn phản hồi hoặc thực thi hành động.
+/** Node 2: soạn phản hồi hoặc thực thi hành động. */
 async function responseAgentNode(state, config) {
   console.log(
     "\n📍 Node: response_agent - đang gọi Agent xử lý (tool call)...",
@@ -333,6 +339,7 @@ async function responseAgentNode(state, config) {
 
   // Tạo agent mới mỗi lượt chạy để luôn dùng chỉ dẫn mới nhất.
   // Bước 04, 05 chỉ tạo 1 lần vì chỉ dẫn cố định.
+  // Khai báo tools: Agent sẽ tự động chạy tool và gửi lại kết quả cho LLM theo vòng lặp cho đến khi hoàn tất.
   const agent = createAgent({
     model: llm,
     tools: [
@@ -366,7 +373,7 @@ const emailAgent = new StateGraph(EmailAgentState)
   .addEdge(START, "triage_router")
   .compile({ store });
 
-// Chạy graph với 1 email. Trả về result để Optimizer đọc lại messages.
+/** Chạy graph với 1 email. Trả về result để Optimizer đọc lại messages. */
 async function runEmail(emailInput, userId) {
   console.log(
     `\n========== Email: "${emailInput.subject}" (user=${userId}) ==========`,
@@ -398,7 +405,7 @@ const urgentEmail = {
 Urgent issue - your service is down. Is there a reason why`,
 };
 
-// In 4 chỉ dẫn hiện có của user.
+/** In 4 chỉ dẫn hiện có của user. */
 async function printProceduralMemory(userId) {
   console.log(`\n===== Procedural memory hiện tại của '${userId}' =====`);
   console.log(
@@ -461,8 +468,10 @@ const OptimizerResult = z.object({
 
 const optimizer = llm.withStructuredOutput(OptimizerResult);
 
-// Prompt cho Optimizer: lượt chạy + feedback + các chỉ dẫn hiện có.
-// Mỗi chỉ dẫn kèm when_to_update (khi nào sửa) và update_instructions (sửa thế nào).
+/**
+ * Prompt cho Optimizer: lượt chạy + feedback + các chỉ dẫn hiện có.
+ * Mỗi chỉ dẫn kèm when_to_update (khi nào sửa) và update_instructions (sửa thế nào).
+ */
 function buildOptimizerPrompt({ trajectoryText, feedback, prompts }) {
   const promptsBlock = prompts
     .map(
@@ -492,7 +501,7 @@ theo đúng "update_instructions". Nếu feedback không liên quan đến chỉ
 nguyên "current_prompt". Trả về đủ tất cả chỉ dẫn, đúng "name", đúng thứ tự đầu vào.`;
 }
 
-// Gọi Optimizer, trả về đủ 4 chỉ dẫn (đã sửa hoặc giữ nguyên).
+/** Gọi Optimizer, trả về đủ 4 chỉ dẫn (đã sửa hoặc giữ nguyên). */
 async function optimizePrompts({ messages, feedback, prompts }) {
   // Chuyển lịch sử message thành trajectory để Optimizer đọc ngữ cảnh.
   const trajectoryText = messages
@@ -515,10 +524,12 @@ async function optimizePrompts({ messages, feedback, prompts }) {
   return result.prompts;
 }
 
-// Lấy 4 chỉ dẫn hiện tại để gửi cho Optimizer.
-// - key        : để ghi lại vào Store.
-// - name       : tên Optimizer thấy.
-// - whenToUpdate / updateInstructions: khi nào sửa, sửa thế nào.
+/**
+ * Lấy 4 chỉ dẫn hiện tại để gửi cho Optimizer.
+ * - key        : để ghi lại vào Store.
+ * - name       : tên Optimizer thấy.
+ * - whenToUpdate / updateInstructions: khi nào sửa, sửa thế nào.
+ */
 async function buildPromptSpecs(userId) {
   return [
     {
@@ -576,7 +587,7 @@ async function buildPromptSpecs(userId) {
   ];
 }
 
-// So sánh trước/sau theo thứ tự, chỉ ghi chỉ dẫn có thay đổi vào Store.
+/** So sánh trước/sau theo thứ tự, chỉ ghi chỉ dẫn có thay đổi vào Store. */
 async function applyOptimizerUpdates(userId, prompts, updatedPrompts) {
   for (let i = 0; i < prompts.length; i += 1) {
     const before = prompts[i];

@@ -7,6 +7,14 @@
 // 1. Tìm 3 trang liên quan nhất tới query.
 // 2. Lấy đoạn tóm tắt mở đầu (intro) của từng trang.
 // 3. Gộp lại thành 1 đoạn text trả cho LLM.
+//
+// Chạy trực tiếp file này: gọi thử Tool, không qua LLM.
+//
+// Các file đang sử dụng Tool này:
+//   - 05-routing.js
+//   - 06-agent-executor.js
+//   - 06-agent-executor-createagent.js
+//   - 07-cli-chatbot.js
 // =======================================================================
 
 require("../_polyfill");
@@ -17,7 +25,7 @@ const { tool } = require("@langchain/core/tools");
 
 const WIKI_API = "https://en.wikipedia.org/w/api.php";
 
-// Bước 1: tìm tối đa 3 tiêu đề trang liên quan tới query.
+/** Bước 1: tìm tối đa 3 tiêu đề trang liên quan tới query. */
 async function searchTitles(query) {
   const params = new URLSearchParams({
     action: "query",
@@ -31,8 +39,10 @@ async function searchTitles(query) {
   return data.query.search.map((item) => item.title);
 }
 
-// Bước 2: lấy tóm tắt 1 trang theo tiêu đề.
-// exintro: chỉ lấy phần mở đầu. explaintext: text thuần, bỏ markup.
+/**
+ * Bước 2: lấy tóm tắt 1 trang theo tiêu đề.
+ * exintro: chỉ lấy phần mở đầu. explaintext: text thuần, bỏ markup.
+ */
 async function getPageSummary(title) {
   const params = new URLSearchParams({
     action: "query",
@@ -49,7 +59,7 @@ async function getPageSummary(title) {
   return Object.values(pages)[0]?.extract ?? "";
 }
 
-// Hàm thực thi của Tool: chạy bước 1 + 2, gộp kết quả (bước 3).
+/** Hàm thực thi của Tool: chạy bước 1 + 2, gộp kết quả (bước 3). */
 async function fetchWikipediaSummaries(query) {
   const titles = await searchTitles(query);
   const summaries = [];
@@ -68,8 +78,10 @@ async function fetchWikipediaSummaries(query) {
   return result;
 }
 
-// tool(fn, options): chỉ gắn name / description / schema cho fn, không đổi cách fn chạy.
-// schema là z.string() -> input là 1 chuỗi query, không phải object.
+/**
+ * tool(fn, options): chỉ gắn name / description / schema cho fn, không đổi cách fn chạy.
+ * schema là z.string() -> input là 1 chuỗi query, không phải object.
+ */
 const searchWikipedia = tool(fetchWikipediaSummaries, {
   name: "search_wikipedia",
   description: "Run Wikipedia search and get page summaries.",

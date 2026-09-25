@@ -57,8 +57,10 @@ const followUpEmail = {
   emailThread: `Hi John, Any update on my previous ask?`,
 };
 
-// System prompt của response agent, liệt kê 5 tool:
-// 3 tool xử lý email và lịch họp, 2 tool đọc ghi memory.
+/**
+ * System prompt của response agent, liệt kê 5 tool:
+ * 3 tool xử lý email và lịch họp, 2 tool đọc ghi memory.
+ */
 function buildAgentSystemPromptMemory({ fullName, name, instructions }) {
   return `< Role >
 You are ${fullName}'s executive assistant. You are a top-notch executive assistant who cares about ${name} performing as well as possible.
@@ -159,6 +161,7 @@ const goodInstructions = `${agentInstructions}
 // - description chỉ nói tool làm gì ("Write and send an email."),
 //   không nói khi nào nên dùng -> LLM dễ chọn nhầm khi 2 tool cùng hợp lý.
 //   Khi nào nên dùng phải viết thêm ở nguồn 3 (xem ghi chú ở profile.js).
+// Khai báo tools: Agent sẽ tự động chạy tool và gửi lại kết quả cho LLM theo vòng lặp cho đến khi hoàn tất.
 const responseAgent = createAgent({
   model: llm,
   tools: [
@@ -183,8 +186,10 @@ const config = {
 };
 
 // ===== DEMO 1: MEMORY TOOLS, CHƯA DÙNG LUỒNG EMAIL =====
-// 2 lượt chạy dùng chung Store + userId: lượt 2 đọc được memory lượt 1 đã ghi.
-// Bước 03 không làm được vì mỗi invoke() độc lập.
+/**
+ * 2 lượt chạy dùng chung Store + userId: lượt 2 đọc được memory lượt 1 đã ghi.
+ * Bước 03 không làm được vì mỗi invoke() độc lập.
+ */
 async function demoMemoryTools() {
   console.log("\n========== Demo: manage_memory & search_memory ==========");
 
@@ -255,7 +260,7 @@ const EmailAgentState = Annotation.Root({
   }),
 });
 
-// Node 1: phân loại email.
+/** Node 1: phân loại email. */
 async function triageRouterNode(state) {
   console.log("\n📍 Node: triage_router - đang phân loại email...");
 
@@ -316,7 +321,7 @@ async function triageRouterNode(state) {
   return new Command({ goto: END });
 }
 
-// Node 2: chuyển messages cho agent có tool xử lý.
+/** Node 2: chuyển messages cho agent có tool xử lý. */
 async function responseAgentNode(state, nodeConfig) {
   console.log(
     "\n📍 Node: response_agent - đang gọi Agent xử lý (tool call)...",
@@ -344,7 +349,7 @@ const emailAgent = new StateGraph(EmailAgentState)
   // Gắn Store cho graph, để node và tool truy cập được bộ nhớ dài hạn.
   .compile({ store });
 
-// Chạy graph với 1 email, in toàn bộ lịch sử message.
+/** Chạy graph với 1 email, in toàn bộ lịch sử message. */
 async function runEmail(emailInput) {
   console.log(`\n========== Email: "${emailInput.subject}" ==========`);
 
@@ -360,7 +365,7 @@ async function runEmail(emailInput) {
 }
 
 // ===== DEMO 2: MEMORY QUA LUỒNG EMAIL =====
-// Email trước ghi thông tin vào Store, email sau tìm lại bằng search_memory.
+/** Email trước ghi thông tin vào Store, email sau tìm lại bằng search_memory. */
 async function demoEmailMemory() {
   // Email 1: agent trả lời câu hỏi và ghi thông tin vào Store.
   await runEmail(questionEmail);

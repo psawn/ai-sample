@@ -1,13 +1,20 @@
 // =======================================================================
-// LANGGRAPH - AGENT DỰNG BẰNG TAY (DÙNG CHUNG CHO CÁC BÀI *-manual-graph.js)
+// LANGGRAPH - TỰ DỰNG AGENT REACT (KHÔNG DÙNG createAgent BUILT-IN)
 //
-// Agent ReAct dựng bằng StateGraph: gọi LLM -> chạy tool -> lặp lại.
+// Mục đích: Tự dựng ReAct Agent bằng StateGraph để hiểu createAgent
+// hoạt động thế nào bên trong. File này chỉ export lớp `Agent` cho các bài
+// demo dùng lại (không tự chạy).
+//
+// Cơ chế ReAct: Gọi LLM -> Chạy Tool (nếu có) -> Lặp lại đến khi hoàn tất.
 // LangGraph lo phần state và vòng lặp, code chỉ khai báo node và edge.
 //
 // Luồng chạy (2 node):
 //   1. START -> llm: gọi Model.
 //   2. llm có tool_calls -> action: chạy tool, rồi quay lại bước 1.
 //   3. llm không có tool_calls -> END.
+//
+// Các file đang sử dụng:
+//   - 01-components-manual-graph.js
 // =======================================================================
 
 require("../_polyfill");
@@ -20,7 +27,7 @@ const { SystemMessage, ToolMessage } = require("@langchain/core/messages");
 // Node return { messages: [...] } -> được nối thêm vào mảng messages chung.
 const AgentState = MessagesAnnotation;
 
-// Format kết quả tool để log: cắt bớt nếu quá dài, thụt lề từng dòng.
+/** Format kết quả tool để log: cắt bớt nếu quá dài, thụt lề từng dòng. */
 function formatToolResult(text, maxLength = 500) {
   const str = String(text);
   const truncated =

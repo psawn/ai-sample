@@ -44,6 +44,8 @@ async function main() {
     interruptOn: { web_search: true },
   });
 
+  // Khai báo tools: Agent sẽ tự động chạy tool và gửi lại kết quả cho LLM theo vòng lặp cho đến khi hoàn tất.
+  // Riêng web_search: hitlMiddleware dừng lại chờ người duyệt trước khi chạy.
   const agent = createAgent({
     model: llm,
     tools: [webSearch],

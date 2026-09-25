@@ -52,9 +52,11 @@ const llm = new ChatGoogleGenerativeAI({
   temperature: 0,
 });
 
-// Chuẩn bị cho hội thoại:
-// 1. Load PDF -> split -> embed.
-// 2. Tạo retriever + 2 chain: rephraseChain (viết lại câu hỏi), answerChain (trả lời).
+/**
+ * Chuẩn bị cho hội thoại:
+ * 1. Load PDF -> split -> embed.
+ * 2. Tạo retriever + 2 chain: rephraseChain (viết lại câu hỏi), answerChain (trả lời).
+ */
 async function loadDb(file, k) {
   const documents = await new PDFLoader(file).load();
 
@@ -95,10 +97,12 @@ async function loadDb(file, k) {
   return { retriever, rephraseChain, answerChain };
 }
 
-// Xử lý 1 lượt hỏi-đáp. Trả về:
-// - answer: câu trả lời.
-// - generatedQuestion: câu hỏi đã viết lại (dùng để tìm document).
-// - sourceDocuments: các document đã dùng làm context.
+/**
+ * Xử lý 1 lượt hỏi-đáp. Trả về:
+ * - answer: câu trả lời.
+ * - generatedQuestion: câu hỏi đã viết lại (dùng để tìm document).
+ * - sourceDocuments: các document đã dùng làm context.
+ */
 async function askQuestion(qa, query, chatHistory) {
   const { retriever, rephraseChain, answerChain } = qa;
 

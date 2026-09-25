@@ -28,7 +28,7 @@ const embeddings = new GoogleGenerativeAIEmbeddings({
   model: "gemini-embedding-001",
 });
 
-// Load các file lecture PDF có trong thư mục. File nào thiếu thì bỏ qua.
+/** Load các file lecture PDF có trong thư mục. File nào thiếu thì bỏ qua. */
 async function loadDocs() {
   // Cố ý load Lecture01 2 lần để tạo dữ liệu trùng lặp (vấn đề 1).
   const pdfPaths = [

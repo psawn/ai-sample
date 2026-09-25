@@ -28,22 +28,24 @@ const model = new ChatGoogleGenerativeAI({
 // Số token tối đa cho history.
 const MAX_TOKENS = 200;
 
-// Ước lượng số token: 1 token ≈ 4 ký tự (quy ước cho tiếng Anh).
-// Tiếng Việt có dấu thường tốn nhiều token hơn -> số thật cao hơn.
-// Không dùng tokenizer thật (vd: tiktoken, xem ../04-document-processing/05-token-splitting.js)
-// để ví dụ đơn giản.
+/**
+ * Ước lượng số token: 1 token ≈ 4 ký tự (quy ước cho tiếng Anh).
+ * Tiếng Việt có dấu thường tốn nhiều token hơn -> số thật cao hơn.
+ * Không dùng tokenizer thật (vd: tiktoken, xem ../04-document-processing/05-token-splitting.js)
+ * để ví dụ đơn giản.
+ */
 function countTokens(text) {
   return Math.ceil(text.length / 4);
 }
 
-// Tính tổng token của toàn bộ history (tính cả SystemMessage).
+/** Tính tổng token của toàn bộ history (tính cả SystemMessage). */
 function countHistoryTokens(messages) {
   return messages.reduce((total, msg) => total + countTokens(msg.content), 0);
 }
 
 const history = [new SystemMessage("Bạn là AI Assistant thân thiện.")];
 
-// Hỏi 1 câu, sau đó cắt history về dưới MAX_TOKENS.
+/** Hỏi 1 câu, sau đó cắt history về dưới MAX_TOKENS. */
 async function ask(input) {
   // Lưu câu hỏi của user.
   history.push(new HumanMessage(input));

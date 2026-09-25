@@ -107,7 +107,7 @@ const RESEARCH_CRITIQUE_PROMPT = `You are a researcher charged with providing in
 be used when making any requested revisions (as outlined below). \
 Generate a list of search queries that will gather any relevant information. Only generate 3 queries max.`;
 
-// generate: prompt viết bài, kèm toàn bộ tư liệu đã tìm.
+/** generate: prompt viết bài, kèm toàn bộ tư liệu đã tìm. */
 function buildWriterPrompt(content) {
   return `You are an essay assistant tasked with writing excellent 5-paragraph essays.\
 Generate the best essay possible for the user's request and the initial outline. \
@@ -119,7 +119,7 @@ Utilize all the information below as needed:
 ${content}`;
 }
 
-// Model sinh danh sách query -> search từng query -> nối kết quả vào tư liệu đã có.
+/** Model sinh danh sách query -> search từng query -> nối kết quả vào tư liệu đã có. */
 async function collectResearch(systemPrompt, humanContent, existingContent) {
   const { queries } = await queryModel.invoke([
     new SystemMessage(systemPrompt),
@@ -136,7 +136,7 @@ async function collectResearch(systemPrompt, humanContent, existingContent) {
 
 // ===== CÁC NODE CỦA GRAPH =====
 
-// Node planner: task -> plan.
+/** Node planner: task -> plan. */
 async function planNode(state) {
   const messages = [
     new SystemMessage(PLAN_PROMPT),
@@ -146,7 +146,7 @@ async function planNode(state) {
   return { plan: response.content };
 }
 
-// Node research_plan: task -> Model sinh query -> search -> nối vào content.
+/** Node research_plan: task -> Model sinh query -> search -> nối vào content. */
 async function researchPlanNode(state) {
   const content = await collectResearch(
     RESEARCH_PLAN_PROMPT,
@@ -156,8 +156,10 @@ async function researchPlanNode(state) {
   return { content };
 }
 
-// Node generate: task + plan + content -> draft.
-// Viết xong thì tăng revisionNumber thêm 1.
+/**
+ * Node generate: task + plan + content -> draft.
+ * Viết xong thì tăng revisionNumber thêm 1.
+ */
 async function generationNode(state) {
   const content = state.content.join("\n\n");
   const humanMessage = new HumanMessage(
@@ -174,7 +176,7 @@ async function generationNode(state) {
   };
 }
 
-// Node reflect: draft -> Model đóng vai giáo viên -> critique.
+/** Node reflect: draft -> Model đóng vai giáo viên -> critique. */
 async function reflectionNode(state) {
   const messages = [
     new SystemMessage(REFLECTION_PROMPT),
@@ -184,7 +186,7 @@ async function reflectionNode(state) {
   return { critique: response.content };
 }
 
-// Node research_critique: critique -> Model sinh query -> search -> nối vào content.
+/** Node research_critique: critique -> Model sinh query -> search -> nối vào content. */
 async function researchCritiqueNode(state) {
   const content = await collectResearch(
     RESEARCH_CRITIQUE_PROMPT,
@@ -194,7 +196,7 @@ async function researchCritiqueNode(state) {
   return { content };
 }
 
-// Rẽ nhánh sau generate: viết đủ maxRevisions bản thì dừng, chưa đủ thì sang reflect.
+/** Rẽ nhánh sau generate: viết đủ maxRevisions bản thì dừng, chưa đủ thì sang reflect. */
 function shouldContinue(state) {
   if (state.revisionNumber > state.maxRevisions) return END;
   return "reflect";

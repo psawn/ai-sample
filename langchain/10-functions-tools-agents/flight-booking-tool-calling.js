@@ -61,13 +61,15 @@ const MOCK_FLIGHTS = {
   },
 };
 
-// Chuẩn hóa tên điểm đến để tra MOCK_FLIGHTS. Vd: "  Đà Nẵng " -> "đà nẵng".
+/** Chuẩn hóa tên điểm đến để tra MOCK_FLIGHTS. Vd: "  Đà Nẵng " -> "đà nẵng". */
 function normalizeDestination(destination) {
   return String(destination).trim().toLowerCase();
 }
 
-// Giả lập tra cứu chuyến bay. Thực tế có thể là API backend / bên thứ 3.
-// Không tìm thấy -> trả found: false (không throw), để LLM đọc và báo lại cho user.
+/**
+ * Giả lập tra cứu chuyến bay. Thực tế có thể là API backend / bên thứ 3.
+ * Không tìm thấy -> trả found: false (không throw), để LLM đọc và báo lại cho user.
+ */
 function getFlightInfo(destination) {
   const flight = MOCK_FLIGHTS[normalizeDestination(destination)];
   if (!flight) {
@@ -79,7 +81,7 @@ function getFlightInfo(destination) {
   return JSON.stringify({ found: true, destination, ...flight });
 }
 
-// Giả lập đặt vé, trả mã đặt chỗ (bookingId).
+/** Giả lập đặt vé, trả mã đặt chỗ (bookingId). */
 function bookFlight(destination, date, passengerName) {
   const flight = MOCK_FLIGHTS[normalizeDestination(destination)];
   if (!flight) {
@@ -145,8 +147,10 @@ const tools = [
   },
 ];
 
-// Hỏi LLM, in quyết định gọi tool: có gọi không, tool nào, tham số gì.
-// Chỉ xem quyết định, không chạy tool, không gửi kết quả lại.
+/**
+ * Hỏi LLM, in quyết định gọi tool: có gọi không, tool nào, tham số gì.
+ * Chỉ xem quyết định, không chạy tool, không gửi kết quả lại.
+ */
 async function ask(label, question, toolChoice) {
   const messages = [new HumanMessage(question)];
   const callOptions = toolChoice
@@ -172,10 +176,12 @@ async function ask(label, question, toolChoice) {
 //
 // So sánh HumanMessage vs ChatPromptTemplate: xem 01-function-calling.js.
 
-// Vòng tool calling đầy đủ, 2 tool phối hợp:
-// 1. LLM tra cứu chuyến bay (get_flight_info).
-// 2. Dựa vào kết quả, LLM tự quyết định có đặt vé không (book_flight).
-// 3. LLM viết câu trả lời cuối.
+/**
+ * Vòng tool calling đầy đủ, 2 tool phối hợp:
+ * 1. LLM tra cứu chuyến bay (get_flight_info).
+ * 2. Dựa vào kết quả, LLM tự quyết định có đặt vé không (book_flight).
+ * 3. LLM viết câu trả lời cuối.
+ */
 async function fullRoundTrip() {
   const messages = [
     new HumanMessage(

@@ -23,8 +23,10 @@ const { calculate, averageDogWeight } = require("./actions");
 
 // ===== TOOLS: BỌC 2 HÀM Ở actions.js THÀNH TOOL =====
 
-// Chỉ thêm name / description / schema. Logic vẫn nằm ở actions.js.
-// So với ReAct: phần mô tả action chuyển từ SYSTEM_PROMPT sang đây.
+/**
+ * Chỉ thêm name / description / schema. Logic vẫn nằm ở actions.js.
+ * So với ReAct: phần mô tả action chuyển từ SYSTEM_PROMPT sang đây.
+ */
 const calculateTool = tool(({ expression }) => String(calculate(expression)), {
   name: "calculate",
   description: "Runs a basic arithmetic calculation, e.g. '37 + 20'.",
@@ -65,19 +67,23 @@ const llm = new ChatGoogleGenerativeAI({
 });
 const llmWithTools = llm.bindTools(tools);
 
-// In mảng messages sắp gửi cho LLM, để thấy agent đang "nhớ" gì.
-// Khác agent.js: có thêm ToolMessage (kết quả gọi tool).
+/**
+ * In mảng messages sắp gửi cho LLM, để thấy agent đang "nhớ" gì.
+ * Khác agent.js: có thêm ToolMessage (kết quả gọi tool).
+ */
 function logMessages(messages) {
   console.log("\n----- Messages gửi cho LLM -----");
   console.log(messages);
   console.log("---------------------------------");
 }
 
-// Vòng lặp agent bằng Native Tool Calling:
-// 1. Gọi model.
-// 2. tool_calls rỗng -> đó là câu trả lời cuối, dừng.
-// 3. Có tool_calls -> chạy từng Tool, đưa kết quả vào messages.
-// 4. Quay về bước 1, tới khi có câu trả lời hoặc hết maxTurns.
+/**
+ * Vòng lặp agent bằng Native Tool Calling:
+ * 1. Gọi model.
+ * 2. tool_calls rỗng -> đó là câu trả lời cuối, dừng.
+ * 3. Có tool_calls -> chạy từng Tool, đưa kết quả vào messages.
+ * 4. Quay về bước 1, tới khi có câu trả lời hoặc hết maxTurns.
+ */
 async function query(question, maxTurns = 5) {
   // Tự dựng 2 message đầu bằng new SystemMessage() / new HumanMessage().
   // Cách dùng ChatPromptTemplate: file 04.

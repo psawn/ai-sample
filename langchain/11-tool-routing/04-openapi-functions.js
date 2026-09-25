@@ -16,7 +16,7 @@ const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 
 const PETSTORE_BASE_URL = "http://petstore.swagger.io/v1";
 
-// Tool cho endpoint GET /pets: trả danh sách pet.
+/** Tool cho endpoint GET /pets: trả danh sách pet. */
 const listPets = tool(
   async ({ limit }) => {
     const params = limit ? `?limit=${limit}` : "";
@@ -35,7 +35,7 @@ const listPets = tool(
   },
 );
 
-// Tool cho endpoint GET /pets/{petId}: trả thông tin 1 pet.
+/** Tool cho endpoint GET /pets/{petId}: trả thông tin 1 pet. */
 const showPetById = tool(
   async ({ petId }) => {
     const response = await fetch(`${PETSTORE_BASE_URL}/pets/${petId}`);

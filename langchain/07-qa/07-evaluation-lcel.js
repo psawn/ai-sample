@@ -48,7 +48,7 @@ const llm = new ChatGoogleGenerativeAI({
 const filePath = path.join(__dirname, "OutdoorClothingCatalog_1000.csv");
 const loader = new CSVLoader(filePath);
 
-// Ghép nội dung các document thành 1 đoạn text.
+/** Ghép nội dung các document thành 1 đoạn text. */
 function formatDocuments(docs) {
   return docs.map((doc) => doc.pageContent).join("\n\n");
 }
@@ -89,6 +89,9 @@ async function main() {
   // Bước 1: hệ thống RAG cần kiểm tra (giống file 06).
   // Tìm document -> nhét vào prompt -> LLM trả lời.
   const qaChain = RunnableSequence.from([
+    // - Pipe thường (không bọc assign): output bước trước = TOÀN BỘ input bước sau -> ĐÈ MẤT 'input'.
+    // - Bọc .assign(): GIỮ NGUYÊN 'input' và BỔ SUNG thêm 'documents'.
+    // { input } -> { input, documents }
     RunnablePassthrough.assign({
       documents: async (input) => {
         const relevantDocs = await retriever.invoke(input.input);

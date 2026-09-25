@@ -158,7 +158,7 @@ const actionQuestion = choice(
   },
 );
 
-// Gọi systemOne(), in request và response.
+/** Gọi systemOne(), in request và response. */
 async function askTypeSafe(params) {
   console.log("📤 TypeSafe request params:");
   console.dir(params, { depth: null });
@@ -172,12 +172,14 @@ async function askTypeSafe(params) {
 }
 
 // ===== runAgent(): VÒNG LẶP AGENT TỰ VIẾT =====
-// Mỗi vòng:
-// 1. TypeSafe chọn tool kế tiếp (hoặc "done") dựa trên request + stepsTaken.
-// 2. Gemini điền tham số cho tool theo tool.schema.
-// 3. Chạy tool, lưu kết quả vào steps.
-// Hết vòng lặp: Gemini viết câu trả lời cuối.
-// File gốc: createAgent gộp bước 1 + 2 vào 1 lượt gọi LLM có tool calling.
+/**
+ * Mỗi vòng:
+ * 1. TypeSafe chọn tool kế tiếp (hoặc "done") dựa trên request + stepsTaken.
+ * 2. Gemini điền tham số cho tool theo tool.schema.
+ * 3. Chạy tool, lưu kết quả vào steps.
+ * Hết vòng lặp: Gemini viết câu trả lời cuối.
+ * File gốc: createAgent gộp bước 1 + 2 vào 1 lượt gọi LLM có tool calling.
+ */
 async function runAgent(request, runConfig) {
   // Lịch sử các bước đã chạy: [{ tool, args, result }].
   // Đưa vào prompt của TypeSafe và Gemini để biết đã làm gì.
@@ -240,7 +242,7 @@ async function runAgent(request, runConfig) {
 }
 
 // ===== DEMO 1: MEMORY TOOLS, CHƯA DÙNG LUỒNG EMAIL =====
-// 2 lượt runAgent() dùng chung store + userId: lượt 2 đọc được memory lượt 1 đã ghi.
+/** 2 lượt runAgent() dùng chung store + userId: lượt 2 đọc được memory lượt 1 đã ghi. */
 async function demoMemoryTools() {
   console.log("\n========== Demo: manage_memory & search_memory ==========");
 
@@ -283,8 +285,10 @@ const EmailAgentState = Annotation.Root({
   }),
 });
 
-// Node 1: phân loại email, điều hướng bằng Command({ goto }).
-// Chỉ "respond" đi tiếp. ignore/notify kết thúc, không gọi Gemini.
+/**
+ * Node 1: phân loại email, điều hướng bằng Command({ goto }).
+ * Chỉ "respond" đi tiếp. ignore/notify kết thúc, không gọi Gemini.
+ */
 async function triageRouterNode(state) {
   console.log("\n📍 Node: triage_router");
 
@@ -314,7 +318,7 @@ async function triageRouterNode(state) {
   return new Command({ goto: END });
 }
 
-// Node 2: chạy agent loop. nodeConfig mang store + userId xuống memory tools.
+/** Node 2: chạy agent loop. nodeConfig mang store + userId xuống memory tools. */
 async function responseAgentNode(state, nodeConfig) {
   console.log("\n📍 Node: response_agent");
 
@@ -345,7 +349,7 @@ async function runEmail(emailInput) {
 }
 
 // ===== DEMO 2: MEMORY QUA LUỒNG EMAIL =====
-// Email 1 ghi memory. Email 2 thiếu ngữ cảnh, phải tìm lại bằng search_memory.
+/** Email 1 ghi memory. Email 2 thiếu ngữ cảnh, phải tìm lại bằng search_memory. */
 async function demoEmailMemory() {
   await runEmail(questionEmail);
   await runEmail(followUpEmail);

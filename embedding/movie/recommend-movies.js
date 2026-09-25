@@ -24,9 +24,11 @@ const EMBEDDINGS_FILE = path.join(__dirname, "movie-embeddings.json");
 const EMBEDDING_MODEL = "gemini-embedding-001";
 const TOP_K = 5;
 
-// Cosine similarity: đo góc giữa 2 vector, không phụ thuộc độ dài vector.
-// Kết quả từ -1 tới 1, càng gần 1 càng giống.
-// = dot(a, b) / (|a| * |b|).
+/**
+ * Cosine similarity: đo góc giữa 2 vector, không phụ thuộc độ dài vector.
+ * Kết quả từ -1 tới 1, càng gần 1 càng giống.
+ * = dot(a, b) / (|a| * |b|).
+ */
 function cosineSimilarity(a, b) {
   let dot = 0;
   let normA = 0;
@@ -39,8 +41,10 @@ function cosineSimilarity(a, b) {
   return dot / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
-// Chấm điểm từng phim so với câu hỏi, sắp xếp giảm dần, lấy topK phim đầu.
-// So sánh với mọi phim (brute force): ổn với vài trăm phim. Dữ liệu lớn -> dùng vector DB (xem ../chroma/).
+/**
+ * Chấm điểm từng phim so với câu hỏi, sắp xếp giảm dần, lấy topK phim đầu.
+ * So sánh với mọi phim (brute force): ổn với vài trăm phim. Dữ liệu lớn -> dùng vector DB (xem ../chroma/).
+ */
 function findTopMovies(movies, queryEmbedding, topK) {
   return movies
     .map((movie) => ({

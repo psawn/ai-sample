@@ -39,7 +39,7 @@ const llm = new ChatGoogleGenerativeAI({
   temperature: 0,
 });
 
-// Xây vectorDB: load 3 PDF -> split -> embed -> MemoryVectorStore (giống 01-basic.js).
+/** Xây vectorDB: load 3 PDF -> split -> embed -> MemoryVectorStore (giống 01-basic.js). */
 async function buildVectorDb() {
   const pdfPaths = [
     path.join(lecturesDir, "MachineLearning-Lecture01.pdf"),
@@ -64,7 +64,7 @@ async function buildVectorDb() {
   return vectordb;
 }
 
-// Hỏi với 1 chain type, trả câu trả lời.
+/** Hỏi với 1 chain type, trả câu trả lời. */
 async function askWithChainType(chainType, retriever, question) {
   // loadQAChain không tự gọi retriever -> tự lấy document rồi truyền vào.
   const relevantDocs = await retriever.invoke(question);

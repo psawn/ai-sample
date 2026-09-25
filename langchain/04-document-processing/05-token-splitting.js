@@ -17,11 +17,13 @@ const path = require("path");
 const { getEncoding } = require("js-tiktoken");
 const { PDFLoader } = require("@langchain/community/document_loaders/fs/pdf");
 
-// Cắt text thành các chunk, mỗi chunk tối đa chunkSize token.
-// 1. Encode text thành mảng token id.
-// 2. Cắt mảng theo cửa sổ chunkSize, lùi lại chunkOverlap token ở mỗi chunk mới.
-// 3. Decode từng đoạn token về lại text.
-// chunkOverlap phải nhỏ hơn chunkSize, nếu không vòng lặp không tiến -> lặp vô hạn.
+/**
+ * Cắt text thành các chunk, mỗi chunk tối đa chunkSize token.
+ * 1. Encode text thành mảng token id.
+ * 2. Cắt mảng theo cửa sổ chunkSize, lùi lại chunkOverlap token ở mỗi chunk mới.
+ * 3. Decode từng đoạn token về lại text.
+ * chunkOverlap phải nhỏ hơn chunkSize, nếu không vòng lặp không tiến -> lặp vô hạn.
+ */
 function splitTextByToken(text, encoding, { chunkSize, chunkOverlap }) {
   const tokenIds = encoding.encode(text);
   const chunks = [];

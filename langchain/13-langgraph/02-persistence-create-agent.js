@@ -44,6 +44,7 @@ async function main() {
   const memory = new MemorySaver();
 
   // Truyền checkpointer qua option, createAgent tự gắn vào lúc compile().
+  // Khai báo tools: Agent sẽ tự động chạy tool và gửi lại kết quả cho LLM theo vòng lặp cho đến khi hoàn tất.
   const agent = createAgent({
     model: llm,
     tools: [webSearch],

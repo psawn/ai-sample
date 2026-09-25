@@ -46,7 +46,7 @@ const llm = new ChatGoogleGenerativeAI({
   temperature: 0,
 });
 
-// In các document, ngăn bằng đường kẻ.
+/** In các document, ngăn bằng đường kẻ. */
 function prettyPrintDocs(docs) {
   console.log(
     docs

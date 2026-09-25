@@ -13,8 +13,10 @@
 require("../_polyfill");
 require("dotenv").config();
 
-// Cắt markdown theo heading. Mỗi chunk có dạng:
-// { pageContent: "nội dung", metadata: { "Header 1": "...", "Header 2": "..." } }
+/**
+ * Cắt markdown theo heading. Mỗi chunk có dạng:
+ * { pageContent: "nội dung", metadata: { "Header 1": "...", "Header 2": "..." } }
+ */
 function splitMarkdownByHeaders(text, headersToSplitOn) {
   const activeHeaders = {}; // Các heading đang áp dụng cho nội dung hiện tại
   const chunks = [];

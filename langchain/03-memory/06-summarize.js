@@ -36,8 +36,10 @@ let summary = "";
 
 const history = [new SystemMessage(BASE_SYSTEM_PROMPT)];
 
-// Tóm tắt các message cũ, gộp với bản tóm tắt trước đó (nếu có).
-// Gửi bản tóm tắt cũ kèm theo -> thông tin từ các lần tóm tắt trước không bị mất.
+/**
+ * Tóm tắt các message cũ, gộp với bản tóm tắt trước đó (nếu có).
+ * Gửi bản tóm tắt cũ kèm theo -> thông tin từ các lần tóm tắt trước không bị mất.
+ */
 async function summarizeOldMessages(oldMessages) {
   const summarizePrompt = [
     new SystemMessage(
@@ -62,7 +64,7 @@ async function summarizeOldMessages(oldMessages) {
   );
 }
 
-// Hỏi 1 câu. Nếu history quá dài thì tóm tắt phần cũ.
+/** Hỏi 1 câu. Nếu history quá dài thì tóm tắt phần cũ. */
 async function ask(input) {
   // Lưu câu hỏi của user.
   history.push(new HumanMessage(input));

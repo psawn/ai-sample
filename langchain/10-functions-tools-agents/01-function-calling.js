@@ -29,7 +29,7 @@ const model = new ChatGoogleGenerativeAI({
   temperature: 0,
 });
 
-// Hàm giả lập lấy thời tiết. Thực tế có thể là API backend / bên thứ 3.
+/** Hàm giả lập lấy thời tiết. Thực tế có thể là API backend / bên thứ 3. */
 function getCurrentWeather(location, unit = "fahrenheit") {
   return JSON.stringify({
     location,
@@ -64,8 +64,10 @@ const tools = [
   },
 ];
 
-// Hỏi LLM, in quyết định gọi tool: có gọi không, tool nào, tham số gì.
-// Chỉ xem quyết định, không chạy tool, không gửi kết quả lại.
+/**
+ * Hỏi LLM, in quyết định gọi tool: có gọi không, tool nào, tham số gì.
+ * Chỉ xem quyết định, không chạy tool, không gửi kết quả lại.
+ */
 async function ask(label, question, toolChoice) {
   const messages = [new HumanMessage(question)];
   const callOptions = toolChoice
@@ -95,11 +97,13 @@ async function ask(label, question, toolChoice) {
 // - ChatPromptTemplate: khuôn có biến, dùng lại nhiều lần.
 //   .formatMessages({ city }) mới ra message thật (cũng là HumanMessage).
 
-// Vòng tool calling đầy đủ (round-trip):
-// 1. LLM chọn tool.
-// 2. Code chạy tool.
-// 3. Gửi kết quả lại cho LLM.
-// 4. LLM viết câu trả lời cuối.
+/**
+ * Vòng tool calling đầy đủ (round-trip):
+ * 1. LLM chọn tool.
+ * 2. Code chạy tool.
+ * 3. Gửi kết quả lại cho LLM.
+ * 4. LLM viết câu trả lời cuối.
+ */
 async function fullRoundTrip() {
   const messages = [new HumanMessage("What's the weather like in Boston!")];
 

@@ -23,13 +23,15 @@ const prompt = ChatPromptTemplate.fromTemplate(
 );
 
 // ===== CÁCH 1: model.invoke() - GỌI TRỰC TIẾP MODEL =====
-// Model không nhận object { country }, phải tự format thành messages trước.
-// Flow:
-// 1. { country } -> prompt.formatMessages() -> messages.
-// 2. messages -> model.invoke() -> AIMessage.
-// 3. Lấy text từ aiMessage.content.
-//
-// Khi nào dùng: gọi model 1 lần với input đã chuẩn bị sẵn.
+/**
+ * Model không nhận object { country }, phải tự format thành messages trước.
+ * Flow:
+ * 1. { country } -> prompt.formatMessages() -> messages.
+ * 2. messages -> model.invoke() -> AIMessage.
+ * 3. Lấy text từ aiMessage.content.
+ *
+ * Khi nào dùng: gọi model 1 lần với input đã chuẩn bị sẵn.
+ */
 async function demoModelInvoke() {
   // Thay {country} bằng giá trị thật để tạo messages.
   const messages = await prompt.formatMessages({
@@ -45,10 +47,12 @@ async function demoModelInvoke() {
 }
 
 // ===== CÁCH 2: chain.invoke() - NỐI CÁC BƯỚC THÀNH PIPELINE =====
-// Pipeline: { country } -> prompt -> model -> StringOutputParser -> string.
-// Chain tự lo từng bước, chỉ cần truyền object chứa biến của prompt.
-//
-// Khi nào dùng: hầu hết trường hợp thực tế, vì ngắn gọn, tự động.
+/**
+ * Pipeline: { country } -> prompt -> model -> StringOutputParser -> string.
+ * Chain tự lo từng bước, chỉ cần truyền object chứa biến của prompt.
+ *
+ * Khi nào dùng: hầu hết trường hợp thực tế, vì ngắn gọn, tự động.
+ */
 async function demoChainInvoke() {
   const chain = prompt.pipe(model).pipe(new StringOutputParser());
 

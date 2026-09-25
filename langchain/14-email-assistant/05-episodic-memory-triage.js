@@ -60,14 +60,18 @@ const store = new InMemoryStore({ index: { embeddings, dims: 3072 } });
 
 // ===== EPISODIC MEMORY: Ví dụ mẫu (few-shot) lưu trong Store =====
 
-// Đường dẫn lưu ví dụ mẫu, chia theo user.
-// Ví dụ: ["email_assistant", "lance", "examples"].
+/**
+ * Đường dẫn lưu ví dụ mẫu, chia theo user.
+ * Ví dụ: ["email_assistant", "lance", "examples"].
+ */
 function examplesNamespace(userId) {
   return ["email_assistant", userId, "examples"];
 }
 
-// Chuyển 1 cặp email + nhãn thành đoạn văn bản để chèn vào prompt.
-// Cắt thread còn 400 ký tự đầu để tiết kiệm token.
+/**
+ * Chuyển 1 cặp email + nhãn thành đoạn văn bản để chèn vào prompt.
+ * Cắt thread còn 400 ký tự đầu để tiết kiệm token.
+ */
 function formatExample({ email, label }) {
   return `Email Subject: ${email.subject}
 Email From: ${email.author}
@@ -79,8 +83,10 @@ ${email.emailThread.slice(0, 400)}
 > Triage Result: ${label}`;
 }
 
-// Gộp các ví dụ tìm được thành 1 khối few-shot.
-// Trả về null nếu Store chưa có ví dụ nào.
+/**
+ * Gộp các ví dụ tìm được thành 1 khối few-shot.
+ * Trả về null nếu Store chưa có ví dụ nào.
+ */
 function formatFewShotExamples(matches) {
   if (matches.length === 0) return null;
 
@@ -90,7 +96,7 @@ function formatFewShotExamples(matches) {
   );
 }
 
-// Nạp sẵn 2 ví dụ mẫu vào Store để triage có cái tham khảo ngay từ đầu.
+/** Nạp sẵn 2 ví dụ mẫu vào Store để triage có cái tham khảo ngay từ đầu. */
 async function seedExamples(userId) {
   const namespace = examplesNamespace(userId);
 
@@ -137,8 +143,10 @@ Sarah`,
   });
 }
 
-// Tìm thử ví dụ mẫu bằng 1 email gần giống email của Sarah.
-// Chỉ in kết quả, chưa đưa vào triage_router.
+/**
+ * Tìm thử ví dụ mẫu bằng 1 email gần giống email của Sarah.
+ * Chỉ in kết quả, chưa đưa vào triage_router.
+ */
 async function demoFewShotSearch(userId) {
   const email = {
     author: "Sarah Chen <sarah.chen@company.com>",
@@ -180,8 +188,10 @@ const llm = new ChatGoogleGenerativeAI({
 
 const llmRouter = llm.withStructuredOutput(Router);
 
-// System prompt của response agent, liệt kê 5 tool:
-// 3 tool xử lý email và lịch họp, 2 tool đọc ghi semantic memory.
+/**
+ * System prompt của response agent, liệt kê 5 tool:
+ * 3 tool xử lý email và lịch họp, 2 tool đọc ghi semantic memory.
+ */
 function buildAgentSystemPromptMemory({ fullName, name, instructions }) {
   return `< Role >
 You are ${fullName}'s executive assistant. You are a top-notch executive assistant who cares about ${name} performing as well as possible.
@@ -214,6 +224,7 @@ const manageMemoryTool = createManageMemoryTool(MEMORY_NAMESPACE);
 const searchMemoryTool = createSearchMemoryTool(MEMORY_NAMESPACE);
 
 // Response agent chỉ tạo 1 lần vì instructions cố định, lấy từ profile.js.
+// Khai báo tools: Agent sẽ tự động chạy tool và gửi lại kết quả cho LLM theo vòng lặp cho đến khi hoàn tất.
 const responseAgent = createAgent({
   model: llm,
   tools: [
@@ -246,7 +257,7 @@ const EmailAgentState = Annotation.Root({
   }),
 });
 
-// Node 1: phân loại email.
+/** Node 1: phân loại email. */
 async function triageRouterNode(state, config) {
   console.log("\n📍 Node: triage_router - đang phân loại email...");
 
@@ -316,7 +327,7 @@ async function triageRouterNode(state, config) {
   return new Command({ goto: END });
 }
 
-// Node 2: chuyển messages cho agent có tool xử lý.
+/** Node 2: chuyển messages cho agent có tool xử lý. */
 async function responseAgentNode(state, nodeConfig) {
   console.log(
     "\n📍 Node: response_agent - đang gọi Agent xử lý (tool call)...",
@@ -347,7 +358,7 @@ const emailAgent = new StateGraph(EmailAgentState)
   // Gắn Store để các node truy cập được bộ nhớ dài hạn.
   .compile({ store });
 
-// Chạy graph với 1 email, in toàn bộ lịch sử message.
+/** Chạy graph với 1 email, in toàn bộ lịch sử message. */
 async function runEmail(emailInput, userId) {
   console.log(
     `\n========== Email: "${emailInput.subject}" (user=${userId}) ==========`,
@@ -398,13 +409,15 @@ Thanks,
 Jim`,
 };
 
-// Chạy khi user "harrison" chưa có ví dụ nào trong Store.
+/** Chạy khi user "harrison" chưa có ví dụ nào trong Store. */
 async function runWithoutMemory() {
   await runEmail(ambiguousEmail, "harrison");
 }
 
-// Sửa sai: lưu email + nhãn đúng (IGNORE) vào Store của "harrison" rồi chạy lại.
-// Chỉ cần sửa 1 lần, các lần sau triage phân loại đúng.
+/**
+ * Sửa sai: lưu email + nhãn đúng (IGNORE) vào Store của "harrison" rồi chạy lại.
+ * Chỉ cần sửa 1 lần, các lần sau triage phân loại đúng.
+ */
 async function correctAndRunWithMemory() {
   await store.put(examplesNamespace("harrison"), randomUUID(), {
     email: ambiguousEmail,

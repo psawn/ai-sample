@@ -15,8 +15,10 @@ const { createAgent } = require("langchain");
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { webSearch } = require("./tool");
 
-// In câu trả lời cuối (message cuối của Model).
-// createAgent không log từng node, nên không thấy từng bước gọi tool như bản manual.
+/**
+ * In câu trả lời cuối (message cuối của Model).
+ * createAgent không log từng node, nên không thấy từng bước gọi tool như bản manual.
+ */
 function printAnswer(result) {
   console.log(`\n>>> KẾT QUẢ CUỐI: ${result.messages.at(-1).content}\n`);
 }
@@ -38,6 +40,7 @@ async function main() {
 
   // Gộp Model + tools + system prompt thành 1 graph hoàn chỉnh.
   // Không cần StateGraph, addNode, addConditionalEdges.
+  // Khai báo tools: Agent sẽ tự động chạy tool và gửi lại kết quả cho LLM theo vòng lặp cho đến khi hoàn tất.
   const agent = createAgent({
     model: llm,
     tools: [webSearch],

@@ -38,7 +38,7 @@ const llm = new ChatGoogleGenerativeAI({
   temperature: 0,
 });
 
-// Xây vectorDB: load 3 PDF -> split -> embed -> MemoryVectorStore (giống 01-basic.js).
+/** Xây vectorDB: load 3 PDF -> split -> embed -> MemoryVectorStore (giống 01-basic.js). */
 async function buildVectorDb() {
   const pdfPaths = [
     path.join(lecturesDir, "MachineLearning-Lecture01.pdf"),

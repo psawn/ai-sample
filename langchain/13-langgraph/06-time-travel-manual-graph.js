@@ -32,7 +32,7 @@ You are allowed to make multiple calls (either together or in sequence). \
 Only look up information when you are sure of what you want. \
 If you need to look up some information before asking a follow up question, you are allowed to do that!`;
 
-// In dữ liệu trả về sau mỗi node chạy xong.
+/** In dữ liệu trả về sau mỗi node chạy xong. */
 function printStepEvent(event) {
   for (const [node, value] of Object.entries(event)) {
     // Lúc bị interruptBefore chặn, stream() trả thêm event phụ "__interrupt__".
@@ -44,10 +44,12 @@ function printStepEvent(event) {
   }
 }
 
-// Chạy tiếp từ config (1 checkpoint cụ thể) tới khi xong (state.next rỗng).
-// - Lần đầu: chạy từ đúng config truyền vào.
-// - Lần sau: dùng thread (không kèm checkpoint) -> chạy tiếp đúng nhánh vừa tạo,
-//   không rẽ nhánh lại từ config ban đầu.
+/**
+ * Chạy tiếp từ config (1 checkpoint cụ thể) tới khi xong (state.next rỗng).
+ * - Lần đầu: chạy từ đúng config truyền vào.
+ * - Lần sau: dùng thread (không kèm checkpoint) -> chạy tiếp đúng nhánh vừa tạo,
+ *   không rẽ nhánh lại từ config ban đầu.
+ */
 async function resumeUntilDone(abot, config, thread) {
   let events = await abot.graph.stream(null, config);
   for await (const event of events) {

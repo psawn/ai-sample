@@ -11,7 +11,7 @@ require("../_polyfill");
 require("dotenv").config();
 const { GoogleGenerativeAIEmbeddings } = require("@langchain/google-genai");
 
-// Dot product 2 vector: càng cao -> 2 câu càng gần nghĩa.
+/** Dot product 2 vector: càng cao -> 2 câu càng gần nghĩa. */
 function dotProduct(a, b) {
   return a.reduce((sum, value, i) => sum + value * b[i], 0);
 }

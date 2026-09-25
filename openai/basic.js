@@ -13,7 +13,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Gửi 1 prompt, trả về câu trả lời dạng text.
+/** Gửi 1 prompt, trả về câu trả lời dạng text. */
 async function getCompletion(prompt, model = "gpt-3.5-turbo") {
   const messages = [{ role: "user", content: prompt }];
 

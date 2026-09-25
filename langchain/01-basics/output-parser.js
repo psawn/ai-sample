@@ -46,7 +46,7 @@ const structuredPrompt = ChatPromptTemplate.fromTemplate(`
 {format_instructions}
 `);
 
-// Trích thông tin từ 1 review sản phẩm thành object.
+/** Trích thông tin từ 1 review sản phẩm thành object. */
 async function structuredOutputDemo() {
   console.log(structuredParser.getFormatInstructions());
 
@@ -79,7 +79,7 @@ const listPrompt = ChatPromptTemplate.fromTemplate(
   `Liệt kê 5 nguyên liệu chính để làm {dish}, phân tách bằng dấu phẩy.\n\n{format_instructions}`,
 );
 
-// Lấy danh sách nguyên liệu của 1 món ăn dưới dạng mảng.
+/** Lấy danh sách nguyên liệu của 1 món ăn dưới dạng mảng. */
 async function commaSeparatedListDemo() {
   console.log("\n\n" + listParser.getFormatInstructions());
 

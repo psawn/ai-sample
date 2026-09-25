@@ -15,7 +15,7 @@ const path = require("path");
 const pdf = require("pdf-parse");
 const { Document } = require("@langchain/core/documents");
 
-// Ghép các mảnh text của 1 trang PDF thành chuỗi, giữ đúng xuống dòng.
+/** Ghép các mảnh text của 1 trang PDF thành chuỗi, giữ đúng xuống dòng. */
 async function renderPage(pageData) {
   const textContent = await pageData.getTextContent();
 
@@ -37,7 +37,7 @@ async function renderPage(pageData) {
   return text;
 }
 
-// Đọc PDF, đổi thành mảng Document (mỗi trang 1 Document).
+/** Đọc PDF, đổi thành mảng Document (mỗi trang 1 Document). */
 async function loadPdf() {
   console.log("=== PDFLoader (native, pdf-parse) ===");
 

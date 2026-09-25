@@ -1,12 +1,20 @@
 // =======================================================================
 // EMAIL ASSISTANT - BƯỚC 3: GHÉP TRIAGE + RESPONSE AGENT THÀNH 1 GRAPH
 //
-// Ghép bước 01 và 02: phân loại email trước, chỉ email cần trả lời mới tới agent.
+// Phân loại email trước, chỉ email cần trả lời mới chuyển cho agent.
 //
-// Graph 2 node, triage_router tự điều hướng bằng Command({ goto }):
-//   1. START -> triage_router: phân loại email.
-//   2. respond -> response_agent (có tool) -> END.
-//   3. ignore / notify -> END, không gọi LLM thêm.
+// Email agent (một chiều, không vòng lặp)
+//   START -> triage_router --+--(respond)--------> response_agent -> (dừng)
+//                            |
+//                            +--(ignore/notify)--> END
+//
+// - triage_router: LLM phân loại email thành respond / ignore / notify.
+// - response_agent: agent có tool soạn trả lời (vòng lặp gọi tool nằm bên trong).
+//
+// Điều hướng bằng Command({ goto }): node tự chọn đường,
+// đồng thời ghi state (update) trong cùng 1 lần return.
+// Dùng khi: node cần vừa ghi state vừa điều hướng (vd: router, chuyển việc giữa agent).
+// So sánh cách dùng addConditionalEdges: ../../udemy-course/react-langgraph-function-calling.js
 // =======================================================================
 
 require("../_polyfill");
@@ -61,6 +69,7 @@ const llm = new ChatGoogleGenerativeAI({
   temperature: 0,
 });
 
+// withStructuredOutput: LLM trả về object đúng schema Router.
 const llmRouter = llm.withStructuredOutput(Router);
 
 // Response agent giống bước 02: model + 3 tool xử lý email và lịch họp.
@@ -74,8 +83,8 @@ const responseAgent = createAgent({
   }),
 });
 
-// State: dữ liệu chung, các node đọc và ghi.
-// - emailInput: có giá trị mới thì thay, không thì giữ. Không đổi suốt lượt chạy.
+// State: dữ liệu chung giữa các node. Tự định nghĩa vì cần thêm emailInput.
+// - emailInput: có giá trị mới thì thay, không thì giữ lại. Không đổi suốt lượt chạy.
 // - messages  : messagesStateReducer nối message mới vào lịch sử.
 // invoke({ emailInput }) tạo state ban đầu { emailInput: {...}, messages: [] }.
 const EmailAgentState = Annotation.Root({
@@ -89,8 +98,10 @@ const EmailAgentState = Annotation.Root({
   }),
 });
 
-// Node 1: phân loại email, rồi chọn node kế tiếp.
-// Command gồm 2 phần: update ghi vào state, goto chọn node tiếp theo.
+/**
+ * Node 1: LLM phân loại email, rồi trả về Command để chọn node kế tiếp.
+ * Command gồm 2 phần: update ghi vào state, goto chọn node tiếp theo.
+ */
 async function triageRouterNode(state) {
   console.log("\n📍 Node: triage_router - đang phân loại email...");
 
@@ -149,7 +160,7 @@ async function triageRouterNode(state) {
   return new Command({ goto: END });
 }
 
-// Node 2: chuyển messages hiện tại cho agent có tool (bước 02) xử lý.
+/** Node 2: giao messages cho response agent có tool xử lý. */
 async function responseAgentNode(state) {
   console.log("\n📍 Node: response_agent - đang gọi Agent xử lý (tool call)...");
 
@@ -157,20 +168,21 @@ async function responseAgentNode(state) {
   return { messages: result.messages };
 }
 
-// Khai báo và biên dịch graph.
+// Dựng và biên dịch graph.
 const emailAgent = new StateGraph(EmailAgentState)
   // ends: các node mà Command({ goto }) có thể nhảy tới.
-  // Bắt buộc khai báo vì không có addEdge nào trỏ vào response_agent.
+  // Bắt buộc vì không có addEdge nào trỏ vào response_agent.
   .addNode(
     "triage_router", // tên node
     triageRouterNode, // hàm chạy khi tới node này
-    { ends: ["response_agent", END] }, // các đích node này có thể goto
+    { ends: ["response_agent", END] }, // các đích có thể goto
   )
+  // Không có cạnh đi ra -> chạy xong là dừng.
   .addNode("response_agent", responseAgentNode)
   .addEdge(START, "triage_router")
   .compile();
 
-// Chạy graph với 1 email, in toàn bộ lịch sử message.
+/** Chạy graph với 1 email, in toàn bộ lịch sử message. */
 async function runEmail(emailInput) {
   console.log(`\n========== Email: "${emailInput.subject}" ==========`);
   const result = await emailAgent.invoke({ emailInput });

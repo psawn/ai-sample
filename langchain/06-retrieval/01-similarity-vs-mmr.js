@@ -26,7 +26,7 @@ const embeddings = new GoogleGenerativeAIEmbeddings({
   model: "gemini-embedding-001",
 });
 
-// Demo 1: 3 câu ngắn về nấm. Thấy rõ điểm yếu của MMR chỉ trong vài dòng.
+/** Demo 1: 3 câu ngắn về nấm. Thấy rõ điểm yếu của MMR chỉ trong vài dòng. */
 async function demoMmrTradeoff() {
   const texts = [
     "The Amanita phalloides has a large and imposing fruiting body.", // Chỉ nói "thân to"
@@ -53,7 +53,7 @@ async function demoMmrTradeoff() {
   docsMmr.forEach((d) => console.log("-", d.pageContent));
 }
 
-// Demo 2: so sánh trên PDF thật (3 lecture CS229).
+/** Demo 2: so sánh trên PDF thật (3 lecture CS229). */
 async function demoMmrOnRealPdf() {
   const pdfPaths = [
     path.join(lecturesDir, "MachineLearning-Lecture01.pdf"),

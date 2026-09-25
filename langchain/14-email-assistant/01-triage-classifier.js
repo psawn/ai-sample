@@ -52,7 +52,7 @@ const systemPrompt = buildTriageSystemPrompt({
   examples: null,
 });
 
-// Phân loại 1 email, in lý do và nhãn LLM chọn.
+/** Phân loại 1 email, in lý do và nhãn LLM chọn. */
 async function runTriage(emailInput) {
   const { author, to, subject, emailThread } = emailInput;
   const userPrompt = buildTriageUserPrompt({

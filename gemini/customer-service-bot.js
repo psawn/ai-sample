@@ -66,9 +66,11 @@ const PRODUCT_CATALOG = {
   },
 };
 
-// Hàm gọi Gemini dùng chung cho mọi bước.
-// temperature: 0 -> kết quả ổn định, dễ kiểm tra.
-// Tạo model mới mỗi lần gọi, vì mỗi bước có systemInstruction khác nhau.
+/**
+ * Hàm gọi Gemini dùng chung cho mọi bước.
+ * temperature: 0 -> kết quả ổn định, dễ kiểm tra.
+ * Tạo model mới mỗi lần gọi, vì mỗi bước có systemInstruction khác nhau.
+ */
 async function callGemini(prompt, systemInstruction = "") {
   try {
     const modelConfig = {
@@ -93,9 +95,11 @@ async function callGemini(prompt, systemInstruction = "") {
   }
 }
 
-// Tìm sản phẩm trong câu hỏi bằng so khớp chuỗi đơn giản (không gọi LLM).
-// Riêng "tv"/"television" map về "smart tv 55".
-// Lưu ý: includes("tv") khớp cả chữ khác chứa "tv", và có thể thêm trùng "smart tv 55".
+/**
+ * Tìm sản phẩm trong câu hỏi bằng so khớp chuỗi đơn giản (không gọi LLM).
+ * Riêng "tv"/"television" map về "smart tv 55".
+ * Lưu ý: includes("tv") khớp cả chữ khác chứa "tv", và có thể thêm trùng "smart tv 55".
+ */
 function findProductsInText(userInput) {
   const text = userInput.toLowerCase();
   const foundProducts = [];
@@ -113,7 +117,7 @@ function findProductsInText(userInput) {
   return foundProducts;
 }
 
-// Ghép thông tin các sản phẩm tìm được thành text để đưa vào prompt.
+/** Ghép thông tin các sản phẩm tìm được thành text để đưa vào prompt. */
 function generateProductInformation(productList) {
   if (productList.length === 0)
     return "No specific products found matching your request.";
@@ -127,9 +131,11 @@ function generateProductInformation(productList) {
     .join("\n---\n");
 }
 
-// Xử lý 1 tin nhắn qua pipeline 7 bước.
-// Trả { response, context }: câu trả lời + history mới.
-// Bị chặn ở bước 1 hoặc 5 -> context giữ nguyên, không lưu lượt này.
+/**
+ * Xử lý 1 tin nhắn qua pipeline 7 bước.
+ * Trả { response, context }: câu trả lời + history mới.
+ * Bị chặn ở bước 1 hoặc 5 -> context giữ nguyên, không lưu lượt này.
+ */
 async function processUserMessage(userInput, allMessages = [], debug = true) {
   // Bọc input của user trong delimiter để model phân biệt với chỉ dẫn,
   // giảm rủi ro prompt injection.
@@ -218,8 +224,10 @@ async function processUserMessage(userInput, allMessages = [], debug = true) {
 }
 
 // ===== KỊCH BẢN MINH HỌA =====
-// Hỏi về "computer": sản phẩm không có trong catalog.
-// Kỳ vọng: bot báo cửa hàng không bán, không hỏi thêm về máy tính.
+/**
+ * Hỏi về "computer": sản phẩm không có trong catalog.
+ * Kỳ vọng: bot báo cửa hàng không bán, không hỏi thêm về máy tính.
+ */
 async function runDemo() {
   const userInput =
     "Can you recommend me a good computer for work? I want to buy a computer that is good for work, but I don't want to spend too much money. Can you recommend me a good computer for work that is also affordable?";

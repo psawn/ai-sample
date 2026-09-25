@@ -39,10 +39,12 @@ const prompt = ChatPromptTemplate.fromMessages([
 // Chain: prompt -> model có Tool. Output là AIMessage, có thể kèm tool_calls.
 const chain = prompt.pipe(modelWithTools);
 
-// route(): đọc tool_calls để quyết định bước tiếp theo.
-// - Không có tool_calls -> model đã trả lời thẳng -> trả content.
-// - Có tool_calls -> tra Tool theo tên, gọi với tham số model chọn.
-// Chỉ chạy tool_calls[0], bỏ qua các lượt gọi còn lại (nếu có).
+/**
+ * route(): đọc tool_calls để quyết định bước tiếp theo.
+ * - Không có tool_calls -> model đã trả lời thẳng -> trả content.
+ * - Có tool_calls -> tra Tool theo tên, gọi với tham số model chọn.
+ * Chỉ chạy tool_calls[0], bỏ qua các lượt gọi còn lại (nếu có).
+ */
 async function route(aiMessage) {
   console.log("aiMessage:", aiMessage);
 

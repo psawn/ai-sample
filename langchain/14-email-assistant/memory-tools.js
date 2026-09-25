@@ -6,6 +6,13 @@
 //
 // Tool không giữ Store riêng: getStore(config) lấy Store đã gắn vào agent hoặc graph.
 // Namespace truyền vào khi tạo tool, userId lấy từ config lúc chạy.
+//
+// Các file đang sử dụng:
+//   - 04-semantic-memory-agent.js
+//   - 05-episodic-memory-triage.js
+//   - 06-procedural-memory-agent.js
+//   - ../../typesafe/04-semantic-memory-agent.js
+//   - ../../typesafe/04-semantic-memory-multi-node.js
 // =======================================================================
 
 require("../_polyfill");
@@ -15,9 +22,11 @@ const { z } = require("zod");
 const { tool } = require("@langchain/core/tools");
 const { getStore } = require("@langchain/langgraph");
 
-// Thay "{langgraph_user_id}" trong namespace bằng userId lấy từ config.
-// Ví dụ: ["email_assistant", "{langgraph_user_id}", "collection"]
-//     -> ["email_assistant", "lance", "collection"]
+/**
+ * Thay "{langgraph_user_id}" trong namespace bằng userId lấy từ config.
+ * Ví dụ: ["email_assistant", "{langgraph_user_id}", "collection"]
+ *     -> ["email_assistant", "lance", "collection"]
+ */
 function resolveNamespace(namespaceTemplate, config) {
   const userId = config?.configurable?.langgraph_user_id ?? "default";
 
@@ -26,7 +35,7 @@ function resolveNamespace(namespaceTemplate, config) {
   );
 }
 
-// Tool manage_memory: tạo, cập nhật hoặc xoá 1 memory trong Store.
+/** Tool manage_memory: tạo, cập nhật hoặc xoá 1 memory trong Store. */
 function createManageMemoryTool(namespaceTemplate) {
   return tool(
     async ({ content, action = "create", id }, config) => {
@@ -89,7 +98,7 @@ function createManageMemoryTool(namespaceTemplate) {
   );
 }
 
-// Tool search_memory: tìm memory liên quan theo ý nghĩa.
+/** Tool search_memory: tìm memory liên quan theo ý nghĩa. */
 function createSearchMemoryTool(namespaceTemplate) {
   return tool(
     async ({ query, limit = 10 }, config) => {

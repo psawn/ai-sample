@@ -43,7 +43,7 @@ const extractFirstToolArgs = RunnableLambda.from(
 
 // ===== BƯỚC 1: TẢI NỘI DUNG BÀI BLOG =====
 
-// CheerioWebBaseLoader: tải trang web, bỏ HTML, chỉ giữ chữ.
+/** CheerioWebBaseLoader: tải trang web, bỏ HTML, chỉ giữ chữ. */
 async function loadBlogPost() {
   const loader = new CheerioWebBaseLoader(
     "https://lilianweng.github.io/posts/2023-06-23-agent/",
@@ -61,7 +61,7 @@ async function loadBlogPost() {
 
 // ===== BƯỚC 2: TAGGING TỔNG QUAN BÀI VIẾT (OVERVIEW) =====
 
-// Gắn nhãn tổng quan cho bài: tóm tắt, ngôn ngữ, từ khóa.
+/** Gắn nhãn tổng quan cho bài: tóm tắt, ngôn ngữ, từ khóa. */
 async function overviewTaggingDemo(pageContent) {
   const overviewSchema = z.object({
     summary: z.string().describe("Provide a concise summary of the content."),
@@ -95,7 +95,7 @@ async function overviewTaggingDemo(pageContent) {
 
 // ===== BƯỚC 3: TRÍCH DANH SÁCH PAPER TRONG BÀI =====
 
-// So sánh 2 prompt (chung chung vs chặt chẽ). Trả chain chặt chẽ để dùng ở bước 4.
+/** So sánh 2 prompt (chung chung vs chặt chẽ). Trả chain chặt chẽ để dùng ở bước 4. */
 async function paperExtractionDemo(pageContent) {
   // 1 paper: tên + tác giả (có thể không có).
   const paperSchema = z.object({
@@ -169,10 +169,12 @@ Do not make up or guess ANY extra information. Only extract what exactly is in t
 
 // ===== BƯỚC 4: EXTRACTION TRÊN TOÀN BỘ BÀI (CHIA NHỎ BẰNG SPLITTER) =====
 
-// Cả bài quá dài cho 1 lần gọi model. Cách xử lý:
-// 1. Chia bài thành nhiều đoạn nhỏ (splits).
-// 2. Chạy extraction riêng cho từng đoạn.
-// 3. Gộp kết quả (mảng của mảng) thành 1 mảng phẳng bằng .flat().
+/**
+ * Cả bài quá dài cho 1 lần gọi model. Cách xử lý:
+ * 1. Chia bài thành nhiều đoạn nhỏ (splits).
+ * 2. Chạy extraction riêng cho từng đoạn.
+ * 3. Gộp kết quả (mảng của mảng) thành 1 mảng phẳng bằng .flat().
+ */
 async function fullDocumentExtractionDemo(doc, extractionChain) {
   const textSplitter = new RecursiveCharacterTextSplitter({ chunkOverlap: 0 });
   const splits = await textSplitter.splitText(doc.pageContent);

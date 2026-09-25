@@ -49,14 +49,16 @@ const llm = new ChatGoogleGenerativeAI({
   temperature: 0,
 });
 
-// Chuẩn bị cho hội thoại:
-// 1. Load PDF -> split -> embed.
-// 2. Tạo retriever + 2 chain: rephraseChain (viết lại câu hỏi), answerChain (trả lời).
-//
-// chainType (mặc định "stuff", chi tiết: 03-chain-types.js):
-// - "stuff": nhét hết document vào 1 prompt. Nhanh, rẻ.
-// - "map_reduce": tóm tắt từng document rồi gộp. Xử lý được nhiều document.
-// - "refine": sửa dần câu trả lời qua từng document. Giữ mạch tốt nhất, nhưng chậm.
+/**
+ * Chuẩn bị cho hội thoại:
+ * 1. Load PDF -> split -> embed.
+ * 2. Tạo retriever + 2 chain: rephraseChain (viết lại câu hỏi), answerChain (trả lời).
+ *
+ * chainType (mặc định "stuff", chi tiết: 03-chain-types.js):
+ * - "stuff": nhét hết document vào 1 prompt. Nhanh, rẻ.
+ * - "map_reduce": tóm tắt từng document rồi gộp. Xử lý được nhiều document.
+ * - "refine": sửa dần câu trả lời qua từng document. Giữ mạch tốt nhất, nhưng chậm.
+ */
 async function loadDb(file, k, chainType = "stuff") {
   const documents = await new PDFLoader(file).load();
 
@@ -88,10 +90,12 @@ async function loadDb(file, k, chainType = "stuff") {
   return { retriever, rephraseChain, answerChain };
 }
 
-// Xử lý 1 lượt hỏi-đáp. Trả về:
-// - answer: câu trả lời.
-// - generatedQuestion: câu hỏi đã viết lại (dùng để tìm document).
-// - sourceDocuments: các document đã dùng làm context.
+/**
+ * Xử lý 1 lượt hỏi-đáp. Trả về:
+ * - answer: câu trả lời.
+ * - generatedQuestion: câu hỏi đã viết lại (dùng để tìm document).
+ * - sourceDocuments: các document đã dùng làm context.
+ */
 async function askQuestion(qa, query, chatHistory) {
   const { retriever, rephraseChain, answerChain } = qa;
 

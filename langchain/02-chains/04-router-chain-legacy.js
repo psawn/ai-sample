@@ -52,7 +52,7 @@ const chain = MultiPromptChain.fromLLMAndPrompts(model, {
   promptTemplates,
 });
 
-// Hỏi 1 câu. Gọi Gemini 2 lần: 1 lần chọn destination, 1 lần trả lời.
+/** Hỏi 1 câu. Gọi Gemini 2 lần: 1 lần chọn destination, 1 lần trả lời. */
 async function ask(input) {
   const result = await chain.call({ input });
 

@@ -60,8 +60,10 @@ const knowledgeBase = [
 
 const collectionName = "apple-knowledge";
 
-// Lấy collection. Còn trống thì nạp knowledgeBase vào.
-// Lưu ý: collection đã có dữ liệu -> bỏ qua. Sửa knowledgeBase -> phải xóa collection cũ.
+/**
+ * Lấy collection. Còn trống thì nạp knowledgeBase vào.
+ * Lưu ý: collection đã có dữ liệu -> bỏ qua. Sửa knowledgeBase -> phải xóa collection cũ.
+ */
 async function ensurePopulated() {
   // embeddingFunction tự embed text -> chỉ cần truyền text thô vào add() và query().
   const collection = await chroma.getOrCreateCollection({ name: collectionName, embeddingFunction });
@@ -79,7 +81,7 @@ async function ensurePopulated() {
   return collection;
 }
 
-// Trả lời câu hỏi theo RAG (3 bước ở header).
+/** Trả lời câu hỏi theo RAG (3 bước ở header). */
 async function answerQuestion(collection, question) {
   // 1. Retrieval: lấy 1 document gần câu hỏi nhất.
   // nResults: 1 -> câu hỏi cần thông tin từ 2 document sẽ thiếu context. Tăng lên nếu cần.

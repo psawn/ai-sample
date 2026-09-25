@@ -1,8 +1,8 @@
 // =======================================================================
 // AGENT FROM SCRATCH - ReAct AGENT (CÁCH CŨ)
 //
-// Phần dùng chung cho 01-react-manual-steps.js và 02-react-auto-loop.js:
-// LLM, system prompt, class Agent (giữ lịch sử + gọi LLM).
+// Phần dùng chung cho các bài ReAct: LLM, system prompt, class Agent
+// (giữ lịch sử + gọi LLM). File này chỉ export, không tự chạy.
 //
 // ReAct: model lặp theo vòng, viết bằng text:
 // 1. Thought: nghĩ cần làm gì.
@@ -13,6 +13,10 @@
 // Cách mới, nên dùng cho sản phẩm thật: Native Tool Calling.
 // Cùng ví dụ viết lại: 03-native-tool-calling-manual-messages.js
 // (hoặc ../11-tool-routing/05-routing.js, ../11-tool-routing/06-agent-executor.js).
+//
+// Các file đang sử dụng:
+//   - 01-react-manual-steps.js
+//   - 02-react-auto-loop.js
 // =======================================================================
 
 require("../_polyfill");
@@ -74,10 +78,12 @@ You then output:
 Answer: A bulldog weights 51 lbs
 `.trim();
 
-// response.content của Gemini không phải lúc nào cũng là string.
-// Đôi khi là mảng (rỗng, hoặc nhiều part { text: "..." }).
-// Gom thành 1 string để nơi gọi khỏi phải kiểm tra kiểu.
-// Vd: [{ text: "Thought: " }, { text: "..." }] -> "Thought: ...".
+/**
+ * response.content của Gemini không phải lúc nào cũng là string.
+ * Đôi khi là mảng (rỗng, hoặc nhiều part { text: "..." }).
+ * Gom thành 1 string để nơi gọi khỏi phải kiểm tra kiểu.
+ * Vd: [{ text: "Thought: " }, { text: "..." }] -> "Thought: ...".
+ */
 function messageContentToString(content) {
   if (typeof content === "string") return content;
   if (Array.isArray(content)) {
@@ -88,7 +94,7 @@ function messageContentToString(content) {
   return String(content ?? "");
 }
 
-// In mảng messages sắp gửi cho LLM, để thấy agent đang "nhớ" gì.
+/** In mảng messages sắp gửi cho LLM, để thấy agent đang "nhớ" gì. */
 function logMessages(messages) {
   console.log("\n----- Messages gửi cho LLM -----");
   console.log(messages);

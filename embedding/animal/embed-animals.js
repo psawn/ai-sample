@@ -21,7 +21,7 @@ const INPUT_FILE = path.join(__dirname, "animal.json");
 const OUTPUT_FILE = path.join(__dirname, "animal-embeddings.json");
 const EMBEDDING_MODEL = "gemini-embedding-001";
 
-// Gọi model lấy vector embedding của 1 đoạn text (mảng số, 3072 chiều với gemini-embedding-001).
+/** Gọi model lấy vector embedding của 1 đoạn text (mảng số, 3072 chiều với gemini-embedding-001). */
 async function embedText(model, text) {
   const result = await model.embedContent(text);
   return result.embedding.values;

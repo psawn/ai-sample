@@ -6,8 +6,8 @@
 //
 // Flow:
 // 1. routerChain: Gemini trả đúng 1 từ là tên chủ đề (hoặc "general").
-// 2. RunnablePassthrough.assign({ topic }): gắn topic vào object,
-//    câu hỏi gốc vẫn giữ nguyên.
+// 2. RunnablePassthrough.assign({ topic }): giữ nguyên câu hỏi gốc, bổ sung topic.
+//    { input } -> { input, topic }
 // 3. RunnableBranch: như chuỗi if/else. Kiểm tra lần lượt [điều kiện, chain],
 //    đúng điều kiện nào thì chạy chain đó. Phần tử cuối (không điều kiện) là "else".
 //
@@ -78,6 +78,14 @@ Classification:`,
 // Chain hoàn chỉnh: phân loại -> rẽ nhánh tới chain phù hợp.
 // toLowerCase() + includes(): model có thể trả kèm dấu câu hoặc viết hoa (vd "Physics.").
 const chain = RunnableSequence.from([
+  // Input ban đầu: { input: "câu hỏi" }
+  //
+  // Dùng .assign() để gắn kết quả routerChain:
+  // - Pipe thường (không bọc assign): output routerChain = TOÀN BỘ input bước sau
+  //   -> ĐÈ MẤT 'input' -> chain sau không còn câu hỏi để trả lời.
+  // - Bọc .assign(): GIỮ NGUYÊN 'input' và BỔ SUNG thêm 'topic'.
+  //
+  // Output chuyển tiếp: { input, topic } -> topic để rẽ nhánh, input để trả lời.
   RunnablePassthrough.assign({ topic: routerChain }),
   RunnableBranch.from([
     ...topics.map((topic) => [
@@ -88,7 +96,7 @@ const chain = RunnableSequence.from([
   ]),
 ]);
 
-// Hỏi 1 câu. Gọi Gemini 2 lần: 1 lần phân loại, 1 lần trả lời.
+/** Hỏi 1 câu. Gọi Gemini 2 lần: 1 lần phân loại, 1 lần trả lời. */
 async function ask(input) {
   const result = await chain.invoke({ input });
 

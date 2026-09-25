@@ -143,9 +143,11 @@ const needsMemoryQuestion = noul(
   },
 );
 
-// Dùng ở node 5: làm gì với memory?
-// Nhãn thay đổi theo từng email: mỗi memory cũ thêm 1 nhãn "update:<key>".
-// -> 1 câu hỏi trả lời luôn 2 việc: làm gì, và cập nhật memory nào.
+/**
+ * Dùng ở node 5: làm gì với memory?
+ * Nhãn thay đổi theo từng email: mỗi memory cũ thêm 1 nhãn "update:<key>".
+ * -> 1 câu hỏi trả lời luôn 2 việc: làm gì, và cập nhật memory nào.
+ */
 function buildMemoryActionQuestion(memories) {
   return choice(
     "After handling this email, what should be done with the assistant's long-term memory " +
@@ -165,7 +167,7 @@ function buildMemoryActionQuestion(memories) {
 
 // ===== HÀM TRỢ GIÚP =====
 
-// Gọi systemOne(), in request và response.
+/** Gọi systemOne(), in request và response. */
 async function askTypeSafe(params) {
   console.log("📤 TypeSafe request params:");
   console.dir(params, { depth: null });
@@ -207,7 +209,7 @@ const EmailAgentState = Annotation.Root({
 });
 
 // ===== NODE 1: PHÂN LOẠI EMAIL =====
-// Chỉ "respond" đi tiếp. Còn lại dừng luôn, không gọi Gemini.
+/** Chỉ "respond" đi tiếp. Còn lại dừng luôn, không gọi Gemini. */
 async function triageRouterNode(state) {
   console.log("\n📍 Node: triage_router");
 
@@ -237,7 +239,7 @@ async function triageRouterNode(state) {
 }
 
 // ===== NODE 2: TÌM MEMORY LIÊN QUAN =====
-// 3 bước: có cần tìm không -> tìm -> lọc bỏ memory không liên quan.
+/** 3 bước: có cần tìm không -> tìm -> lọc bỏ memory không liên quan. */
 async function recallMemoryNode(state) {
   console.log("\n📍 Node: recall_memory");
 
@@ -291,7 +293,7 @@ async function recallMemoryNode(state) {
 }
 
 // ===== NODE 3: CHỌN BƯỚC TIẾP THEO =====
-// Nhìn email + memory + các bước đã làm, rồi chọn: chạy tool nào, hay đã xong.
+/** Nhìn email + memory + các bước đã làm, rồi chọn: chạy tool nào, hay đã xong. */
 async function chooseActionNode(state) {
   console.log(`\n📍 Node: choose_action (step ${state.steps.length + 1})`);
 
@@ -323,7 +325,7 @@ async function chooseActionNode(state) {
 }
 
 // ===== NODE 4: CHẠY TOOL =====
-// Gemini điền tham số -> chạy tool -> lưu kết quả -> quay lại node 3.
+/** Gemini điền tham số -> chạy tool -> lưu kết quả -> quay lại node 3. */
 async function runToolNode(state) {
   const tool = toolsByName[state.nextTool];
   console.log(`\n📍 Node: run_tool (${tool.name})`);
@@ -359,8 +361,10 @@ async function runToolNode(state) {
 }
 
 // ===== NODE 5: LƯU MEMORY =====
-// TypeSafe chọn làm gì -> Gemini viết nội dung -> manage_memory ghi vào Store.
-// nodeConfig có sẵn store + userId, truyền cho manage_memory để ghi đúng ngăn.
+/**
+ * TypeSafe chọn làm gì -> Gemini viết nội dung -> manage_memory ghi vào Store.
+ * nodeConfig có sẵn store + userId, truyền cho manage_memory để ghi đúng ngăn.
+ */
 async function saveMemoryNode(state, nodeConfig) {
   console.log("\n📍 Node: save_memory");
 

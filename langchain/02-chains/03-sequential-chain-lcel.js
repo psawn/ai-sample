@@ -4,10 +4,10 @@
 // Nối nhiều chain, mỗi chain có nhiều input/output có tên.
 // Chain sau dùng được output của bất kỳ chain nào trước nó, không chỉ chain liền kề.
 //
-// RunnablePassthrough.assign({ tenBien: chain }):
-// 1. Chạy chain.
-// 2. Gộp kết quả vào object hiện có: thêm key mới, giữ nguyên key cũ.
-//    (.pipe() thường thì thay toàn bộ object bằng kết quả mới.)
+// RunnablePassthrough.assign({ tenBien: chain }): chạy chain -> gắn kết quả vào key tenBien.
+// - Pipe thường (không bọc assign): output bước trước = TOÀN BỘ input bước sau
+//   -> ĐÈ MẤT các key cũ.
+// - Bọc .assign(): GIỮ NGUYÊN các key cũ và BỔ SUNG thêm key mới.
 //
 // Vd: chain 4 dùng cùng lúc "summary" (chain 2) và "language" (chain 3),
 // vì cả 2 key vẫn còn trong object nhờ .assign().
@@ -59,7 +59,7 @@ const followupChain = ChatPromptTemplate.fromTemplate(
   .pipe(model)
   .pipe(new StringOutputParser());
 
-// Mỗi assign() thêm 1 key mới, giữ nguyên các key cũ:
+// Mỗi assign() giữ nguyên key cũ, bổ sung 1 key mới:
 // - Ban đầu: { Review }
 // - Sau chain 1: { Review, English_Review }
 // - Sau chain 2: { Review, English_Review, summary }

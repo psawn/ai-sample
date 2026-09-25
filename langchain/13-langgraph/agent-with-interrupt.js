@@ -9,7 +9,12 @@
 // - Trùng id -> ghi đè. id mới -> nối thêm.
 // - Nhờ vậy sửa được tool_calls trong state mà không sinh message trùng.
 //
-// Dùng cho 04, 05, 06-*-manual-graph.js.
+// File này chỉ export lớp `Agent` cho các bài demo dùng lại (không tự chạy).
+//
+// Các file đang sử dụng:
+//   - 04-human-approval-manual-graph.js
+//   - 05-modify-state-manual-graph.js
+//   - 06-time-travel-manual-graph.js
 // =======================================================================
 
 require("../_polyfill");

@@ -35,10 +35,12 @@ const model = new ChatGoogleGenerativeAI({
 
 // ===== DEMO 1: SIMPLE CHAIN =====
 
-// prompt.pipe(model).pipe(outputParser):
-// 1. prompt: điền {topic} vào template.
-// 2. model: gửi prompt cho LLM, nhận AIMessage.
-// 3. outputParser: lấy text từ AIMessage.content, bỏ metadata.
+/**
+ * prompt.pipe(model).pipe(outputParser):
+ * 1. prompt: điền {topic} vào template.
+ * 2. model: gửi prompt cho LLM, nhận AIMessage.
+ * 3. outputParser: lấy text từ AIMessage.content, bỏ metadata.
+ */
 async function simpleChainDemo() {
   const prompt = ChatPromptTemplate.fromTemplate(
     "tell me a short joke about {topic}",
@@ -54,10 +56,12 @@ async function simpleChainDemo() {
 
 // ===== DEMO 2: CHAIN PHỨC TẠP (RunnableMap + retriever) =====
 
-// RAG cơ bản:
-// 1. RunnableMap: từ input { question }, tạo { context, question }.
-// 2. retriever: tìm đoạn văn bản liên quan câu hỏi -> context.
-// 3. prompt -> model -> outputParser: LLM trả lời chỉ dựa trên context.
+/**
+ * RAG cơ bản:
+ * 1. RunnableMap: từ input { question }, tạo { context, question }.
+ * 2. retriever: tìm đoạn văn bản liên quan câu hỏi -> context.
+ * 3. prompt -> model -> outputParser: LLM trả lời chỉ dựa trên context.
+ */
 async function complexChainDemo() {
   // embeddings: đổi câu thành vector. MemoryVectorStore: lưu vector trong RAM.
   const embeddings = new GoogleGenerativeAIEmbeddings({
@@ -82,7 +86,7 @@ async function complexChainDemo() {
   console.log("\n=== 2b. retriever.invoke: bears like to eat ===");
   console.log(docs2.map((d) => d.pageContent));
 
-  // Gộp các document thành 1 chuỗi, vì {context} trong prompt phải là text.
+  /** Gộp các document thành 1 chuỗi, vì {context} trong prompt phải là text. */
   function formatDocuments(docs) {
     return docs.map((doc) => doc.pageContent).join("\n\n");
   }
@@ -124,10 +128,12 @@ Question: {question}
 
 // ===== DEMO 3: BIND (GẮN SẴN TOOLS VÀO MODEL) =====
 
-// model.withConfig({ tools }) (thay .bind() đã deprecated):
-// - Tạo Runnable mới, gắn sẵn tools.
-// - Mọi lần invoke sau tự kèm tools, không cần truyền lại.
-// Format tools giống 01-function-calling.js.
+/**
+ * model.withConfig({ tools }) (thay .bind() đã deprecated):
+ * - Tạo Runnable mới, gắn sẵn tools.
+ * - Mọi lần invoke sau tự kèm tools, không cần truyền lại.
+ * Format tools giống 01-function-calling.js.
+ */
 async function bindDemo() {
   const prompt = ChatPromptTemplate.fromMessages([["human", "{input}"]]);
 
@@ -205,10 +211,12 @@ async function bindDemo() {
 
 // ===== DEMO 4: FALLBACKS (CHAIN DỰ PHÒNG) =====
 
-// withFallbacks: chain chính throw -> tự thử chain dự phòng, không crash.
-// 1. simpleChain: không dặn format -> model hay bọc JSON trong ```json``` -> parse lỗi.
-// 2. strictJsonChain: dặn rõ chỉ trả JSON thuần -> parse ổn định hơn.
-// 3. finalChain: chạy simpleChain trước, lỗi thì chuyển sang strictJsonChain.
+/**
+ * withFallbacks: chain chính throw -> tự thử chain dự phòng, không crash.
+ * 1. simpleChain: không dặn format -> model hay bọc JSON trong ```json``` -> parse lỗi.
+ * 2. strictJsonChain: dặn rõ chỉ trả JSON thuần -> parse ổn định hơn.
+ * 3. finalChain: chạy simpleChain trước, lỗi thì chuyển sang strictJsonChain.
+ */
 async function fallbacksDemo() {
   const challenge =
     "write three poems in a json blob, where each poem is a json blob of a title, author, and first line";
@@ -265,10 +273,12 @@ async function fallbacksDemo() {
 
 // ===== DEMO 5: INTERFACE (invoke / batch / stream) =====
 
-// Mọi Runnable đều có 3 method chung:
-// 1. invoke: 1 input -> đợi kết quả đầy đủ.
-// 2. batch: nhiều input chạy song song -> mảng kết quả, đúng thứ tự input.
-// 3. stream: nhận từng phần ngay khi model sinh ra.
+/**
+ * Mọi Runnable đều có 3 method chung:
+ * 1. invoke: 1 input -> đợi kết quả đầy đủ.
+ * 2. batch: nhiều input chạy song song -> mảng kết quả, đúng thứ tự input.
+ * 3. stream: nhận từng phần ngay khi model sinh ra.
+ */
 async function interfaceDemo() {
   const prompt = ChatPromptTemplate.fromTemplate(
     "Tell me a short joke about {topic}",

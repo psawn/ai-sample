@@ -1,9 +1,24 @@
 // =======================================================================
 // LANGGRAPH - SEARCH TOOL: TÌM KIẾM DỮ LIỆU THẬT TỪ WIKIPEDIA
 //
-// Tool web_search dùng chung cho các bài trong thư mục này.
+// Tool web_search dùng chung cho các bài trong thư mục này (file chỉ export, không tự chạy).
 // Dùng Wikipedia API (MediaWiki): miễn phí, không cần API key.
 // Cần dữ liệu thời gian thực (thời tiết, tin tức) thì thay bằng TavilySearchResults.
+//
+// Các file đang sử dụng:
+//   - 01-components-create-agent.js
+//   - 02-persistence-create-agent.js
+//   - 03-streaming-tokens-create-agent.js
+//   - 04-human-approval-create-agent.js
+//   - 05-modify-state-create-agent.js
+//   - 06-time-travel-create-agent.js
+//   - 01-components-manual-graph.js
+//   - 02-persistence-manual-graph.js
+//   - 03-streaming-tokens-manual-graph.js
+//   - 04-human-approval-manual-graph.js
+//   - 05-modify-state-manual-graph.js
+//   - 06-time-travel-manual-graph.js
+//   - 08-essay-writer.js
 // =======================================================================
 
 require("../_polyfill");
@@ -13,7 +28,7 @@ const { tool } = require("@langchain/core/tools");
 
 const WIKI_API = "https://en.wikipedia.org/w/api.php";
 
-// 1. Tìm tối đa 3 tiêu đề trang liên quan nhất tới từ khoá (query).
+/** 1. Tìm tối đa 3 tiêu đề trang liên quan nhất tới từ khoá (query). */
 async function searchTitles(query) {
   const params = new URLSearchParams({
     action: "query",
@@ -30,7 +45,7 @@ async function searchTitles(query) {
   return data.query.search.map((item) => item.title);
 }
 
-// 2. Lấy phần tóm tắt của trang theo tiêu đề, dạng plain text (đã bỏ HTML).
+/** 2. Lấy phần tóm tắt của trang theo tiêu đề, dạng plain text (đã bỏ HTML). */
 async function getPageSummary(title) {
   const params = new URLSearchParams({
     action: "query",
@@ -50,8 +65,10 @@ async function getPageSummary(title) {
   return Object.values(pages)[0]?.extract ?? "";
 }
 
-// 3. Hàm chính: tìm các trang liên quan, gộp phần tóm tắt lại.
-//    try/catch: lỗi mạng trả về thành message cho Model đọc, thay vì crash.
+/**
+ * 3. Hàm chính: tìm các trang liên quan, gộp phần tóm tắt lại.
+ *    try/catch: lỗi mạng trả về thành message cho Model đọc, thay vì crash.
+ */
 async function searchWikipedia(query) {
   try {
     const titles = await searchTitles(query);
@@ -71,7 +88,7 @@ async function searchWikipedia(query) {
   }
 }
 
-// 4. Bọc searchWikipedia thành tool LangChain, để truyền vào bindTools() / createAgent.
+/** 4. Bọc searchWikipedia thành tool LangChain, để truyền vào bindTools() / createAgent. */
 const webSearch = tool(searchWikipedia, {
   name: "web_search",
   description: "Search Wikipedia and get page summaries.",

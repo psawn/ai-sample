@@ -29,7 +29,7 @@ const { AgentExecutor, createToolCallingAgent } = require("@langchain/classic/ag
 const { getCurrentTemperature } = require("./02-weather-tool");
 const { searchWikipedia } = require("./03-wikipedia-tool");
 
-// Tool tự viết để minh họa: đảo ngược chuỗi. Muốn Tool làm gì thì sửa logic ở đây.
+/** Tool tự viết để minh họa: đảo ngược chuỗi. Muốn Tool làm gì thì sửa logic ở đây. */
 const createYourOwn = tool(
   async (query) => query.split("").reverse().join(""),
   {

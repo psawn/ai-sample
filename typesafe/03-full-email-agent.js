@@ -98,7 +98,7 @@ const actionQuestion = choice(
 
 // ===== HÀM TRỢ GIÚP =====
 
-// Gọi systemOne(), in request và response.
+/** Gọi systemOne(), in request và response. */
 async function askTypeSafe(params) {
   console.log("📤 TypeSafe request params:");
   console.dir(params, { depth: null });

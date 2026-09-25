@@ -41,6 +41,7 @@ const checkpointer = new MemorySaver();
 
 // agent: gộp "quyết định bước tiếp theo" + "chạy vòng lặp" vào 1 chỗ.
 // Không cần agent_scratchpad trong prompt, createAgent tự quản lý.
+// Khai báo tools: Agent sẽ tự động chạy tool và gửi lại kết quả cho LLM theo vòng lặp cho đến khi hoàn tất.
 const agent = createAgent({
   model: llm,
   tools,
