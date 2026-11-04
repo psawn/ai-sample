@@ -1,0 +1,76 @@
+# =======================================================================
+# NEMO GUARDRAILS - CẤU HÌNH BOT HR (CONFIG_ID "hr-assistant")
+#
+# Mỗi thư mục con trong config/ là 1 bot. config_id = tên thư mục con ("hr-assistant"),
+# JS gửi tên này lên server để chọn bot.
+# NeMo tự đọc cả thư mục: config.yml + rails.co (Colang) + actions.py.
+#
+# NeMo ở đây CHỈ LÀM GUARD:
+#   - Câu bị chặn → trả câu từ chối, có tiền tố [RAIL_BLOCKED:LÝ_DO]
+#   - Câu hỏi HR hợp lệ → trả "QUERY_PASSED", phần JS tự chạy RAG
+#
+# API key: Gemini có 1 địa chỉ API nhận request theo đúng định dạng của OpenAI
+# (base_url bên dưới). NeMo gọi Gemini qua địa chỉ đó như gọi OpenAI,
+# nên đọc key từ biến OPENAI_API_KEY → khi bật server, gán OPENAI_API_KEY = key Gemini
+# (Dockerfile tự gán; chạy bằng Python thì xem lệnh trong ../../call-nemo-server.js).
+# =======================================================================
+
+models:
+  # Guard LLM: phân loại intent khi embedding không chắc
+  - type: main
+    engine: openai
+    model: gemini-3.5-flash
+    parameters:
+      base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+      temperature: 0
+
+  # Model embedding cho câu mẫu trong rails.co.
+  # Mặc định NeMo dùng all-MiniLM-L6-v2 (chỉ hiểu tiếng Anh) → đổi sang Gemini,
+  # cùng model với bản tự viết 01-custom-rails/intent-rails-rag.js để so sánh 2 bản.
+  - type: embeddings
+    engine: openai
+    model: gemini-embedding-001
+    parameters:
+      base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+
+instructions:
+  - type: general
+    content: |
+      You are the HR Policy Assistant for ABC Corp.
+      Only answer questions about company HR policies.
+
+rails:
+  # Cấu hình rail PII có sẵn (dùng Presidio, thư viện tìm PII).
+  # entities = các loại PII cần bắt. Loại nào không ghi thì không bắt.
+  # Lưu ý với tiếng Việt:
+  #   - Đừng thêm PERSON (tên người): câu bình thường cũng bị chặn.
+  #   - Giữ score_threshold mặc định (0.2): SĐT trong câu tiếng Việt chỉ được 0.4 điểm,
+  #     đặt từ 0.5 trở lên là lọt.
+  # Tên mục phải đúng như dưới. Viết sai tên, NeMo không báo lỗi mà chỉ không kiểm tra gì.
+  config:
+    sensitive_data_detection:
+      input:
+        entities: [PHONE_NUMBER, EMAIL_ADDRESS, CREDIT_CARD]
+
+  # Input rail: chạy trên MỌI tin nhắn, trước khi tìm intent. Chạy lần lượt:
+  #   1. check input for pii            : regex tự viết (flow ở rails.co, hàm ở actions.py)
+  #   2. detect sensitive data on input : rail có sẵn của NeMo, không cần tự viết flow
+  input:
+    flows:
+      - check input for pii
+      - detect sensitive data on input
+
+  # Cách NeMo tìm intent, cùng luồng với bản tự viết:
+  #   Điểm với câu mẫu ≥ threshold → lấy intent của câu mẫu, không gọi LLM.
+  #   Điểm thấp hơn → hỏi LLM (vì không đặt embeddings_only_fallback_intent).
+  #
+  # Khác bản tự viết: điểm của NeMo KHÔNG phải cosine, mà được đổi theo công thức
+  #   điểm = 1 - sqrt(2 - 2 × cosine) / 2
+  # Nên cùng số 0.8, NeMo chặt hơn:
+  #   - Threshold 0.8 của NeMo ứng với cosine khoảng 0.92.
+  #   - VD cosine 0.86 → điểm 0.74 → vẫn phải hỏi LLM.
+  #   - Muốn tương đương cosine 0.8 → đặt threshold khoảng 0.68.
+  dialog:
+    user_messages:
+      embeddings_only: true
+      embeddings_only_similarity_threshold: 0.8

@@ -23,6 +23,7 @@ Chạy file từ **thư mục gốc repo**. Hầu hết bài dùng Gemini (`GEMI
 04-typesafe/       Port chương 14 (email assistant) sang @typesafe-ai/sdk
 05-udemy-course/   Khóa Udemy: agent loop, RAG MongoDB, LangGraph agents, agentic RAG, MCP
 06-improving-accuracy/  DeepLearning.AI Improving Accuracy of LLM Applications: prompt template, Text-to-SQL, eval
+07-ai-security-bootcamp/  Udemy AI Security Bootcamp: observability, guardrails, LLM gateway (viết lại bằng JS)
 _shared/           Module dùng chung toàn repo (polyfill.js)
 data/              Dữ liệu mẫu: cs229_lectures/*.pdf, mediumblog1.txt
 images/samples/    Ảnh input cho 02-embeddings/03-chroma/03-image-search.js
@@ -132,6 +133,17 @@ Project áp dụng sau khóa: [plans/text-to-sql-nestjs.md](plans/text-to-sql-ne
 
 Tham khảo: DeepLearning.AI *Improving Accuracy of LLM Applications*. Context lộ trình học: [LEARNING-CONTEXT.md](LEARNING-CONTEXT.md).
 
+### Chặng 9 — AI Security Bootcamp · [07-ai-security-bootcamp/](07-ai-security-bootcamp/)
+Code gốc của khóa là Python; ở đây chỉ viết lại bằng JS phần repo chưa có.
+
+| Bài | Nội dung | Cần học trước |
+|---|---|---|
+| `01-observability/01-langsmith-custom-tracing.js` | `traceable` cho hàm tự viết (cây chain → tool + llm), trace SDK Gemini gọi thẳng (token, model), gắn `user_id`/`session_id`, che PII trong trace bằng `anonymizer` | `05-udemy-course/04-agentic-rag` (đã dùng auto-tracing) |
+| `02-guardrails/01-custom-rails/intent-rails-rag.js` | Tự viết cơ chế bên trong NeMo: systematic rail (regex PII) → intent rail (câu mẫu + embedding, dưới threshold mới hỏi guard LLM) → dialog rail → RAG chỉ chạy sau guard → output rail giữ lại câu trả lời lộ dữ liệu | `14-email-assistant/07-security-guardrails.js` |
+| `02-guardrails/02-nemo/call-nemo-server.js` | NeMo Guardrails thật (Dockerfile + Colang + `actions.py` trong `02-nemo/`) chạy thành server (Docker hoặc Python), JS gọi qua package `openai`. Cùng bộ câu test với bài 01 để so sánh | Bài 01 |
+
+Tham khảo: Udemy *AI Security Bootcamp – Guardrails, LLM Gateways, Observability* (code gốc: github.com/d-hackmt/Langsmith-Tracing, github.com/d-hackmt/Nemo-Guardrails).
+
 ## Service & key theo phần
 
 | Phần | Cần |
@@ -147,9 +159,11 @@ Tham khảo: DeepLearning.AI *Improving Accuracy of LLM Applications*. Context l
 | `05-udemy-course/02-rag-mongodb` | MongoDB Atlas Vector Search (`MONGODB_*`, `INDEX_NAME`) |
 | `05-udemy-course/03-langgraph-agents/04`, `05` | Postgres: `docker run -d --name langgraph-pg -e POSTGRES_PASSWORD=postgres -p 5432:5432 postgres:17-alpine`, `POSTGRES_URI`. Bài 04 không cần API key, bài 05 cần `GEMINI_API_KEY` |
 | Tracing (tùy chọn) | `LANGSMITH_*` |
+| `07-ai-security-bootcamp/01-observability` | `GEMINI_API_KEY`, `LANGSMITH_*` (bắt buộc có `LANGSMITH_API_KEY` mới thấy trace) |
+| `07-ai-security-bootcamp/02-guardrails/02-nemo` | NeMo server ở cổng 8001: `docker build -t nemo-hr 07-ai-security-bootcamp/02-guardrails/02-nemo` rồi `docker run --rm -p 8001:8000 --env-file .env nemo-hr`, hoặc Python 3.10–3.13 (lệnh trong header file) |
 
 Lưu ý:
 - **Chroma và MCP weather-server đều dùng cổng 8000** — không chạy cùng lúc.
 - `03-image-search.js` chỉ đọc `images/samples/`. Nếu collection `image-search` từng index ảnh graph, hãy xóa collection rồi chạy lại.
-- Một số package được dùng trong code nhưng chỉ có qua dependency gián tiếp (chưa khai báo trong `package.json`): `ollama`, `zod`, `zod-to-json-schema`, `@langchain/langgraph`, `@langchain/openai`, `@huggingface/transformers`.
+- Một số package được dùng trong code nhưng chỉ có qua dependency gián tiếp (chưa khai báo trong `package.json`): `ollama`, `zod`, `zod-to-json-schema`, `@langchain/langgraph`, `@langchain/openai`, `@huggingface/transformers`, `langsmith`.
 - `_shared/polyfill.js` bổ sung `globalThis.crypto` cho Node 18 — các bài require nó ở dòng đầu.

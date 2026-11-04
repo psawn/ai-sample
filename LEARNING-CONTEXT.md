@@ -129,27 +129,58 @@ Chọn dựa trên đối chiếu repo `d:\Test\ai` với các khóa hiện có 
 |---|---|---|
 | 1 | AI Security Bootcamp – Guardrails, LLM Gateways, Observability (Udemy, KRISHAI / Krish Naik) — https://www.udemy.com/course/ai-security-bootcamp-guardrailsllm-gatewaysobservability/ | **Đang học** (từ 03/11/2026) |
 | 2 | Làm `plans/text-to-sql-nestjs.md`, áp dụng kiến thức của bước 1 vào Level 2 (validator) và Level 8 (tracing) | Chưa bắt đầu |
-| 3 | Retrieval Augmented Generation (RAG) — DeepLearning.AI trên Coursera, Zain Hasan — https://www.coursera.org/learn/retrieval-augmented-generation-rag | Chưa bắt đầu |
+| 3 | Retrieval Augmented Generation (RAG) — DeepLearning.AI trên Coursera, Zain Hasan — https://www.coursera.org/learn/retrieval-augmented-generation-rag — chỉ Module 2 và 3, học trong 7 ngày dùng thử Coursera Plus | Chưa bắt đầu |
+| Phụ | Khóa ngắn DeepLearning.AI, video miễn phí: Context Engineering (Chroma, 10/2026) — https://www.deeplearning.ai/courses/context-engineering ; Loop Engineering with LangChain Deep Agents (10/2026, ~1h16m) — https://www.deeplearning.ai/courses/loop-engineering-with-langchain-deep-agents | Không bắt buộc |
+
+Sau bước 1 không mua thêm khóa ngay: làm project (bước 2) trước để đưa kiến thức Python của bootcamp vào hệ thống TypeScript của mình.
 
 ### Bước 1 — AI Security Bootcamp: học phần nào
 
-Thông tin kiểm tra ngày 03/11/2026: 83h10m, 279 bài, 32 section, cập nhật 10/2026, 4.6★ (373 đánh giá), Python. Trang Udemy chỉ hiện 10/32 section; tên các section gateway, DeepEval, PyRIT lấy từ kết quả tìm kiếm.
+Thông tin kiểm tra ngày 03/11/2026: 83h10m, 279 bài, 32 section, cập nhật 10/2026, 4.6★ (373 đánh giá), Python. Curriculum đầy đủ lấy từ Udemy public curriculum API (course id 7198981). Phần nên học ≈ 29h.
 
-| Section | Cách học |
+**Học kỹ** (theo thứ tự trong khóa):
+
+| Section | Bài cần học | Thời lượng |
+|---|---|---|
+| Introduction | *Why security is the biggest concern…*, *Architecture of Agentic AI Applications* | ~26m |
+| Observability | Cả 2 bài | 12m |
+| Observability with Langsmith | *Introduction*, *Manual and Custom Tracing*, *Simple and Agentic RAG Tracing* (bỏ 2 bài LangGraph Studio) | ~57m |
+| Guardrails | Bài giới thiệu | 8m |
+| Nemo Guardrails | Cả section (chọn NeMo thay Guardrails AI) | 2h25m |
+| AWS Bedrock Guardrails | Cả section — quan trọng nhất (ngưỡng lọc, false positive/negative, grounding RAG, versioning, test, chi phí) | 4h24m |
+| LLM Gateways + Portkey Gateway | Cả 2 section (retry, timeout, fallback, load balancing, cache) | ~1h54m |
+| LLM Evaluations + RAGAS | Cả 2 section | ~1h33m |
+| Deep Eval | Cả section, so với `06-improving-accuracy/04-evaluation.js` | 4h23m |
+| Red Teaming with PyRIT | Bài 01–12 (bỏ 2 bài memory chèn nhầm); kỹ nhất **07_XPIA** | 4h27m |
+| Redis for LLM Caching & Rate Limiting | Kỹ: 02, 04 Semantic Caching, 06 Rate Limiting & Cost Control; còn lại lướt | ~1h18m |
+
+**Project — chỉ học phần đáng học:**
+
+| Project | Cách học |
 |---|---|
-| Langchain (3h09m), Building AI Agents With LangGraph (3h39m) | Bỏ qua |
-| Observability with Langsmith (1h30m) | Xem lướt |
-| Observability With Pydantic Logfire (1h54m) | Không bắt buộc |
-| Nemo Guardrails (2h25m) / Guardrails AI (3h04m) | Chọn 1 |
-| AWS Bedrock Guardrails (4h24m) | Học kỹ (gọi được qua AWS SDK từ NestJS) |
-| LLM Gateways + 1 trong Portkey / TensorZero / Bifrost | Học kỹ phần giới thiệu và 1 gateway |
-| Deep Eval | Học kỹ, so với `04-evaluation.js` |
-| Red Teaming with PyRIT (~5h) | Học kỹ |
+| Project 3: Secure Hybrid RAG with GCP | Học kỹ Phase 1 + 2 (hybrid RAG, *Scope Guardrail & Secure Retrieval*, routing/fallback, semantic cache, red teaming, eval); lướt bài load/chunk và Phase 3 deploy |
+| Project 2: Agentic AI Research Platform (AWS) | Chỉ: 04 Architecture, 09 Retry & Connection Pool, 10 Auth/Guardrails/Caching, 11 Memory & Queueing, 13 LLM Evaluation, 15 TensorZero, 16 PyRIT Dashboard (~1h30m). Bỏ Terraform/CI/deploy |
+| Project 1 | Chỉ *Flash Rank Re-ranking* và *Qdrant and Re-rank Service* (~27m) |
+
+**Bỏ qua:** Langchain, Building AI Agents With LangGraph (đã có trong repo); Observability With Pydantic Logfire; Guardrails AI (nếu dư thời gian xem các bài *OnFailAction*); TensorZero (nếu muốn chỉ xem *M2 Routing/Fallback*, *M4 A/B Testing*), Bifrost, MeshAPI; Basics of Agentic Memory, Mem0, LangMem (đã làm ở `14-email-assistant`); Claude Code For Developers; Building Deep Agents (đã có `15-deep-agents`); Adding AI Governance (nếu muốn chỉ xem 2 bài khái niệm đầu); Project 4 Databricks.
+
+Lưu ý: curriculum có vài bài bị lặp (2 bài memory trong PyRIT, 1 bài Portkey trong TensorZero) — bỏ qua.
+
+**Áp dụng vào repo khi học:**
+
+- Sau PyRIT: dùng XPIA tấn công `03-langchain/14-email-assistant/07-security-guardrails.js`, đo guardrail tự viết chặn được bao nhiêu.
+- Sau DeepEval + RAGAS: chấm lại `05-udemy-course/04-agentic-rag`.
+- Bedrock Guardrails, Portkey: đưa vào Level 2 và Level 8 của `plans/text-to-sql-nestjs.md`.
 
 ### Bước 3 — Khóa RAG trên Coursera: học phần nào
 
-- Học: Module 2 (hybrid search, đo retrieval), Module 3 (chunking nâng cao, cross-encoder, ColBERT, reranking), Module 5 (RAG production: eval, tracing, chi phí/độ trễ, security).
-- Bỏ: Module 1, Module 4 (trùng RAG cơ bản, sampling, prompt engineering, agentic RAG).
+- Học: Module 2 (TF-IDF, BM25, hybrid search, đo chất lượng retrieval), Module 3 (ANN, vector DB, chunking nâng cao, cross-encoder, ColBERT, query parsing). Khoảng 12h, vừa 7 ngày dùng thử.
+- Bỏ: Module 1, Module 4 (trùng RAG cơ bản, sampling, prompt engineering, agentic RAG), Module 5 (bootcamp đã có RAGAS, DeepEval, tracing, hybrid RAG, reranking).
+
+### Khoảng trống chưa có khóa phù hợp (tại 03/11/2026)
+
+- **Bảo mật MCP và phân quyền cho agent** (OAuth cho MCP server, giới hạn quyền từng tool): không tìm thấy khóa chuyên sâu. Học qua phần Authorization trong spec MCP và tài liệu như https://workos.com/blog/what-is-mcp-authorization , https://curity.io/resources/learn/design-mcp-authorization-apis/ rồi áp dụng vào project NestJS.
+- DeepLearning.AI từ 01–10/2026 không có khóa mới nhắm thẳng vào Security, LLMOps, Advanced RAG hay Database Agent.
 
 ### Đã cân nhắc nhưng không chọn lúc này (03/11/2026)
 
@@ -157,6 +188,8 @@ Thông tin kiểm tra ngày 03/11/2026: 83h10m, 279 bài, 32 section, cập nh�
 - Ultimate AI/LLM/ML Penetration Testing (Martin Voelk): góc nhìn tấn công, không dạy xây hệ thống an toàn. Có thể học thêm vài section nếu muốn đi sâu red teaming.
 - Building Your Own Database Agent (DeepLearning.AI): trùng Text-to-SQL đã học.
 - Các khóa ngắn Red Teaming, Guardrails, Governing AI Agents (DeepLearning.AI): mức beginner, chỉ nên xem nhanh.
+- Các khóa Udemy lớn khác (sau bootcamp): trùng nhiều với LangChain, agent, RAG cơ bản, AWS/Terraform đã có.
+- Các khóa security trên Coursera (vd Packt AI Security Fundamentals): chủ yếu lý thuyết OWASP, không có lab code.
 
 Danh sách này không phải quyết định loại bỏ vĩnh viễn (xem mục 8, quy tắc 9–10).
 
