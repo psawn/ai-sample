@@ -28,6 +28,7 @@
 //    Phần 2: Đọc kết quả NeMo trả về:
 //            - Bị chặn → trả câu từ chối, dừng.
 //            - Chào hỏi → trả câu chào soạn sẵn, dừng.
+//            - Không xếp được vào luật nào → chặn, dừng.
 //            - Câu hỏi HR → đi tiếp.
 //    Phần 3: RAG: tìm tài liệu, LLM rẻ trả lời.
 //            Kiểm tra câu trả lời: lộ dữ liệu → giữ lại. An toàn → trả cho user.
@@ -126,7 +127,7 @@ async function callNemo(message) {
 //   DIALOG:...               → câu soạn sẵn (chào hỏi)
 //   QUERY_PASSED             → câu hỏi HR hợp lệ
 //   Không có tiền tố         → không flow nào khớp, LLM của NeMo tự trả lời.
-//                              Coi như câu hỏi hợp lệ, vẫn chạy RAG.
+//                              Chưa chắc là câu hỏi HR → chặn, không chạy RAG.
 //                              Lưu ý: NeMo báo lỗi nội bộ cũng rơi vào trường hợp này.
 // -----------------------------------------------------------------------
 
@@ -143,7 +144,8 @@ function parseNemoResponse(content) {
   if (content.startsWith(DIALOG_PREFIX)) {
     return { status: "DIALOG", text: content.slice(DIALOG_PREFIX.length) };
   }
-  if (content.includes(PASS_TOKEN)) {
+  // Phải khớp đúng cả câu. Đoạn văn LLM tự viết mà có chứa chữ QUERY_PASSED thì không tính
+  if (content.trim() === PASS_TOKEN) {
     return { status: "PASSED" };
   }
   return { status: "FALLTHROUGH" };
@@ -177,7 +179,17 @@ async function guardedChat(message) {
     return done({ reply: text, actual: "GREETING", by, llmCalls });
   }
 
-  // PASSED hoặc FALLTHROUGH → RAG (thêm 1 LLM call để trả lời)
+  // NeMo không xếp được câu này vào luật nào → chưa chắc là câu hỏi HR → chặn, giống bản 01
+  if (status === "FALLTHROUGH") {
+    return done({
+      reply: "Tôi chỉ trả lời câu hỏi về chính sách nhân sự của ABC Corp.",
+      actual: "OFF_TOPIC",
+      by,
+      llmCalls,
+    });
+  }
+
+  // PASSED → RAG (thêm 1 LLM call để trả lời)
   logStep("Phần 3: RAG + kiểm tra câu trả lời (output rail)");
   const answer = await rag.answer(message);
   logInfo(`Câu trả lời của LLM: ${answer}`);
