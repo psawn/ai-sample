@@ -80,13 +80,15 @@ async function splitDocuments(documents) {
 
 /**
  * Tạo RAG. Tài liệu được cắt và embed 1 lần (lần hỏi đầu tiên), sau đó dùng lại.
- * Trả về { answer(question) → câu trả lời dạng text }.
+ *
+ * - Trả về `{ answer(question) }` → câu trả lời dạng text.
  */
 function createRag() {
   // Mỗi chunk kèm vector của nó: [{ title, content, vector }].
   // null = chưa embed.
   let index = null;
 
+  /** Lấy index (chunk + vector). Lần đầu thì cắt tài liệu và embed, các lần sau dùng lại. */
   async function getIndex() {
     if (index === null) {
       const chunks = await splitDocuments(HR_DOCUMENTS);
@@ -98,6 +100,7 @@ function createRag() {
     return index;
   }
 
+  /** Tìm `TOP_K` chunk gần câu hỏi nhất, rồi nhờ LLM trả lời chỉ dựa trên các chunk đó. */
   async function answer(question) {
     const chunks = await getIndex();
     const [questionVector] = await embedTexts([question]);

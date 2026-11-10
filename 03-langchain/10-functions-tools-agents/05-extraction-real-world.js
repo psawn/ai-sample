@@ -171,10 +171,11 @@ Do not make up or guess ANY extra information. Only extract what exactly is in t
 // ===== BƯỚC 4: EXTRACTION TRÊN TOÀN BỘ BÀI (CHIA NHỎ BẰNG SPLITTER) =====
 
 /**
- * Cả bài quá dài cho 1 lần gọi model. Cách xử lý:
+ * Extraction trên cả bài dài (quá dài cho 1 lần gọi model).
+ *
  * 1. Chia bài thành nhiều đoạn nhỏ (splits).
  * 2. Chạy extraction riêng cho từng đoạn.
- * 3. Gộp kết quả (mảng của mảng) thành 1 mảng phẳng bằng .flat().
+ * 3. Gộp kết quả (mảng của mảng) thành 1 mảng phẳng bằng `.flat()`.
  */
 async function fullDocumentExtractionDemo(doc, extractionChain) {
   const textSplitter = new RecursiveCharacterTextSplitter({ chunkOverlap: 0 });

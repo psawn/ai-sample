@@ -37,6 +37,7 @@ const State = Annotation.Root({
   }),
 });
 
+/** Đợi `ms` mili giây mà không chặn chương trình. */
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 let startedAt; // Mốc lúc bắt đầu chạy graph, dùng để in thời điểm node chạy xong
@@ -53,8 +54,9 @@ function section(title) {
 
 /**
  * Tạo 1 node: đợi 1 giây rồi thêm `value` vào `aggregate`.
- * Dùng `await sleep` (không chặn chương trình) nên các node cùng bước chạy song song được.
- * Log in thời điểm node xong + `aggregate` mà node nhận vào.
+ *
+ * - Dùng `await sleep` (không chặn chương trình) nên các node cùng bước chạy song song được.
+ * - Log in thời điểm node xong + `aggregate` mà node nhận vào.
  */
 function returnNodeValue(value) {
   return async (state) => {

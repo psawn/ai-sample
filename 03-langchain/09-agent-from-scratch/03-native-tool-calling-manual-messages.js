@@ -70,7 +70,8 @@ const llmWithTools = llm.bindTools(tools);
 
 /**
  * In mảng messages sắp gửi cho LLM, để thấy agent đang "nhớ" gì.
- * Khác helpers/agent.js: có thêm ToolMessage (kết quả gọi tool).
+ *
+ * - Khác `helpers/agent.js`: có thêm `ToolMessage` (kết quả gọi tool).
  */
 function logMessages(messages) {
   console.log("\n----- Messages gửi cho LLM -----");
@@ -79,11 +80,12 @@ function logMessages(messages) {
 }
 
 /**
- * Vòng lặp agent bằng Native Tool Calling:
+ * Vòng lặp agent bằng Native Tool Calling.
+ *
  * 1. Gọi model.
- * 2. tool_calls rỗng -> đó là câu trả lời cuối, dừng.
- * 3. Có tool_calls -> chạy từng Tool, đưa kết quả vào messages.
- * 4. Quay về bước 1, tới khi có câu trả lời hoặc hết maxTurns.
+ * 2. `tool_calls` rỗng → đó là câu trả lời cuối, dừng.
+ * 3. Có `tool_calls` → chạy từng Tool, đưa kết quả vào messages.
+ * 4. Quay về bước 1, tới khi có câu trả lời hoặc hết `maxTurns`.
  */
 async function query(question, maxTurns = 5) {
   // Tự dựng 2 message đầu bằng new SystemMessage() / new HumanMessage().

@@ -57,7 +57,8 @@ function makeQwenPrompt(user, system = "") {
 
 /**
  * Gửi prompt tới Ollama.
- * Nếu có truyền tham số `format`, ép model trả về đúng JSON Schema quy định.
+ *
+ * - Có truyền `format` → ép model trả về đúng JSON Schema quy định.
  */
 async function generate(prompt, { maxNewTokens = 300, format } = {}) {
   const res = await ollama.generate({

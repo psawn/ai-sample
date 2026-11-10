@@ -69,6 +69,12 @@ const applyDiscount = tool(
 );
 
 // ===== 2. AGENT LOOP (VÒNG LẶP XỬ LÝ) =====
+/**
+ * Vòng lặp tool calling bằng LangChain: `bindTools` gắn tool vào model.
+ *
+ * - Model trả `tool_calls` → tra tool theo tên, chạy, gửi `ToolMessage` lại.
+ * - Không còn `tool_calls` → đó là câu trả lời cuối.
+ */
 async function runAgent(question) {
   const tools = [getProductPrice, applyDiscount];
 

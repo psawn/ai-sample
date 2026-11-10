@@ -38,7 +38,8 @@ const history = [new SystemMessage(BASE_SYSTEM_PROMPT)];
 
 /**
  * Tóm tắt các message cũ, gộp với bản tóm tắt trước đó (nếu có).
- * Gửi bản tóm tắt cũ kèm theo -> thông tin từ các lần tóm tắt trước không bị mất.
+ *
+ * - Gửi bản tóm tắt cũ kèm theo → thông tin từ các lần tóm tắt trước không bị mất.
  */
 async function summarizeOldMessages(oldMessages) {
   const summarizePrompt = [

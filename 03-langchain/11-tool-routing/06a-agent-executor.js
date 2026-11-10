@@ -74,6 +74,7 @@ const agentExecutor = new AgentExecutor({
 // - getMessageHistory: hàm tự viết, trả đúng history theo sessionId.
 // Muốn lưu bền (Redis, MongoDB, file...): chỉ cần trả về 1 BaseChatMessageHistory khác.
 const messageHistories = {};
+/** Lấy lịch sử chat của 1 session (chưa có thì tạo mới, lưu trong RAM). */
 function getMessageHistory(sessionId) {
   if (!messageHistories[sessionId]) {
     messageHistories[sessionId] = new InMemoryChatMessageHistory();

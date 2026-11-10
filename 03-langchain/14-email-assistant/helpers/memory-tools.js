@@ -24,9 +24,10 @@ const { getStore } = require("@langchain/langgraph");
 const { z } = require("zod");
 
 /**
- * Thay "{langgraph_user_id}" trong namespace bằng userId lấy từ config.
- * Ví dụ: ["email_assistant", "{langgraph_user_id}", "collection"]
- *     -> ["email_assistant", "lance", "collection"]
+ * Thay `"{langgraph_user_id}"` trong namespace bằng `userId` lấy từ config.
+ *
+ * - VD `["email_assistant", "{langgraph_user_id}", "collection"]`
+ *   → `["email_assistant", "lance", "collection"]`
  */
 function resolveNamespace(namespaceTemplate, config) {
   const userId = config?.configurable?.langgraph_user_id ?? "default";

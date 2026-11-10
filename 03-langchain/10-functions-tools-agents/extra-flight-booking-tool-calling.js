@@ -68,7 +68,8 @@ function normalizeDestination(destination) {
 
 /**
  * Giả lập tra cứu chuyến bay. Thực tế có thể là API backend / bên thứ 3.
- * Không tìm thấy -> trả found: false (không throw), để LLM đọc và báo lại cho user.
+ *
+ * - Không tìm thấy → trả `found: false` (không throw), để LLM đọc và báo lại cho user.
  */
 function getFlightInfo(destination) {
   const flight = MOCK_FLIGHTS[normalizeDestination(destination)];
@@ -149,7 +150,8 @@ const tools = [
 
 /**
  * Hỏi LLM, in quyết định gọi tool: có gọi không, tool nào, tham số gì.
- * Chỉ xem quyết định, không chạy tool, không gửi kết quả lại.
+ *
+ * - Chỉ xem quyết định, không chạy tool, không gửi kết quả lại.
  */
 async function ask(label, question, toolChoice) {
   const messages = [new HumanMessage(question)];
@@ -177,7 +179,8 @@ async function ask(label, question, toolChoice) {
 // So sánh HumanMessage vs ChatPromptTemplate: xem 01-function-calling.js.
 
 /**
- * Vòng tool calling đầy đủ, 2 tool phối hợp:
+ * Vòng tool calling đầy đủ, 2 tool phối hợp.
+ *
  * 1. LLM tra cứu chuyến bay (get_flight_info).
  * 2. Dựa vào kết quả, LLM tự quyết định có đặt vé không (book_flight).
  * 3. LLM viết câu trả lời cuối.

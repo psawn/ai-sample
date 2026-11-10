@@ -142,7 +142,8 @@ function normalizeDestination(destination) {
 
 /**
  * Giả lập tra cứu các chuyến bay theo điểm đến.
- * Không tìm thấy -> trả found: false (không throw), để model đọc và báo lại cho user.
+ *
+ * - Không tìm thấy → trả `found: false` (không throw), để model đọc và báo lại cho user.
  */
 function getFlightInfo({ destination }) {
   const flights = MOCK_FLIGHTS[normalizeDestination(destination)];
@@ -156,8 +157,9 @@ function getFlightInfo({ destination }) {
 }
 
 /**
- * Giả lập đặt vé tới điểm đến đã cho, trả mã đặt chỗ (bookingId).
- * Không chỉ định flightNumber -> lấy chuyến đầu tiên trong ngày.
+ * Giả lập đặt vé tới điểm đến đã cho, trả mã đặt chỗ (`bookingId`).
+ *
+ * - Không chỉ định `flightNumber` → lấy chuyến đầu tiên trong ngày.
  */
 function bookFlight({ destination, date, passengerName, flightNumber }) {
   const flights = MOCK_FLIGHTS[normalizeDestination(destination)];
@@ -279,11 +281,13 @@ function addMessage(role, text) {
 }
 
 /**
- * Vòng lặp tool calling:
+ * Vòng lặp tool calling, trả câu trả lời cuối của model.
+ *
  * 1. Gửi history lên Gemini.
- * 2. Model yêu cầu gọi tool -> chạy tool, gửi kết quả lại, quay về bước 1.
- * 3. Model trả lời bằng text -> kết thúc.
- * Hết MAX_TOOL_STEPS mà vẫn gọi tool -> throw.
+ * 2. Model yêu cầu gọi tool → chạy tool, gửi kết quả lại, quay về bước 1.
+ * 3. Model trả lời bằng text → kết thúc.
+ *
+ * Hết `MAX_TOOL_STEPS` mà vẫn gọi tool → throw.
  */
 async function askGemini() {
   for (let step = 0; step < MAX_TOOL_STEPS; step++) {

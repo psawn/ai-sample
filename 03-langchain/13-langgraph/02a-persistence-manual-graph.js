@@ -30,6 +30,7 @@ If you need to look up some information before asking a follow up question, you 
 // In mỗi bước stream: tên node vừa chạy + message mới nhất.
 // stepCount đánh số bước -> dễ thấy mỗi step bắt đầu ở đâu.
 let stepCount = 0;
+/** In 1 event khi stream: số thứ tự bước, node vừa chạy và message cuối (hoặc tool call) của node đó. */
 function printStepEvent(event) {
   stepCount += 1;
   console.log(`--- Step ${stepCount} ---`);

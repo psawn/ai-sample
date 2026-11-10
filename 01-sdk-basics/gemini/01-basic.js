@@ -14,6 +14,7 @@ const apiKey = process.env.GEMINI_API_KEY;
 
 const genAI = new GoogleGenerativeAI(apiKey);
 
+/** Gọi Gemini 1 lần, system instruction yêu cầu trả lời dạng JSON, rồi in kết quả. */
 async function runGemini() {
   // Lưu ý: generationConfig khai báo 2 lần, key sau ghi đè key trước.
   // -> temperature: 2 bị mất, chỉ còn responseMimeType có hiệu lực.

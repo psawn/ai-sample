@@ -27,8 +27,9 @@ const TOP_K = 5;
 
 /**
  * Cosine similarity: đo góc giữa 2 vector, không phụ thuộc độ dài vector.
- * Kết quả từ -1 tới 1, càng gần 1 càng giống.
- * = dot(a, b) / (|a| * |b|).
+ *
+ * - Kết quả từ -1 tới 1, càng gần 1 càng giống.
+ * - Công thức: `dot(a, b) / (|a| * |b|)`.
  */
 function cosineSimilarity(a, b) {
   let dot = 0;
@@ -43,8 +44,10 @@ function cosineSimilarity(a, b) {
 }
 
 /**
- * Chấm điểm từng phim so với câu hỏi, sắp xếp giảm dần, lấy topK phim đầu.
- * So sánh với mọi phim (brute force): ổn với vài trăm phim. Dữ liệu lớn -> dùng vector DB (xem ../03-chroma/).
+ * Chấm điểm từng phim so với câu hỏi, sắp xếp giảm dần, lấy `topK` phim đầu.
+ *
+ * - So sánh với mọi phim (brute force): ổn với vài trăm phim.
+ * - Dữ liệu lớn → dùng vector DB (xem `../03-chroma/`).
  */
 function findTopMovies(movies, queryEmbedding, topK) {
   return movies
@@ -74,6 +77,7 @@ async function main() {
   });
   console.log('Gõ mô tả phim bạn muốn tìm. Gõ "exit" để thoát.\n');
 
+  /** Hỏi 1 câu, xử lý xong thì gọi lại chính nó để hỏi tiếp. Gõ `exit` / `quit` để thoát. */
   const askQuestion = () => {
     rl.question("Bạn: ", async (userInput) => {
       const trimmed = userInput.trim();

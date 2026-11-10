@@ -131,8 +131,11 @@ const systemPrompt = new SystemMessage(
   "Bạn là trợ lý thân thiện. Trả lời ngắn gọn bằng tiếng Việt.",
 );
 
-// Node chat: gửi toàn bộ lịch sử (đã nạp từ checkpoint) cho LLM, trả về câu trả lời.
-// MessagesAnnotation tự NỐI tin nhắn trả về vào cuối state.messages, không ghi đè.
+/**
+ * Node chat: gửi toàn bộ lịch sử (đã nạp từ checkpoint) cho LLM, trả về câu trả lời.
+ *
+ * - `MessagesAnnotation` tự NỐI tin nhắn trả về vào cuối `state.messages`, không ghi đè.
+ */
 async function chatNode(state) {
   const response = await llm.invoke([systemPrompt, ...state.messages]);
   return { messages: [response] };
@@ -146,13 +149,13 @@ const builder = new StateGraph(MessagesAnnotation)
 
 // ===== 2. HÀM IN TIN NHẮN =====
 
-// In 1 tin nhắn kèm nhãn người gửi.
+/** In 1 tin nhắn kèm nhãn người gửi. */
 function printMessage(message) {
   const label = HumanMessage.isInstance(message) ? "[bạn]" : "[AI] ";
   console.log(`${label} ${message.text}`);
 }
 
-// In toàn bộ tin nhắn đã lưu của 1 thread (đọc từ checkpoint mới nhất).
+/** In toàn bộ tin nhắn đã lưu của 1 thread (đọc từ checkpoint mới nhất). */
 async function printHistory(graph, thread) {
   const messages = (await graph.getState(thread)).values.messages ?? [];
   console.log(`\n========== LỊCH SỬ (${messages.length} tin nhắn) ==========`);
@@ -162,7 +165,7 @@ async function printHistory(graph, thread) {
 
 // ===== 3. HAI CHẾ ĐỘ CHẠY: XEM DANH SÁCH / CHAT =====
 
-// In danh sách cuộc chat đã lưu, mới -> cũ.
+/** In danh sách cuộc chat đã lưu, mới → cũ. */
 async function listThreads(checkpointer) {
   console.log("\n========== DANH SÁCH CUỘC CHAT (mới -> cũ) ==========");
 
@@ -192,7 +195,7 @@ async function listThreads(checkpointer) {
   }
 }
 
-// Chat trong 1 thread: in lịch sử cũ (nếu có), rồi đọc từng dòng người dùng gõ.
+/** Chat trong 1 thread: in lịch sử cũ (nếu có), rồi đọc từng dòng người dùng gõ. */
 async function runChat(graph, threadId) {
   const thread = { configurable: { thread_id: threadId } };
   console.log(`Thread: ${threadId}`);

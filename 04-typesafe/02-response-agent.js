@@ -63,6 +63,13 @@ const actionQuestion = choice(
   },
 );
 
+/**
+ * Xử lý 1 yêu cầu qua 3 bước.
+ *
+ * 1. TypeSafe chọn hành động (tool nào). Cảnh báo nếu 2 lựa chọn cao nhất quá sát nhau.
+ * 2. Gemini điền tham số theo zod schema của tool đã chọn.
+ * 3. Chạy tool.
+ */
 async function handleRequest(request) {
   console.log(`\n========== Request ==========\n${request}\n`);
 

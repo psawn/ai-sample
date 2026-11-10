@@ -18,7 +18,8 @@ const hf = new InferenceClient(process.env.HUGGINGFACE_ACCESS_TOKEN);
 
 /**
  * Chat với LLM, trả câu trả lời dạng text.
- * Response theo format OpenAI: choices[0].message.content.
+ *
+ * - Response theo format OpenAI: `choices[0].message.content`.
  */
 async function chat(message) {
   const response = await hf.chatCompletion({
@@ -37,8 +38,9 @@ async function chat(message) {
 
 /**
  * Dịch văn bản tiếng Việt sang tiếng Anh.
- * Model opus-mt chỉ dịch đúng 1 chiều (vi -> en). Chiều khác cần model khác.
- * max_length: độ dài tối đa bản dịch (token), dài hơn bị cắt.
+ *
+ * - Model opus-mt chỉ dịch đúng 1 chiều (vi → en). Chiều khác cần model khác.
+ * - `max_length`: độ dài tối đa bản dịch (token), dài hơn bị cắt.
  */
 async function translate(text) {
   const response = await hf.translation({
@@ -54,9 +56,10 @@ async function translate(text) {
 }
 
 /**
- * Hỏi đáp trên context cố định. Model chỉ trích 1 đoạn có sẵn trong context,
- * không tự viết câu mới.
- * Output: { answer, score, start, end }. start/end: vị trí đoạn trả lời trong context.
+ * Hỏi đáp trên context cố định.
+ *
+ * - Model chỉ trích 1 đoạn có sẵn trong context, không tự viết câu mới.
+ * - Output: `{ answer, score, start, end }`. `start` / `end`: vị trí đoạn trả lời trong context.
  */
 async function answerQuestion(question) {
   const response = await hf.questionAnswering({
@@ -74,7 +77,8 @@ async function answerQuestion(question) {
 // ===== KỊCH BẢN MINH HỌA =====
 /**
  * Bỏ comment từng khối để thử task tương ứng.
- * Kỳ vọng câu hỏi "What color is the fox?" -> answer "brown".
+ *
+ * - Kỳ vọng câu hỏi "What color is the fox?" → answer "brown".
  */
 async function run() {
   // const chatResult = await chat("Hi, can you tell me a joke?");

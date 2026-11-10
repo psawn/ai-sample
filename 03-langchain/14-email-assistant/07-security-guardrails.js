@@ -88,7 +88,8 @@ const llmSecurity = llm.withStructuredOutput(SecurityVerdict);
 
 /**
  * Trích xuất tên domain từ địa chỉ email.
- * Ví dụ: "John Doe <john@company.com>" -> "company.com"
+ *
+ * - VD `"John Doe <john@company.com>"` → `"company.com"`.
  */
 function getDomain(address) {
   const match = address.match(/@([\w.-]+)>?\s*$/);
@@ -167,8 +168,9 @@ const EmailAgentState = Annotation.Root({
 });
 
 /**
- * Node security_check (Lớp 1): Kiểm tra prompt injection trước khi chuyển đến luồng chính.
- * Email được bọc trong thẻ <email> để LLM nhận diện là dữ liệu thuần túy, không phải câu lệnh.
+ * Node `security_check` (lớp 1): kiểm tra prompt injection trước khi chuyển đến luồng chính.
+ *
+ * - Email được bọc trong thẻ `<email>` để LLM nhận diện là dữ liệu thuần túy, không phải câu lệnh.
  */
 async function securityCheckNode(state) {
   console.log("\n📍 Node: security_check - Đang kiểm tra prompt injection...");

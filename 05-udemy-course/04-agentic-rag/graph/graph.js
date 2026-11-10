@@ -28,9 +28,10 @@ const { generate, gradeDocuments, retrieve, webSearch } = require("./nodes");
 const { GraphState } = require("./state");
 
 /**
- * Quyết định bước tiếp theo sau khi chấm tài liệu:
- * - Có chunk bị loại -> Chuyển sang websearch.
- * - Tài liệu đạt -> Chuyển sang generate.
+ * Quyết định bước tiếp theo sau khi chấm tài liệu.
+ *
+ * - Có chunk bị loại → chuyển sang websearch.
+ * - Tài liệu đạt → chuyển sang generate.
  */
 function decideToGenerate(state) {
   logStep(

@@ -63,6 +63,7 @@ function readJsonl(filePath) {
 // KHUÔN MẪU PROMPT (GIỐNG 04-evaluation.js)
 // =======================================================================
 
+/** Schema bảng `nba_roster` dạng text (tên cột, kiểu, ví dụ giá trị) để chèn vào prompt. */
 function getUpdatedSchema() {
   return `\
 0|team|TEXT eg. "Toronto Raptors"
@@ -77,6 +78,7 @@ function getUpdatedSchema() {
 `;
 }
 
+/** System prompt viết SQL: đóng vai chuyên gia NBA, kèm schema bảng `nba_roster`. */
 function makeSqlSystemPrompt() {
   return `You are an NBA analyst with 15 years of experience writing complex SQL queries. Consider the nba_roster table with the following schema:
 ${getUpdatedSchema()}

@@ -37,8 +37,9 @@ function section(title) {
 
 /**
  * Cắt câu thành token rồi đổi từng token về chữ, để thấy tokenizer cắt ở đâu.
- * encode: câu -> mảng số (mỗi số = 1 token); decode: số -> chữ.
- * Token cắt đôi 1 chữ có dấu thì decode riêng sẽ hiện ký tự lỗi "�".
+ *
+ * - `encode`: câu → mảng số (mỗi số = 1 token). `decode`: số → chữ.
+ * - Token cắt đôi 1 chữ có dấu thì decode riêng sẽ hiện ký tự lỗi "�".
  */
 function showPieces(text) {
   return encoder.encode(text).map((id) => encoder.decode([id]));

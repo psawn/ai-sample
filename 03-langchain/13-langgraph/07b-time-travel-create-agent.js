@@ -49,10 +49,11 @@ function printStepEvent(event) {
 }
 
 /**
- * Chạy tiếp từ config tới khi xong (state.next rỗng).
- * - Lần đầu: dùng firstInput + config -> chạy từ đúng checkpoint rẽ nhánh.
- * - Lần sau: dùng thread (không kèm checkpoint) -> chạy từ checkpoint mới nhất.
- * Nếu dùng lại config cũ, graph cứ chạy lại từ cùng 1 điểm -> lặp vô hạn.
+ * Chạy tiếp từ `config` tới khi xong (`state.next` rỗng).
+ *
+ * - Lần đầu: dùng `firstInput` + `config` → chạy từ đúng checkpoint rẽ nhánh.
+ * - Lần sau: dùng `thread` (không kèm checkpoint) → chạy từ checkpoint mới nhất.
+ * - Nếu dùng lại `config` cũ, graph cứ chạy lại từ cùng 1 điểm → lặp vô hạn.
  */
 async function resumeUntilDone(agent, config, firstInput, thread) {
   let events = await agent.stream(firstInput, config);

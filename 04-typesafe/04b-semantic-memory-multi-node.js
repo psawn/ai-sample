@@ -145,9 +145,10 @@ const needsMemoryQuestion = noul(
 );
 
 /**
- * Dùng ở node 5: làm gì với memory?
- * Nhãn thay đổi theo từng email: mỗi memory cũ thêm 1 nhãn "update:<key>".
- * -> 1 câu hỏi trả lời luôn 2 việc: làm gì, và cập nhật memory nào.
+ * Tạo câu hỏi cho node 5: làm gì với memory?
+ *
+ * - Nhãn thay đổi theo từng email: mỗi memory cũ thêm 1 nhãn `"update:<key>"`.
+ * - Nhờ vậy 1 câu hỏi trả lời luôn 2 việc: làm gì, và cập nhật memory nào.
  */
 function buildMemoryActionQuestion(memories) {
   return choice(
@@ -363,8 +364,9 @@ async function runToolNode(state) {
 
 // ===== NODE 5: LƯU MEMORY =====
 /**
- * TypeSafe chọn làm gì -> Gemini viết nội dung -> manage_memory ghi vào Store.
- * nodeConfig có sẵn store + userId, truyền cho manage_memory để ghi đúng ngăn.
+ * Lưu memory: TypeSafe chọn làm gì → Gemini viết nội dung → `manage_memory` ghi vào Store.
+ *
+ * - `nodeConfig` có sẵn store + `userId`, truyền cho `manage_memory` để ghi đúng ngăn.
  */
 async function saveMemoryNode(state, nodeConfig) {
   console.log("\n📍 Node: save_memory");
@@ -430,6 +432,7 @@ const emailAgent = new StateGraph(EmailAgentState)
   // Gắn Store vào graph -> mọi node đều truy cập được qua nodeConfig.
   .compile({ store });
 
+/** Chạy graph cho 1 email (dùng chung `config` để giữ memory), in các bước agent đã làm. */
 async function runEmail(emailInput) {
   console.log(`\n========== Email: "${emailInput.subject}" ==========`);
 

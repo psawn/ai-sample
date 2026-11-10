@@ -41,8 +41,9 @@ const llm = new ChatGoogleGenerativeAI({
 });
 
 /**
- * Xây dựng VectorDB: Đọc 3 file PDF -> Cắt nhỏ (split) -> Tạo embedding -> Lưu vào MemoryVectorStore.
- * Sử dụng pdf-parse để đọc file PDF thay thế cho PDFLoader (vì @langchain/community đang bị sunset).
+ * Xây dựng VectorDB: đọc 3 file PDF → cắt nhỏ (split) → tạo embedding → lưu vào `MemoryVectorStore`.
+ *
+ * - Dùng pdf-parse đọc PDF thay cho `PDFLoader` (vì `@langchain/community` đang bị sunset).
  */
 async function buildVectorDb() {
   const fileNames = [
@@ -110,9 +111,10 @@ ${doc.pageContent}`,
 }
 
 /**
- * Thực thi Map-Reduce:
- * - Map: Chạy song song trên mọi chunk bằng Promise.all.
- * - Reduce: Gộp các đoạn trích xuất lại và gọi LLM lần cuối để tạo câu trả lời hoàn chỉnh.
+ * Thực thi Map-Reduce.
+ *
+ * - Map: chạy song song trên mọi chunk bằng `Promise.all`.
+ * - Reduce: gộp các đoạn trích xuất lại và gọi LLM lần cuối để tạo câu trả lời hoàn chỉnh.
  */
 async function mapReduce(docs, question) {
   // Map: Các chunk độc lập nhau nên chạy song song để tối ưu thời gian.
@@ -137,8 +139,9 @@ ${extracts.join("\n\n")}`,
 // ===== 3. CHIẾN LƯỢC: REFINE =====
 
 /**
- * Thực thi Refine:
- * Trả lời dựa trên chunk đầu tiên, sau đó lần lượt cập nhật/tinh chỉnh câu trả lời với các chunk tiếp theo.
+ * Thực thi Refine.
+ *
+ * - Trả lời dựa trên chunk đầu tiên, sau đó lần lượt tinh chỉnh câu trả lời với các chunk tiếp theo.
  */
 async function refine(docs, question) {
   // Bước khởi tạo: Tạo câu trả lời sơ khai chỉ dựa trên chunk đầu tiên.

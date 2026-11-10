@@ -45,10 +45,11 @@ function printStepEvent(event) {
 }
 
 /**
- * Chạy tiếp từ config (1 checkpoint cụ thể) tới khi xong (state.next rỗng).
- * - Lần đầu: chạy từ đúng config truyền vào.
- * - Lần sau: dùng thread (không kèm checkpoint) -> chạy tiếp đúng nhánh vừa tạo,
- *   không rẽ nhánh lại từ config ban đầu.
+ * Chạy tiếp từ `config` (1 checkpoint cụ thể) tới khi xong (`state.next` rỗng).
+ *
+ * - Lần đầu: chạy từ đúng `config` truyền vào.
+ * - Lần sau: dùng `thread` (không kèm checkpoint) → chạy tiếp đúng nhánh vừa tạo,
+ *   không rẽ nhánh lại từ `config` ban đầu.
  */
 async function resumeUntilDone(abot, config, thread) {
   let events = await abot.graph.stream(null, config);

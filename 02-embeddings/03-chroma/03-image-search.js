@@ -64,9 +64,9 @@ async function loadClipModels() {
 }
 
 /**
- * Đưa vector về độ dài 1. Khi đó so sánh chỉ còn dựa vào hướng
- * (dot product = cosine similarity).
- * Array.from: đổi Float32Array (output của model) thành mảng thường cho Chroma.
+ * Đưa vector về độ dài 1. Khi đó so sánh chỉ còn dựa vào hướng (dot product = cosine similarity).
+ *
+ * - `Array.from`: đổi `Float32Array` (output của model) thành mảng thường cho Chroma.
  */
 function normalize(vector) {
   const norm = Math.sqrt(vector.reduce((sum, v) => sum + v * v, 0));
@@ -103,9 +103,10 @@ function listImageFiles() {
 }
 
 /**
- * Lấy collection, đo khoảng cách bằng cosine: distance = 1 - cosine similarity,
- * càng nhỏ càng giống. Mặc định Chroma dùng l2 (khoảng cách Euclid).
- * Không gắn embeddingFunction: code tự embed bằng CLIP rồi truyền vector vào.
+ * Lấy collection, đo khoảng cách bằng cosine.
+ *
+ * - `distance = 1 - cosine similarity`, càng nhỏ càng giống. Mặc định Chroma dùng l2 (khoảng cách Euclid).
+ * - Không gắn `embeddingFunction`: code tự embed bằng CLIP rồi truyền vector vào.
  */
 async function getCollection() {
   return client.getOrCreateCollection({
@@ -116,8 +117,9 @@ async function getCollection() {
 
 /**
  * Index các ảnh chưa có trong Chroma. Ảnh đã index thì bỏ qua.
- * Dùng tên file làm id để biết ảnh nào đã index.
- * Lưu ý: sửa nội dung ảnh nhưng giữ tên file -> không index lại.
+ *
+ * - Dùng tên file làm id để biết ảnh nào đã index.
+ * - Lưu ý: sửa nội dung ảnh nhưng giữ tên file → không index lại.
  */
 async function indexImages() {
   const collection = await getCollection();
@@ -146,8 +148,9 @@ async function indexImages() {
 }
 
 /**
- * Tìm nResults ảnh gần với câu mô tả nhất.
- * query() trả mảng lồng (mỗi câu hỏi 1 mảng) -> lấy [0] vì chỉ có 1 câu hỏi.
+ * Tìm `nResults` ảnh gần với câu mô tả nhất.
+ *
+ * - `query()` trả mảng lồng (mỗi câu hỏi 1 mảng) → lấy `[0]` vì chỉ có 1 câu hỏi.
  */
 async function searchByText(collection, query, nResults = 3) {
   const queryEmbedding = await embedText(query);
@@ -180,6 +183,7 @@ async function main() {
   });
   console.log('Gõ mô tả ảnh bạn muốn tìm. Gõ "exit" để thoát.\n');
 
+  /** Hỏi 1 câu, xử lý xong thì gọi lại chính nó để hỏi tiếp. Gõ `exit` / `quit` để thoát. */
   const askQuestion = () => {
     rl.question("Bạn: ", async (userInput) => {
       const trimmed = userInput.trim();

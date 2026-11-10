@@ -30,9 +30,10 @@ const MAX_TOKENS = 200;
 
 /**
  * Ước lượng số token: 1 token ≈ 4 ký tự (quy ước cho tiếng Anh).
- * Tiếng Việt có dấu thường tốn nhiều token hơn -> số thật cao hơn.
- * Không dùng tokenizer thật (vd: tiktoken, xem ../04-document-processing/05-token-splitting.js)
- * để ví dụ đơn giản.
+ *
+ * - Tiếng Việt có dấu thường tốn nhiều token hơn → số thật cao hơn.
+ * - Không dùng tokenizer thật (VD tiktoken, xem `../04-document-processing/05-token-splitting.js`)
+ *   để ví dụ đơn giản.
  */
 function countTokens(text) {
   return Math.ceil(text.length / 4);

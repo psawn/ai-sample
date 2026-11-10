@@ -45,7 +45,8 @@ function printStepEvent(event) {
 
 /**
  * Kịch bản 1: code tự duyệt, không hỏi người dùng.
- * Mục đích: minh họa getState() và stream(null).
+ *
+ * - Mục đích: minh họa `getState()` và `stream(null)`.
  */
 async function runAutoApprove(abot) {
   console.log(

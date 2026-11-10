@@ -93,9 +93,10 @@ const GENERATE = "generate";
 const REFLECT = "reflect";
 
 /**
- * Node generate: viết tweet mới (AIMessage).
- * Từ lượt 2, LLM đọc góp ý (HumanMessage) trong lịch sử để sửa bản trước.
- * LangGraph tự nối message trả về vào cuối `state.messages`.
+ * Node generate: viết tweet mới (`AIMessage`).
+ *
+ * - Từ lượt 2, LLM đọc góp ý (`HumanMessage`) trong lịch sử để sửa bản trước.
+ * - LangGraph tự nối message trả về vào cuối `state.messages`.
  */
 async function generationNode(state) {
   const response = await generateChain.invoke({
@@ -129,6 +130,12 @@ async function generationNode(state) {
 //    Gemini sẽ hiểu rằng đây là bài viết do NGƯỜI DÙNG gửi lên,
 //    từ đó kích hoạt đúng vai trò Reviewer để soi lỗi và đưa ra góp ý.
 //
+/**
+ * Node reflect: LLM đóng vai reviewer, góp ý cho tweet mới nhất.
+ *
+ * - Đổi vai AI ↔ Human trước khi gửi, để Gemini coi tweet là bài của người dùng (lý do: xem comment trên).
+ * - Góp ý trả về dạng `HumanMessage`, để lượt generate sau đọc như yêu cầu sửa.
+ */
 async function reflectionNode(state) {
   // Bỏ message đầu (prompt gốc của người dùng) do không phải tweet cần review.
   const [, ...rest] = state.messages;

@@ -105,8 +105,9 @@ async function askWithoutRag(query) {
 }
 
 /**
- * Cách 1: Luồng RAG viết thủ công (không dùng LCEL).
- * Nhược điểm: Code dài, cồng kềnh, không hỗ trợ sẵn Streaming/Batching.
+ * Cách 1: luồng RAG viết thủ công (không dùng LCEL).
+ *
+ * - Nhược điểm: code dài, cồng kềnh, không có sẵn streaming / batching.
  */
 async function askWithRagWithoutLcel(query) {
   // 1. Retrieve: Tìm chunk liên quan
@@ -132,8 +133,9 @@ async function askWithRagWithoutLcel(query) {
 }
 
 /**
- * Cách 2: Tối ưu luồng RAG bằng LCEL (LangChain Expression Language).
- * Dữ liệu tự động chảy qua chuỗi Pipe: Step 1 -> Step 2 -> Step 3 -> Step 4.
+ * Cách 2: luồng RAG bằng LCEL (LangChain Expression Language).
+ *
+ * - Dữ liệu tự chảy qua chuỗi pipe: Step 1 → Step 2 → Step 3 → Step 4.
  */
 function createRagChainWithLcel() {
   return RunnableSequence.from([
@@ -185,9 +187,10 @@ const retrieveContext = tool(
 );
 
 /**
- * Cách 3: Agentic RAG - Để LLM tự quyết định khi nào gọi Tool truy vấn.
- * - Ưu điểm  : Động, linh hoạt theo ngữ cảnh câu hỏi.
- * - Nhược điểm: Tốn ít nhất 2 lần gọi LLM (đắt hơn, độ trễ cao hơn).
+ * Cách 3: Agentic RAG - để LLM tự quyết định khi nào gọi tool truy vấn.
+ *
+ * - Ưu điểm: linh hoạt theo ngữ cảnh câu hỏi.
+ * - Nhược điểm: tốn ít nhất 2 lần gọi LLM (đắt hơn, chậm hơn).
  */
 async function askWithAgenticRag(query) {
   const systemPrompt = `You are a helpful AI assistant that answers questions using a knowledge base.

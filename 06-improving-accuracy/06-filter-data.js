@@ -113,7 +113,8 @@ function ensureSemicolon(sql) {
 
 /**
  * Kiểm tra 1 cặp qua lần lượt các luật.
- * Trả về tên luật đầu tiên bị vi phạm, hoặc null nếu cặp đạt.
+ *
+ * - Trả về tên luật đầu tiên bị vi phạm, hoặc `null` nếu cặp đạt.
  */
 async function findRejectReason(db, { question, sql }) {
   const result = await tryQuery(db, sql); // Chạy SQL 1 lần, các luật dùng chung kết quả

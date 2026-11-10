@@ -24,7 +24,8 @@ const EMBEDDING_MODEL = "gemini-embedding-001";
 
 /**
  * Gộp thông tin phim thành 1 đoạn text. Càng đủ thông tin, vector càng "hiểu" phim.
- * Vd: "Interstellar. Genres: Sci-Fi, Drama, Adventure. Astronauts travel through a wormhole..."
+ *
+ * - VD: `"Interstellar. Genres: Sci-Fi, Drama, Adventure. Astronauts travel through a wormhole..."`
  */
 function toEmbeddingText(movie) {
   return `${movie.title}. Genres: ${movie.genres.join(", ")}. ${movie.description}`;

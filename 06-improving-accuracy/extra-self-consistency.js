@@ -46,8 +46,9 @@ function section(title) {
 }
 
 /**
- * Hỏi cùng 1 câu RUNS lần, đếm mỗi câu trả lời xuất hiện bao nhiêu lần.
- * Trả về mảng [câu trả lời, số lần], xếp từ nhiều đến ít.
+ * Hỏi cùng 1 câu `RUNS` lần, đếm mỗi câu trả lời xuất hiện bao nhiêu lần.
+ *
+ * - Trả về mảng `[câu trả lời, số lần]`, xếp từ nhiều đến ít.
  */
 async function askMany(question) {
   const results = await Promise.all(

@@ -52,7 +52,7 @@ const weatherTransport = new SSEClientTransport(
 );
 const weatherClient = new Client({ name: "weather-client", version: "1.0.0" });
 
-// Gửi 1 câu hỏi cho agent và in câu trả lời cuối
+/** Gửi 1 câu hỏi cho agent và in câu trả lời cuối. */
 async function ask(agent, question) {
   const result = await agent.invoke({
     messages: [new HumanMessage(question)],

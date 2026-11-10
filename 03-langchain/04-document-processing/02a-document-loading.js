@@ -22,8 +22,9 @@ const {
 } = require("@langchain/community/document_loaders/web/cheerio");
 
 /**
- * PDFLoader: đọc file PDF, mỗi trang -> 1 Document.
- * Bản tự viết bằng pdf-parse: 02b-document-loading-native.js.
+ * `PDFLoader`: đọc file PDF, mỗi trang → 1 Document.
+ *
+ * - Bản tự viết bằng pdf-parse: `02b-document-loading-native.js`.
  */
 async function loadPdf() {
   console.log("=== PDFLoader ===");
@@ -40,9 +41,10 @@ async function loadPdf() {
 }
 
 /**
- * YoutubeLoader: lấy transcript (phụ đề) có sẵn của video.
- * Không cần tự chuyển giọng nói thành văn bản (speech-to-text).
- * Video không có phụ đề -> không lấy được.
+ * `YoutubeLoader`: lấy transcript (phụ đề) có sẵn của video.
+ *
+ * - Không cần tự chuyển giọng nói thành văn bản (speech-to-text).
+ * - Video không có phụ đề → không lấy được.
  */
 async function loadYoutube() {
   console.log("\n=== YoutubeLoader ===");

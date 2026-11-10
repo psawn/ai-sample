@@ -215,9 +215,10 @@ const reviseAnswerTool = tool(runQueries, {
 // ===== 4. CHAINS =====
 
 /**
- * Khởi tạo 2 chain: viết nháp (firstResponder) và viết lại (revisor).
- * - partial(): Điền các biến tĩnh như time và instruction.
- * - bindTools & tool_choice: Buộc LLM phải trả về đúng cấu trúc tool schema định sẵn.
+ * Khởi tạo 2 chain: viết nháp (`firstResponder`) và viết lại (`revisor`).
+ *
+ * - `partial()`: điền các biến tĩnh như time và instruction.
+ * - `bindTools` + `tool_choice`: buộc LLM trả về đúng cấu trúc tool schema định sẵn.
  */
 async function buildChains() {
   // Truyền hàm `() => new Date().toISOString()` thay vì giá trị
@@ -247,8 +248,9 @@ async function buildChains() {
 // ===== 5. GRAPH: NODES & ĐIỀU KIỆN DỪNG =====
 
 /**
- * Xây dựng StateGraph cho mô hình Reflexion:
- * draft -> execute_tools -> revise -> điều kiện lặp/dừng.
+ * Xây dựng StateGraph cho mô hình Reflexion.
+ *
+ * - Luồng: `draft → execute_tools → revise → lặp hoặc dừng`.
  */
 function buildGraph({ firstResponder, revisor }) {
   /**

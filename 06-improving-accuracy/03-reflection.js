@@ -53,7 +53,8 @@ function label(name) {
 
 /**
  * Định dạng lại chuỗi SQL cho dễ đọc (xuống dòng ở các mệnh đề chính).
- * Chỉ dùng cho mục đích hiển thị log, không làm ảnh hưởng đến câu lệnh chạy thật.
+ *
+ * - Chỉ dùng để hiển thị log, không ảnh hưởng câu lệnh chạy thật.
  */
 function formatSql(sql) {
   return sql
@@ -81,7 +82,8 @@ function makeQwenPrompt(user, system = "") {
 
 /**
  * Gửi prompt tới Ollama.
- * Ép buộc trả kết quả về dạng JSON chuẩn theo schema `format`.
+ *
+ * - Ép trả kết quả về dạng JSON đúng theo schema `format`.
  */
 async function generate(prompt, { maxNewTokens = 300, format } = {}) {
   const res = await ollama.generate({
@@ -104,7 +106,8 @@ async function askForSql(user, system) {
 
 /**
  * Thực thi câu lệnh SQL.
- * Trả về object `{ rows }` nếu thành công, hoặc `{ error }` nếu có lỗi (không làm crash app).
+ *
+ * - Thành công → `{ rows }`. Lỗi → `{ error }` (không làm crash app).
  */
 async function tryQuery(db, sql) {
   try {

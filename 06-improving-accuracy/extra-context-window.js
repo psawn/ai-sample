@@ -68,8 +68,9 @@ function fillerTable(i) {
 }
 
 /**
- * Dựng schema gồm đúng tableCount bảng: bảng giả + bảng gây nhiễu + cây kim.
- * position = chỗ đặt cây kim: 0 = đầu, 0.5 = giữa, 1 = cuối.
+ * Dựng schema gồm đúng `tableCount` bảng: bảng giả + bảng gây nhiễu + cây kim.
+ *
+ * - `position`: chỗ đặt cây kim. 0 = đầu, 0.5 = giữa, 1 = cuối.
  */
 function buildSchema(tableCount, position) {
   const tables = Array.from({ length: tableCount - DISTRACTORS.length - 1 }, (_, i) => fillerTable(i));

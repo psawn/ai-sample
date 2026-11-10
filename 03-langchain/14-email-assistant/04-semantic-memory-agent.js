@@ -59,8 +59,9 @@ const followUpEmail = {
 };
 
 /**
- * System prompt của response agent, liệt kê 5 tool:
- * 3 tool xử lý email và lịch họp, 2 tool đọc ghi memory.
+ * System prompt của response agent, liệt kê 5 tool.
+ *
+ * - 3 tool xử lý email và lịch họp, 2 tool đọc ghi memory.
  */
 function buildAgentSystemPromptMemory({ fullName, name, instructions }) {
   return `< Role >
@@ -188,8 +189,9 @@ const config = {
 
 // ===== DEMO 1: MEMORY TOOLS, CHƯA DÙNG LUỒNG EMAIL =====
 /**
- * 2 lượt chạy dùng chung Store + userId: lượt 2 đọc được memory lượt 1 đã ghi.
- * Bước 03 không làm được vì mỗi invoke() độc lập.
+ * 2 lượt chạy dùng chung Store + `userId`: lượt 2 đọc được memory lượt 1 đã ghi.
+ *
+ * - Bước 03 không làm được vì mỗi `invoke()` độc lập.
  */
 async function demoMemoryTools() {
   console.log("\n========== Demo: manage_memory & search_memory ==========");

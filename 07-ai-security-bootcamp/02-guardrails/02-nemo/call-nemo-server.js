@@ -157,11 +157,12 @@ function parseNemoResponse(content) {
 
 /**
  * Xử lý 1 tin nhắn: NeMo guard → RAG → output rail.
- * Trả về { reply, actual, by, llmCalls, ms }, giống bản 01 để so sánh.
+ *
+ * - Trả về `{ reply, actual, by, llmCalls, ms }`, giống bản 01 để so sánh.
  */
 async function guardedChat(message) {
   const start = Date.now();
-  // Gắn thời gian xử lý vào kết quả trước khi trả về
+  /** Gắn thời gian xử lý (`ms`) vào kết quả trước khi trả về. */
   const done = (result) => ({ ...result, ms: Date.now() - start });
 
   logStep("Phần 1: Gửi tin nhắn tới NeMo (input rail)");

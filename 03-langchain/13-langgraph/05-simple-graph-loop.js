@@ -57,7 +57,8 @@ async function node2(state) {
 }
 
 /**
- * Rẽ nhánh sau Node2:
+ * Rẽ nhánh sau Node2.
+ *
  * - true: quay lại Node1, lặp tiếp.
  * - false: count >= 3 -> dừng.
  */
@@ -101,7 +102,8 @@ async function demoStateHistoryAndSetup(graph, thread) {
 
 /**
  * Demo 2: time travel - chạy tiếp từ 1 checkpoint cũ, không chạy lại từ đầu.
- * Dùng để: debug bước lỗi, undo, so sánh nhiều nhánh từ cùng 1 mốc.
+ *
+ * - Dùng để: debug bước lỗi, undo, so sánh nhiều nhánh từ cùng 1 mốc.
  */
 async function demoTimeTravel(graph, states) {
   // Checkpoint ngay sau lần đầu Node1 chạy.
@@ -120,8 +122,9 @@ async function demoTimeTravel(graph, states) {
 }
 
 /**
- * Demo 3: updateState - sửa dữ liệu đã lưu trong checkpoint.
- * Dùng cho human in the loop: sửa lỗi của Model/tool, duyệt hành động nhạy cảm trước khi chạy tiếp.
+ * Demo 3: `updateState` - sửa dữ liệu đã lưu trong checkpoint.
+ *
+ * - Dùng cho human in the loop: sửa lỗi của Model/tool, duyệt hành động nhạy cảm trước khi chạy tiếp.
  */
 async function demoUpdateState(graph) {
   console.log(

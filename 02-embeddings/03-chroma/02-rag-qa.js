@@ -62,8 +62,10 @@ const knowledgeBase = [
 const collectionName = "apple-knowledge";
 
 /**
- * Lấy collection. Còn trống thì nạp knowledgeBase vào.
- * Lưu ý: collection đã có dữ liệu -> bỏ qua. Sửa knowledgeBase -> phải xóa collection cũ.
+ * Lấy collection. Còn trống thì nạp `knowledgeBase` vào.
+ *
+ * - Collection đã có dữ liệu → bỏ qua.
+ * - Sửa `knowledgeBase` → phải xóa collection cũ.
  */
 async function ensurePopulated() {
   // embeddingFunction tự embed text -> chỉ cần truyền text thô vào add() và query().
@@ -108,6 +110,7 @@ async function main() {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   console.log('Hỏi bất cứ điều gì về Apple. Gõ "exit" để thoát.\n');
 
+  /** Hỏi 1 câu, xử lý xong thì gọi lại chính nó để hỏi tiếp. Gõ `exit` / `quit` để thoát. */
   const askQuestion = () => {
     rl.question("Bạn: ", async (userInput) => {
       const trimmed = userInput.trim();

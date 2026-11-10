@@ -34,8 +34,9 @@ let stepCount = 0; // Đánh số bước để thấy thứ tự chạy
 
 /**
  * In tiêu đề 1 bước, có đánh số và đường kẻ phân cách.
- * - type "node": node trong graph (ghi dữ liệu vào state).
- * - type "edge": điểm rẽ nhánh (chỉ chọn đường đi tiếp).
+ *
+ * - `type: "node"`: node trong graph (ghi dữ liệu vào state).
+ * - `type: "edge"`: điểm rẽ nhánh (chỉ chọn đường đi tiếp).
  */
 function logStep(type, name, description) {
   stepCount += 1;

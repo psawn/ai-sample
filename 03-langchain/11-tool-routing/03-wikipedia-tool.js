@@ -41,7 +41,8 @@ async function searchTitles(query) {
 
 /**
  * Bước 2: lấy tóm tắt 1 trang theo tiêu đề.
- * exintro: chỉ lấy phần mở đầu. explaintext: text thuần, bỏ markup.
+ *
+ * - `exintro`: chỉ lấy phần mở đầu. `explaintext`: text thuần, bỏ markup.
  */
 async function getPageSummary(title) {
   const params = new URLSearchParams({

@@ -43,8 +43,9 @@ function section(title) {
 }
 
 /**
- * Gửi cùng 1 prompt RUNS lần với cùng 1 cấu hình, trả về mảng câu trả lời.
- * Các lần gọi chạy song song (Promise.all) cho nhanh.
+ * Gửi cùng 1 prompt `RUNS` lần với cùng 1 cấu hình, trả về mảng câu trả lời.
+ *
+ * - Các lần gọi chạy song song (`Promise.all`) cho nhanh.
  */
 async function sample(generationConfig) {
   const model = genAI.getGenerativeModel({ model: MODEL, generationConfig });

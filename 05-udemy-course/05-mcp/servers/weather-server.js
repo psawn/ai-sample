@@ -37,7 +37,11 @@ const { z } = require("zod");
 
 const PORT = 8000;
 
-// Mỗi client kết nối cần một McpServer riêng -> dùng hàm tạo
+/**
+ * Tạo 1 MCP server có tool `get_weather`.
+ *
+ * - Mỗi client kết nối cần một `McpServer` riêng → dùng hàm tạo thay vì 1 biến dùng chung.
+ */
 function createServer() {
   const server = new McpServer({ name: "Weather", version: "1.0.0" });
 

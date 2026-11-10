@@ -68,7 +68,8 @@ async function getPageSummary(title) {
 
 /**
  * 3. Hàm chính: tìm các trang liên quan, gộp phần tóm tắt lại.
- *    try/catch: lỗi mạng trả về thành message cho Model đọc, thay vì crash.
+ *
+ * - `try/catch`: lỗi mạng trả về thành message cho Model đọc, thay vì crash.
  */
 async function searchWikipedia(query) {
   try {

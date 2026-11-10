@@ -79,10 +79,10 @@ Answer: A bulldog weights 51 lbs
 `.trim();
 
 /**
- * response.content của Gemini không phải lúc nào cũng là string.
- * Đôi khi là mảng (rỗng, hoặc nhiều part { text: "..." }).
- * Gom thành 1 string để nơi gọi khỏi phải kiểm tra kiểu.
- * Vd: [{ text: "Thought: " }, { text: "..." }] -> "Thought: ...".
+ * Gom `response.content` của Gemini thành 1 string, để nơi gọi khỏi phải kiểm tra kiểu.
+ *
+ * - `content` không phải lúc nào cũng là string: đôi khi là mảng (rỗng, hoặc nhiều part `{ text: "..." }`).
+ * - VD `[{ text: "Thought: " }, { text: "..." }]` → `"Thought: ..."`.
  */
 function messageContentToString(content) {
   if (typeof content === "string") return content;

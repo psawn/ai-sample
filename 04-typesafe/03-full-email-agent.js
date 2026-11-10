@@ -133,6 +133,12 @@ const EmailAgentState = Annotation.Root({
 });
 
 // ===== NODE 1: PHÂN LOẠI EMAIL =====
+/**
+ * TypeSafe phân loại email, điều hướng bằng `Command({ goto })`.
+ *
+ * - Độ tin cậy dưới ngưỡng → nhờ user xem lại.
+ * - Chỉ nhãn respond đi tiếp sang `choose_action`.
+ */
 async function triageRouterNode(state) {
   console.log("\n📍 Node: triage_router");
 
@@ -162,6 +168,11 @@ async function triageRouterNode(state) {
 }
 
 // ===== NODE 2: CHỌN BƯỚC TIẾP THEO =====
+/**
+ * TypeSafe chọn tool kế tiếp (hoặc xong) dựa trên email + các bước đã làm.
+ *
+ * - Hết `MAX_STEPS` → dừng, chống lặp vô hạn.
+ */
 async function chooseActionNode(state) {
   console.log(`\n📍 Node: choose_action (step ${state.steps.length + 1})`);
 
@@ -190,6 +201,11 @@ async function chooseActionNode(state) {
 }
 
 // ===== NODE 3: SINH THAM SỐ + CHẠY TOOL =====
+/**
+ * Gemini điền tham số cho tool đã chọn, chạy tool, lưu kết quả vào `steps`.
+ *
+ * - Chạy xong quay lại `choose_action` để chọn bước tiếp theo.
+ */
 async function runToolNode(state) {
   const tool = toolsByName[state.nextTool];
   console.log(`\n📍 Node: run_tool (${tool.name})`);
@@ -230,6 +246,7 @@ const emailAgent = new StateGraph(EmailAgentState)
   .addEdge(START, "triage_router")
   .compile();
 
+/** Chạy graph cho 1 email, in các bước agent đã làm. */
 async function runEmail(emailInput) {
   console.log(`\n========== Email: "${emailInput.subject}" ==========`);
 

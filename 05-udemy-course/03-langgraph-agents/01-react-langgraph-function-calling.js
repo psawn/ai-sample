@@ -68,8 +68,11 @@ const llm = new ChatGoogleGenerativeAI({
 
 // ===== 2. KHAI BÁO NODES & ĐIỀU KIỆN =====
 
-// Node suy luận: gửi system prompt + lịch sử cho LLM.
-// Chỉ trả message mới, LangGraph tự nối vào `state.messages`.
+/**
+ * Node suy luận: gửi system prompt + lịch sử cho LLM.
+ *
+ * - Chỉ trả message mới, LangGraph tự nối vào `state.messages`.
+ */
 async function runAgentReasoning(state) {
   const response = await llm.invoke([
     new SystemMessage(SYSTEM_MESSAGE),
@@ -81,8 +84,11 @@ async function runAgentReasoning(state) {
 // Node chạy tool: chạy các tool_calls trong message cuối, trả về ToolMessage.
 const toolNode = new ToolNode(tools);
 
-// Router: có tool_calls -> ACT, không có -> END.
-// Chỉ đọc state, không ghi được (khác Command).
+/**
+ * Router: có `tool_calls` → `ACT`, không có → `END`.
+ *
+ * - Chỉ đọc state, không ghi được (khác `Command`).
+ */
 function shouldContinue(state) {
   const lastMessage = state.messages.at(-1);
   return lastMessage.tool_calls?.length ? ACT : END;

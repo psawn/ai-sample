@@ -92,7 +92,7 @@ async function main() {
     output: process.stdout,
   });
 
-  // Vòng lặp hỏi-đáp: hỏi 1 câu -> Agent trả lời -> hỏi tiếp, tới khi gõ "exit".
+  /** Vòng lặp hỏi-đáp: hỏi 1 câu → Agent trả lời → hỏi tiếp, tới khi gõ `exit`. */
   const askLoop = () => {
     rl.question("User: ", async (query) => {
       if (query.trim().toLowerCase() === "exit") {

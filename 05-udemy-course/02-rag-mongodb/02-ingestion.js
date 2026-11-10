@@ -117,7 +117,8 @@ function printSummary(allStats) {
 
 /**
  * Khởi tạo MongoDB Collection và VectorStore wrapper.
- * Trả về `collection` (thao tác trực tiếp) và `vectorStore` (tự động embed + lưu DB).
+ *
+ * - Trả về `collection` (thao tác trực tiếp) và `vectorStore` (tự động embed + lưu DB).
  */
 async function prepareVectorStore(client) {
   // Model embedding (luôn dùng chung 1 model cho cả nạp dữ liệu và truy vấn)
@@ -149,7 +150,8 @@ async function prepareVectorStore(client) {
 
 /**
  * Đảm bảo Vector Index tồn tại trên MongoDB.
- * Lưu ý: MongoDB cần khởi tạo Index thủ công (tách biệt với storage), khác với Pinecone hay Chroma.
+ *
+ * - Lưu ý: MongoDB cần tạo Index thủ công (tách biệt với storage), khác với Pinecone hay Chroma.
  */
 async function ensureVectorIndex({ db, collectionName, embeddings }) {
   const indexName = process.env.INDEX_NAME;
@@ -198,7 +200,8 @@ async function ensureVectorIndex({ db, collectionName, embeddings }) {
 
 /**
  * Chờ MongoDB hoàn tất khởi tạo Index (khi `queryable = true`).
- * Kiểm tra lại mỗi 2 giây.
+ *
+ * - Kiểm tra lại mỗi 2 giây.
  */
 async function waitForIndexReady(collection, indexName) {
   while (true) {
@@ -210,6 +213,7 @@ async function waitForIndexReady(collection, indexName) {
 
 // ===== 4. NGUỒN 1: TEXT FILE =====
 
+/** Nguồn 1: nạp file text (load → tách đoạn theo dòng → lọc trùng → embed + lưu). */
 async function ingestTextFile(collection, vectorStore) {
   logHeader("NGUỒN 1: TEXT FILE");
 
@@ -242,6 +246,11 @@ async function loadTextFile(filePath) {
 
 // ===== 5. NGUỒN 2: WEBSITE =====
 
+/**
+ * Nguồn 2: cào website rồi nạp (load → tách đoạn → lọc trùng → embed + lưu).
+ *
+ * - Chọn 1 trong 2 cách cào: TavilyCrawl, hoặc Map → Extract.
+ */
 async function ingestWebsite(collection, vectorStore) {
   logHeader("NGUỒN 2: WEBSITE");
 
@@ -288,8 +297,9 @@ async function crawlWebsite(url) {
 }
 
 /**
- * Bước 1 (Web - Cách 2): Tách làm 2 bước (Map lấy danh sách URL -> Extract lấy nội dung).
- * Tiết kiệm credit vì có thể lọc bớt URL trước khi lấy nội dung chi tiết.
+ * Bước 1 (web, cách 2): Map lấy danh sách URL → Extract lấy nội dung.
+ *
+ * - Tiết kiệm credit vì có thể lọc bớt URL trước khi lấy nội dung chi tiết.
  */
 async function mapAndExtractWebsite(url) {
   const urls = await mapUrls(url);
@@ -324,7 +334,8 @@ async function mapUrls(url) {
 
 /**
  * Lấy nội dung chi tiết của các URL theo từng batch song song.
- * Batch lỗi bị bỏ qua, không làm hỏng các batch khác.
+ *
+ * - Batch lỗi bị bỏ qua, không làm hỏng các batch khác.
  */
 async function extractPages(urls) {
   const extractor = withRetry(
@@ -336,6 +347,7 @@ async function extractPages(urls) {
     Colors.DARKCYAN,
   );
 
+  /** Extract 1 batch URL. Lỗi thì log rồi trả mảng rỗng. */
   async function extractBatch(batch, batchNum) {
     try {
       const res = await extractor.invoke({ urls: batch });
@@ -386,6 +398,13 @@ function toDocuments(pages, toolName) {
 
 // ===== 6. BƯỚC 2 -> 4: DÙNG CHUNG CHO MỌI NGUỒN =====
 
+/**
+ * Phần chung của mọi nguồn, chạy các bước 2 → 4.
+ *
+ * 2. Lọc bỏ document trùng hoặc chưa đổi.
+ * 3. Tách thành chunk.
+ * 4. Embed + lưu vào MongoDB.
+ */
 async function ingestDocuments({
   collection,
   vectorStore,
@@ -416,8 +435,9 @@ async function ingestDocuments({
 }
 
 /**
- * Bước 2: Kiểm tra hash nội dung + cấu hình split.
- * Nếu file thay đổi: xóa toàn bộ chunk cũ để chuẩn bị ghi đè dữ liệu mới.
+ * Bước 2: kiểm tra hash nội dung + cấu hình split, chỉ giữ document mới hoặc đã đổi.
+ *
+ * - File thay đổi → xóa toàn bộ chunk cũ để chuẩn bị ghi dữ liệu mới.
  */
 async function filterNewDocuments({ collection, sourceDocs, textSplitter }) {
   const newSourceDocs = [];
@@ -449,8 +469,9 @@ async function filterNewDocuments({ collection, sourceDocs, textSplitter }) {
 }
 
 /**
- * Bước 4: Tạo vector (Gemini) và lưu vào MongoDB theo từng batch song song.
- * Tự động Rollback (xóa chunk đã lưu của nguồn bị lỗi) nếu xử lý batch thất bại.
+ * Bước 4: tạo vector (Gemini) và lưu vào MongoDB theo từng batch song song.
+ *
+ * - Batch lỗi → tự rollback: xóa các chunk đã lưu của nguồn bị lỗi.
  */
 async function storeChunksInBatches({ collection, vectorStore, chunks }) {
   const batches = splitIntoBatches(chunks, EMBED_BATCH_SIZE);
@@ -461,6 +482,7 @@ async function storeChunksInBatches({ collection, vectorStore, chunks }) {
 
   const failedSources = new Set();
 
+  /** Embed + lưu 1 batch. Lỗi thì ghi lại nguồn bị lỗi để rollback, trả `false`. */
   async function addBatch(batch, batchNum) {
     try {
       await vectorStore.addDocuments(batch);
@@ -508,7 +530,8 @@ function hashContent(content) {
 
 /**
  * Chia mảng dữ liệu thành các batch nhỏ.
- * Vd: 5 phần tử, size 2 -> [[1, 2], [3, 4], [5]]
+ *
+ * - VD 5 phần tử, `size` 2 → `[[1, 2], [3, 4], [5]]`.
  */
 function splitIntoBatches(items, size) {
   const batches = [];

@@ -147,16 +147,19 @@ const State = Annotation.Root({
 });
 
 // 3 node rỗng: chỉ log rồi trả {} -> state không đổi. Ứng dụng thực tế sẽ đặt LLM hoặc Tool tại đây.
+/** Node `step_1`: chỉ log, không đổi state. */
 function step1() {
   console.log("[node]  step_1 chạy");
   return {};
 }
 
+/** Node `human_feedback`: graph dừng trước node này để chờ người dùng (`interruptBefore`). */
 function humanFeedback() {
   console.log("[node]  human_feedback chạy");
   return {};
 }
 
+/** Node `step_3`: chỉ log, không đổi state. */
 function step3() {
   console.log("[node]  step_3 chạy");
   return {};
@@ -174,13 +177,16 @@ const builder = new StateGraph(State)
 
 // ===== HÀM IN LOG =====
 
-// In tiêu đề từng phần.
+/** In tiêu đề từng phần. */
 function section(title) {
   console.log(`\n========== ${title} ==========`);
 }
 
-// In từng event của stream (streamMode "values"): mỗi event = toàn bộ state sau 1 bước.
-// Event { __interrupt__: [] } = graph đã dừng (interruptBefore).
+/**
+ * In từng event của stream (`streamMode: "values"`): mỗi event = toàn bộ state sau 1 bước.
+ *
+ * - Event `{ __interrupt__: [] }` = graph đã dừng (`interruptBefore`).
+ */
 async function printStream(stream) {
   for await (const event of stream) {
     if ("__interrupt__" in event) {
@@ -191,7 +197,7 @@ async function printStream(stream) {
   }
 }
 
-// In lịch sử checkpoint của thread theo thứ tự cũ -> mới (mỗi dòng = 1 dòng trong bảng checkpoints).
+/** In lịch sử checkpoint của thread theo thứ tự cũ → mới (mỗi dòng = 1 dòng trong bảng checkpoints). */
 async function printHistory(graph, thread) {
   const history = [];
   for await (const snapshot of graph.getStateHistory(thread)) {

@@ -66,7 +66,8 @@ const tools = [
 
 /**
  * Hỏi LLM, in quyết định gọi tool: có gọi không, tool nào, tham số gì.
- * Chỉ xem quyết định, không chạy tool, không gửi kết quả lại.
+ *
+ * - Chỉ xem quyết định, không chạy tool, không gửi kết quả lại.
  */
 async function ask(label, question, toolChoice) {
   const messages = [new HumanMessage(question)];
@@ -98,7 +99,8 @@ async function ask(label, question, toolChoice) {
 //   .formatMessages({ city }) mới ra message thật (cũng là HumanMessage).
 
 /**
- * Vòng tool calling đầy đủ (round-trip):
+ * Vòng tool calling đầy đủ (round-trip).
+ *
  * 1. LLM chọn tool.
  * 2. Code chạy tool.
  * 3. Gửi kết quả lại cho LLM.

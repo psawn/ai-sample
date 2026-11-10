@@ -125,7 +125,8 @@ async function tryQuery(db, sql) {
 
 /**
  * Tạo hàm random có seed (thuật toán mulberry32).
- * Khác Math.random: cùng seed -> luôn ra cùng một dãy số -> chạy lại vẫn chọn đúng các ví dụ cũ.
+ *
+ * - Khác `Math.random`: cùng seed → luôn ra cùng một dãy số → chạy lại vẫn chọn đúng các ví dụ cũ.
  */
 function createRandom(seed) {
   let state = seed;
@@ -151,6 +152,7 @@ function pickRandom(items, count, random) {
 // KHUÔN MẪU PROMPT & SCHEMA
 // =======================================================================
 
+/** Schema bảng `nba_roster` dạng text (tên cột, kiểu, ví dụ giá trị) để chèn vào prompt. */
 function getUpdatedSchema() {
   return `\
 0|team|TEXT eg. "Toronto Raptors"
@@ -170,8 +172,9 @@ const ANALYST_INTRO =
   "Consider a table called 'nba_roster' with the following schema (columns)\n";
 
 /**
- * Bước 1 — Prompt nhờ model viết 2 SQL mới, dựa trên các ví dụ { question, sql }.
- * Mẹo: chọn ví dụ giống những câu model hay sai -> data sinh ra dạy đúng chỗ model yếu.
+ * Bước 1 — prompt nhờ model viết 2 SQL mới, dựa trên các ví dụ `{ question, sql }`.
+ *
+ * - Mẹo: chọn ví dụ giống những câu model hay sai → data sinh ra dạy đúng chỗ model yếu.
  */
 function makeQueryPrompt(examples) {
   let system = ANALYST_INTRO + getUpdatedSchema();
@@ -226,11 +229,16 @@ const QUESTION_OUTPUT_FORMAT = {
   required: ["explanation", "question"],
 };
 
-// maxNewTokens để dư: JSON bị cắt giữa chừng thì JSON.parse báo lỗi, mất cả lượt
+/**
+ * Bước 1: nhờ model viết 2 SQL mới theo các ví dụ.
+ *
+ * - `maxNewTokens` để dư: JSON bị cắt giữa chừng thì `JSON.parse` báo lỗi, mất cả lượt.
+ */
 async function generateQueries(examples) {
   return generate(makeQueryPrompt(examples), { maxNewTokens: 600, format: QUERY_OUTPUT_FORMAT });
 }
 
+/** Bước 2: nhờ model viết câu hỏi tương ứng với 1 SQL. */
 async function generateQuestion(examples, sql) {
   return generate(makeQuestionPrompt(examples, sql), {
     maxNewTokens: 300,
@@ -253,7 +261,8 @@ function loadGoldDataset() {
 
 /**
  * Chạy 1 lượt đủ 3 bước với một nhóm ví dụ.
- * Trả về danh sách cặp { question, sql } hợp lệ (0–2 cặp).
+ *
+ * - Trả về danh sách cặp `{ question, sql }` hợp lệ (0–2 cặp).
  */
 async function runOneRound(db, examples) {
   const { explanation, sql_query_1, sql_query_2 } = await generateQueries(examples);

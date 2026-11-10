@@ -28,7 +28,8 @@
 
 /**
  * Embed danh sách docs, mỗi lần chạy song song tối đa `concurrency` request.
- * Trả mảng vector đúng thứ tự docs.
+ *
+ * - Trả mảng vector đúng thứ tự docs.
  */
 async function embedChunksSafely(embeddings, docs, concurrency = 5) {
   const vectors = new Array(docs.length);

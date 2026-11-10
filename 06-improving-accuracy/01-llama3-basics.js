@@ -35,8 +35,9 @@ function section(title) {
 
 /**
  * Gửi chuỗi prompt trực tiếp cho Ollama (không dùng template tự động).
- * @param {string} prompt - Chuỗi prompt đã được gắn template thủ công
- * @param {number} maxNewTokens - Số token tối đa model được phép sinh ra
+ *
+ * - `prompt`: chuỗi prompt đã gắn template thủ công.
+ * - `maxNewTokens`: số token tối đa model được phép sinh ra.
  */
 async function generate(prompt, maxNewTokens = 200) {
   const res = await ollama.generate({
@@ -76,8 +77,9 @@ const prompt2 =
   "<|start_header_id|>assistant<|end_header_id|>\n\n"; // Mở lượt assistant, để trống cho model viết tiếp
 
 /**
- * Cách 3: Hàm tự động sinh template Llama 3 từ nội dung truyền vào.
- * (Bỏ qua phần system nếu không truyền vào).
+ * Cách 3: tự sinh template Llama 3 từ nội dung truyền vào.
+ *
+ * - Không truyền `system` → bỏ qua phần system.
  */
 function makeLlama3Prompt(user, system = "") {
   const systemBlock = system

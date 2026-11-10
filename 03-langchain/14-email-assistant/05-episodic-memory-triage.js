@@ -64,7 +64,8 @@ const store = new InMemoryStore({ index: { embeddings, dims: 3072 } });
 
 /**
  * Đường dẫn lưu ví dụ mẫu, chia theo user.
- * Ví dụ: ["email_assistant", "lance", "examples"].
+ *
+ * - VD `["email_assistant", "lance", "examples"]`.
  */
 function examplesNamespace(userId) {
   return ["email_assistant", userId, "examples"];
@@ -72,7 +73,8 @@ function examplesNamespace(userId) {
 
 /**
  * Chuyển 1 cặp email + nhãn thành đoạn văn bản để chèn vào prompt.
- * Cắt thread còn 400 ký tự đầu để tiết kiệm token.
+ *
+ * - Cắt thread còn 400 ký tự đầu để tiết kiệm token.
  */
 function formatExample({ email, label }) {
   return `Email Subject: ${email.subject}
@@ -87,7 +89,8 @@ ${email.emailThread.slice(0, 400)}
 
 /**
  * Gộp các ví dụ tìm được thành 1 khối few-shot.
- * Trả về null nếu Store chưa có ví dụ nào.
+ *
+ * - Trả về `null` nếu Store chưa có ví dụ nào.
  */
 function formatFewShotExamples(matches) {
   if (matches.length === 0) return null;
@@ -147,7 +150,8 @@ Sarah`,
 
 /**
  * Tìm thử ví dụ mẫu bằng 1 email gần giống email của Sarah.
- * Chỉ in kết quả, chưa đưa vào triage_router.
+ *
+ * - Chỉ in kết quả, chưa đưa vào `triage_router`.
  */
 async function demoFewShotSearch(userId) {
   const email = {
@@ -191,8 +195,9 @@ const llm = new ChatGoogleGenerativeAI({
 const llmRouter = llm.withStructuredOutput(Router);
 
 /**
- * System prompt của response agent, liệt kê 5 tool:
- * 3 tool xử lý email và lịch họp, 2 tool đọc ghi semantic memory.
+ * System prompt của response agent, liệt kê 5 tool.
+ *
+ * - 3 tool xử lý email và lịch họp, 2 tool đọc ghi semantic memory.
  */
 function buildAgentSystemPromptMemory({ fullName, name, instructions }) {
   return `< Role >
@@ -418,7 +423,8 @@ async function runWithoutMemory() {
 
 /**
  * Sửa sai: lưu email + nhãn đúng (IGNORE) vào Store của "harrison" rồi chạy lại.
- * Chỉ cần sửa 1 lần, các lần sau triage phân loại đúng.
+ *
+ * - Chỉ cần sửa 1 lần, các lần sau triage phân loại đúng.
  */
 async function correctAndRunWithMemory() {
   await store.put(examplesNamespace("harrison"), randomUUID(), {
@@ -429,6 +435,12 @@ async function correctAndRunWithMemory() {
   await runEmail(ambiguousEmail, "harrison");
 }
 
+/**
+ * Chạy cả demo episodic memory.
+ *
+ * - Nạp ví dụ mẫu, tìm thử email tương tự.
+ * - Chạy khi chưa có ví dụ (phân loại sai) → sửa → chạy lại (phân loại đúng).
+ */
 async function demoEpisodicLearning() {
   // Nạp 2 ví dụ mẫu cho user "lance".
   await seedExamples("lance");

@@ -74,8 +74,9 @@ async function loadDocuments(urls) {
 }
 
 /**
- * Bước 2 - Split: Cắt tài liệu thành các chunk nhỏ (tối đa 250 token).
- * Dùng tiktoken đếm số token thay vì số ký tự.
+ * Bước 2 - Split: cắt tài liệu thành các chunk nhỏ (tối đa 250 token).
+ *
+ * - Dùng tiktoken đếm số token thay vì số ký tự.
  */
 async function splitDocuments(docs) {
   const encoder = getEncoding("cl100k_base");
@@ -90,8 +91,9 @@ async function splitDocuments(docs) {
 }
 
 /**
- * Bước 3 - Embed & Store: Lưu chunk vào Chroma (Chroma tự gọi Gemini tạo vector).
- * Chia batch 100 chunk/lần vì Gemini giới hạn 100 text/request.
+ * Bước 3 - Embed & Store: lưu chunk vào Chroma (Chroma tự gọi Gemini tạo vector).
+ *
+ * - Chia batch 100 chunk/lần vì Gemini giới hạn 100 text/request.
  */
 async function storeChunks(collection, chunks) {
   for (let start = 0; start < chunks.length; start += EMBED_BATCH_SIZE) {

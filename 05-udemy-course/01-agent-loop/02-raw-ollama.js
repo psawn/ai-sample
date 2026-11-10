@@ -26,12 +26,14 @@ const ollama = new Ollama({
 // ===== 1. KHAI BÁO TOOLS =====
 // Hàm JS xử lý logic thực tế (đầu vào là object args do LLM trích xuất)
 
+/** Tool giả lập: trả giá sản phẩm theo tên (không có thì trả 0). */
 function getProductPrice({ product }) {
   console.log(`  >> Executing get_product_price(product='${product}')`);
   const prices = { laptop: 1299.99, headphones: 149.95, keyboard: 89.5 };
   return prices[product] ?? 0;
 }
 
+/** Tool giả lập: giảm giá theo hạng (bronze 5%, silver 12%, gold 23%), làm tròn 2 chữ số. */
 function applyDiscount({ price, discount_tier }) {
   console.log(
       `  >> Executing apply_discount(price=${price}, discount_tier='${discount_tier}')`,
@@ -85,6 +87,12 @@ const toolsForLlm = [
 ];
 
 // ===== 3. AGENT LOOP (VÒNG LẶP XỬ LÝ) =====
+/**
+ * Vòng lặp tool calling gọi thẳng Ollama SDK (không dùng LangChain).
+ *
+ * - Model trả `tool_calls` → chạy hàm JS tương ứng, gửi kết quả lại.
+ * - Không còn `tool_calls` → đó là câu trả lời cuối.
+ */
 async function runAgent(question) {
   // Map tên hàm trong JSON Schema với function JS thực tế
   const toolsByName = {

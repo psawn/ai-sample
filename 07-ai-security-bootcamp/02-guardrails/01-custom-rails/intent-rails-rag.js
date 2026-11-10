@@ -219,8 +219,9 @@ async function getExampleVectors() {
 }
 
 /**
- * Bước 1: tìm câu mẫu giống tin nhắn nhất → { intent, example, score }.
- * Chỉ tìm theo nghĩa để phân loại, không gọi LLM (khác RAG ở Phần 4).
+ * Bước 1: tìm câu mẫu giống tin nhắn nhất → `{ intent, example, score }`.
+ *
+ * - Chỉ tìm theo nghĩa để phân loại, không gọi LLM (khác RAG ở Phần 4).
  */
 async function matchByEmbedding(message) {
   const examples = await getExampleVectors();
@@ -336,11 +337,12 @@ const BLOCKED_INTENTS = [
 
 /**
  * Xử lý 1 tin nhắn qua toàn bộ rail.
- * Trả về { reply, actual, by, llmCalls, ms } để in và so sánh.
+ *
+ * - Trả về `{ reply, actual, by, llmCalls, ms }` để in và so sánh.
  */
 async function guardedChat(message) {
   const start = Date.now();
-  // Gắn thời gian xử lý vào kết quả trước khi trả về
+  /** Gắn thời gian xử lý (`ms`) vào kết quả trước khi trả về. */
   const done = (result) => ({ ...result, ms: Date.now() - start });
 
   // Phần 1: systematic rail

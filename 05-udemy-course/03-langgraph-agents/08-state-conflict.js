@@ -26,7 +26,8 @@ function section(title) {
 
 /**
  * Tạo graph theo sơ đồ: 2 node chạy song song rồi kết thúc.
- * Truyền node dạng object `{ getWeather, getNews }` để chỗ gọi thấy rõ hàm nào là node nào.
+ *
+ * - Truyền node dạng object `{ getWeather, getNews }` để chỗ gọi thấy rõ hàm nào là node nào.
  */
 function buildGraph(State, { getWeather, getNews }) {
   return new StateGraph(State)

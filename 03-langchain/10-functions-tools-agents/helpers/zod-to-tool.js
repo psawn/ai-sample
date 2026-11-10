@@ -16,8 +16,10 @@
 const { zodToJsonSchema } = require("zod-to-json-schema");
 
 /**
- * Vd: zodToFunctionTool("Tagging", "Tag the text", schema)
- *   -> { type: "function", function: { name: "Tagging", description, parameters } }
+ * Đổi Zod schema thành định nghĩa tool dạng function (format OpenAI).
+ *
+ * - VD `zodToFunctionTool("Tagging", "Tag the text", schema)`
+ *   → `{ type: "function", function: { name: "Tagging", description, parameters } }`
  */
 function zodToFunctionTool(name, description, zodSchema) {
   // Bỏ "$schema": metadata model không cần.

@@ -30,7 +30,8 @@ function printAnswer(result) {
 
 /**
  * In sơ đồ graph dạng Mermaid.
- * Dán vào https://mermaid.live để xem hình: node nào nối node nào, rẽ nhánh ở đâu.
+ *
+ * - Dán vào https://mermaid.live để xem hình: node nào nối node nào, rẽ nhánh ở đâu.
  */
 async function printGraph(agent) {
   const mermaid = await agent.graph.getGraph().drawMermaid();

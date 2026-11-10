@@ -68,8 +68,9 @@ const PRODUCT_CATALOG = {
 
 /**
  * Hàm gọi Gemini dùng chung cho mọi bước.
- * temperature: 0 -> ít ngẫu nhiên nhất, dễ kiểm tra hơn (vẫn không chắc lần nào cũng giống).
- * Tạo model mới mỗi lần gọi, vì mỗi bước có systemInstruction khác nhau.
+ *
+ * - `temperature: 0` → ít ngẫu nhiên nhất, dễ kiểm tra hơn (vẫn không chắc lần nào cũng giống).
+ * - Tạo model mới mỗi lần gọi, vì mỗi bước có `systemInstruction` khác nhau.
  */
 async function callGemini(prompt, systemInstruction = "") {
   try {
@@ -97,8 +98,9 @@ async function callGemini(prompt, systemInstruction = "") {
 
 /**
  * Tìm sản phẩm trong câu hỏi bằng so khớp chuỗi đơn giản (không gọi LLM).
- * Riêng "tv"/"television" map về "smart tv 55".
- * Lưu ý: includes("tv") khớp cả chữ khác chứa "tv", và có thể thêm trùng "smart tv 55".
+ *
+ * - Riêng `"tv"` / `"television"` map về `"smart tv 55"`.
+ * - Lưu ý: `includes("tv")` khớp cả chữ khác chứa "tv", và có thể thêm trùng `"smart tv 55"`.
  */
 function findProductsInText(userInput) {
   const text = userInput.toLowerCase();
@@ -133,8 +135,9 @@ function generateProductInformation(productList) {
 
 /**
  * Xử lý 1 tin nhắn qua pipeline 7 bước.
- * Trả { response, context }: câu trả lời + history mới.
- * Bị chặn ở bước 1 hoặc 5 -> context giữ nguyên, không lưu lượt này.
+ *
+ * - Trả `{ response, context }`: câu trả lời + history mới.
+ * - Bị chặn ở bước 1 hoặc 5 → `context` giữ nguyên, không lưu lượt này.
  */
 async function processUserMessage(userInput, allMessages = [], debug = true) {
   // Bọc input của user trong delimiter để model phân biệt với chỉ dẫn,
@@ -226,7 +229,8 @@ async function processUserMessage(userInput, allMessages = [], debug = true) {
 // ===== KỊCH BẢN MINH HỌA =====
 /**
  * Hỏi về "computer": sản phẩm không có trong catalog.
- * Kỳ vọng: bot báo cửa hàng không bán, không hỏi thêm về máy tính.
+ *
+ * - Kỳ vọng: bot báo cửa hàng không bán, không hỏi thêm về máy tính.
  */
 async function runDemo() {
   const userInput =

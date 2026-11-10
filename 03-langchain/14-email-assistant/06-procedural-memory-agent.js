@@ -62,7 +62,8 @@ const store = new InMemoryStore({ index: { embeddings, dims: 3072 } });
 
 /**
  * Đường dẫn lưu ví dụ mẫu, chia theo user.
- * Ví dụ: ["email_assistant", "lance", "examples"].
+ *
+ * - VD `["email_assistant", "lance", "examples"]`.
  */
 function examplesNamespace(userId) {
   return ["email_assistant", userId, "examples"];
@@ -70,7 +71,8 @@ function examplesNamespace(userId) {
 
 /**
  * Chuyển 1 cặp email + nhãn thành đoạn văn bản để chèn vào prompt.
- * Cắt thread còn 400 ký tự đầu để tiết kiệm token.
+ *
+ * - Cắt thread còn 400 ký tự đầu để tiết kiệm token.
  */
 function formatExample({ email, label }) {
   return `Email Subject: ${email.subject}
@@ -85,7 +87,8 @@ ${email.emailThread.slice(0, 400)}
 
 /**
  * Gộp các ví dụ tìm được thành 1 khối few-shot.
- * Trả về null nếu Store chưa có ví dụ nào.
+ *
+ * - Trả về `null` nếu Store chưa có ví dụ nào.
  */
 function formatFewShotExamples(matches) {
   if (matches.length === 0) return null;
@@ -472,7 +475,8 @@ const optimizer = llm.withStructuredOutput(OptimizerResult);
 
 /**
  * Prompt cho Optimizer: lượt chạy + feedback + các chỉ dẫn hiện có.
- * Mỗi chỉ dẫn kèm when_to_update (khi nào sửa) và update_instructions (sửa thế nào).
+ *
+ * - Mỗi chỉ dẫn kèm `when_to_update` (khi nào sửa) và `update_instructions` (sửa thế nào).
  */
 function buildOptimizerPrompt({ trajectoryText, feedback, prompts }) {
   const promptsBlock = prompts
@@ -527,10 +531,11 @@ async function optimizePrompts({ messages, feedback, prompts }) {
 }
 
 /**
- * Lấy 4 chỉ dẫn hiện tại để gửi cho Optimizer.
- * - key        : để ghi lại vào Store.
- * - name       : tên Optimizer thấy.
- * - whenToUpdate / updateInstructions: khi nào sửa, sửa thế nào.
+ * Lấy 4 chỉ dẫn hiện tại để gửi cho Optimizer. Mỗi chỉ dẫn gồm:
+ *
+ * - `key`: để ghi lại vào Store.
+ * - `name`: tên Optimizer thấy.
+ * - `whenToUpdate` / `updateInstructions`: khi nào sửa, sửa thế nào.
  */
 async function buildPromptSpecs(userId) {
   return [

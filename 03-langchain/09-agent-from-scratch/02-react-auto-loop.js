@@ -24,7 +24,8 @@ const ACTION_REGEX = /^Action: (\w+): (.*)$/;
 
 /**
  * Chạy vòng lặp ReAct cho 1 câu hỏi.
- * maxTurns: số lượt tối đa, chống lặp vô hạn. Hết lượt -> dừng, không có Answer.
+ *
+ * - `maxTurns`: số lượt tối đa, chống lặp vô hạn. Hết lượt → dừng, không có Answer.
  */
 async function query(question, maxTurns = 5) {
   const bot = new Agent(SYSTEM_PROMPT);

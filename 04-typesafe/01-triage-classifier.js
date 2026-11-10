@@ -65,6 +65,13 @@ const triageQuestions = {
   ]),
 };
 
+/**
+ * Hỏi TypeSafe phân loại 1 email, rồi chọn hành động theo xác suất.
+ *
+ * 1. Chắc chắn là spam → chuyển vào thư mục spam.
+ * 2. Độ tin cậy dưới ngưỡng → nhờ user xem lại.
+ * 3. Còn lại → làm theo nhãn.
+ */
 async function runTriage(email) {
   const response = await client.systemOne({
     // state nhận chuỗi hoặc object bất kỳ, không cần prompt template.

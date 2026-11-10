@@ -150,6 +150,7 @@ async function generate(prompt, { maxNewTokens = 300, format, model = MODEL } = 
 // KHUÔN MẪU PROMPT & SCHEMA SQL
 // =======================================================================
 
+/** Schema bảng `nba_roster` dạng text (tên cột, kiểu, ví dụ giá trị) để chèn vào prompt. */
 function getUpdatedSchema() {
   return `\
 0|team|TEXT eg. "Toronto Raptors"
@@ -164,6 +165,7 @@ function getUpdatedSchema() {
 `;
 }
 
+/** System prompt viết SQL: đóng vai chuyên gia NBA, kèm schema bảng `nba_roster`. */
 function makeSqlSystemPrompt() {
   return `You are an NBA analyst with 15 years of experience writing complex SQL queries. Consider the nba_roster table with the following schema:
 ${getUpdatedSchema()}
@@ -216,6 +218,7 @@ const JUDGE_OUTPUT_FORMAT = {
   required: ["explanation", "similar"],
 };
 
+/** User prompt cho giám khảo LLM: đặt 2 kết quả cạnh nhau, hỏi có giống nhau không. */
 function makeJudgeUserPrompt(modelRows, correctRows) {
   return (
     `========== Result 1 =========\n${rowsToText(modelRows)}\n\n` +
@@ -293,6 +296,7 @@ async function checkOneQuestion(db, testCase) {
 // LƯU KẾT QUẢ ĐÁNH GIÁ
 // =======================================================================
 
+/** Ghi mảng kết quả ra file JSONL (mỗi dòng 1 object JSON) trong thư mục kết quả. */
 function writeJsonl(fileName, results) {
   const lines = results.map((result) => JSON.stringify(result) + "\n");
   fs.writeFileSync(path.join(RESULTS_DIR, fileName), lines.join(""));
@@ -302,6 +306,7 @@ function writeJsonl(fileName, results) {
 function saveResults(results) {
   const correct = results.filter((result) => result.isCorrect);
   const sqlRan = results.filter((result) => !result.modelError);
+  /** Tỉ lệ % của `list` so với tổng số câu, làm tròn 1 chữ số. */
   const percent = (list) => ((list.length / results.length) * 100).toFixed(1);
 
   const summary = [

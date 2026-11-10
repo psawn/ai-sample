@@ -41,8 +41,9 @@ const rl = readline.createInterface({
 let history = [];
 
 /**
- * Thêm 1 message vào history theo format của Gemini: { role, parts: [{ text }] }.
- * role: "user" hoặc "model" (không phải "assistant" như OpenAI).
+ * Thêm 1 message vào history theo format của Gemini: `{ role, parts: [{ text }] }`.
+ *
+ * - `role`: `"user"` hoặc `"model"` (không phải `"assistant"` như OpenAI).
  */
 function addMessage(role, text) {
   history.push({
@@ -62,9 +63,10 @@ async function getHistoryTokens() {
 
 /**
  * Xóa các turn cũ nhất tới khi đủ token budget.
- * Mỗi turn gồm 1 user message + 1 model message -> xóa 2 phần tử 1 lần,
- * để history luôn bắt đầu bằng "user".
- * history.length > 2: luôn giữ lại câu hỏi mới nhất.
+ *
+ * - Mỗi turn gồm 1 user message + 1 model message → xóa 2 phần tử 1 lần,
+ *   để history luôn bắt đầu bằng `"user"`.
+ * - `history.length > 2`: luôn giữ lại câu hỏi mới nhất.
  */
 async function trimHistory() {
   let totalTokens = await getHistoryTokens();

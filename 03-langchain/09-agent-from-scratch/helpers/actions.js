@@ -12,9 +12,10 @@
 // =======================================================================
 
 /**
- * Action "calculate": tính biểu thức số học. Vd: "4 * 7 / 3".
- * Lưu ý: eval() chạy được mọi code JS -> chỉ dùng cho bài học.
- * Không dùng ở dự án thật, nhất là khi input đến từ người dùng.
+ * Action "calculate": tính biểu thức số học. VD `"4 * 7 / 3"`.
+ *
+ * - Lưu ý: `eval()` chạy được mọi code JS → chỉ dùng cho bài học.
+ * - Không dùng ở dự án thật, nhất là khi input đến từ người dùng.
  */
 function calculate(what) {
   return eval(what);
@@ -22,8 +23,9 @@ function calculate(what) {
 
 /**
  * Action "average_dog_weight": tra cân nặng trung bình theo giống chó (dữ liệu giả lập).
- * So khớp kiểu "tên giống chứa input", phân biệt hoa/thường.
- * Vd: "Collie" khớp "Border Collie". "border collie" không khớp -> rơi vào mặc định 50 lbs.
+ *
+ * - So khớp kiểu "tên giống chứa input", phân biệt hoa/thường.
+ * - VD `"Collie"` khớp "Border Collie". `"border collie"` không khớp → rơi vào mặc định 50 lbs.
  */
 function averageDogWeight(name) {
   if ("Scottish Terrier".includes(name)) {

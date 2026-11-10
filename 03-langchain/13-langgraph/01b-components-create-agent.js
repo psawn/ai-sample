@@ -18,7 +18,8 @@ const { webSearch } = require("./helpers/tool");
 
 /**
  * In câu trả lời cuối (message cuối của Model).
- * createAgent không log từng node, nên không thấy từng bước gọi tool như bản manual.
+ *
+ * - `createAgent` không log từng node, nên không thấy từng bước gọi tool như bản manual.
  */
 function printAnswer(result) {
   console.log(`\n>>> KẾT QUẢ CUỐI: ${result.messages.at(-1).content}\n`);

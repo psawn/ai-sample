@@ -159,8 +159,9 @@ async function researchPlanNode(state) {
 }
 
 /**
- * Node generate: task + plan + content -> draft.
- * Viết xong thì tăng revisionNumber thêm 1.
+ * Node generate: task + plan + content → draft.
+ *
+ * - Viết xong thì tăng `revisionNumber` thêm 1.
  */
 async function generationNode(state) {
   const content = state.content.join("\n\n");

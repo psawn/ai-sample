@@ -206,8 +206,9 @@ const supportQA = traceable(
 // -----------------------------------------------------------------------
 
 /**
- * Thay thế email, số thẻ, số điện thoại bằng các nhãn che tương ứng.
- * (Đây là biểu thức regex cơ bản minh họa; thực tế nên dùng thư viện phát hiện PII chuyên dụng).
+ * Thay email, số thẻ, số điện thoại bằng các nhãn che tương ứng.
+ *
+ * - Regex cơ bản để minh họa. Thực tế nên dùng thư viện phát hiện PII chuyên dụng.
  */
 function maskPII(text) {
   return text

@@ -45,12 +45,15 @@ const llm = new ChatGoogleGenerativeAI({
 });
 
 /**
- * Xây vectorDB:
+ * Xây vectorDB.
+ *
  * 1. Load 3 file PDF bài giảng.
  * 2. Split thành chunk.
- * 3. Embed từng chunk, lưu vào MemoryVectorStore.
- * Dựng lại trong RAM mỗi lần chạy cho đơn giản, giống 06-retrieval/.
- * Muốn lưu lâu dài, không embed lại: dùng Chroma (../05-vectorstores-and-embeddings/02b-vectorstore-chroma.js).
+ * 3. Embed từng chunk, lưu vào `MemoryVectorStore`.
+ *
+ * - Dựng lại trong RAM mỗi lần chạy cho đơn giản, giống `06-retrieval/`.
+ * - Muốn lưu lâu dài, không embed lại: dùng Chroma
+ *   (`../05-vectorstores-and-embeddings/02b-vectorstore-chroma.js`).
  */
 async function buildVectorDb() {
   const pdfPaths = [

@@ -174,12 +174,14 @@ async function askTypeSafe(params) {
 
 // ===== runAgent(): VÒNG LẶP AGENT TỰ VIẾT =====
 /**
- * Mỗi vòng:
- * 1. TypeSafe chọn tool kế tiếp (hoặc "done") dựa trên request + stepsTaken.
- * 2. Gemini điền tham số cho tool theo tool.schema.
- * 3. Chạy tool, lưu kết quả vào steps.
- * Hết vòng lặp: Gemini viết câu trả lời cuối.
- * File gốc: createAgent gộp bước 1 + 2 vào 1 lượt gọi LLM có tool calling.
+ * Vòng lặp agent, trả câu trả lời cuối. Mỗi vòng:
+ *
+ * 1. TypeSafe chọn tool kế tiếp (hoặc `"done"`) dựa trên request + `stepsTaken`.
+ * 2. Gemini điền tham số cho tool theo `tool.schema`.
+ * 3. Chạy tool, lưu kết quả vào `steps`.
+ *
+ * - Hết vòng lặp: Gemini viết câu trả lời cuối.
+ * - So với `createAgent`: bản đó gộp bước 1 + 2 vào 1 lượt gọi LLM có tool calling.
  */
 async function runAgent(request, runConfig) {
   // Lịch sử các bước đã chạy: [{ tool, args, result }].
@@ -287,8 +289,9 @@ const EmailAgentState = Annotation.Root({
 });
 
 /**
- * Node 1: phân loại email, điều hướng bằng Command({ goto }).
- * Chỉ "respond" đi tiếp. ignore/notify kết thúc, không gọi Gemini.
+ * Node 1: phân loại email, điều hướng bằng `Command({ goto })`.
+ *
+ * - Chỉ `"respond"` đi tiếp. `ignore` / `notify` kết thúc, không gọi Gemini.
  */
 async function triageRouterNode(state) {
   console.log("\n📍 Node: triage_router");
@@ -340,6 +343,7 @@ const emailAgent = new StateGraph(EmailAgentState)
   .addEdge(START, "triage_router")
   .compile({ store });
 
+/** Chạy graph cho 1 email (dùng chung `config` để giữ memory), in các bước agent đã làm. */
 async function runEmail(emailInput) {
   console.log(`\n========== Email: "${emailInput.subject}" ==========`);
 

@@ -17,9 +17,10 @@
 
 /**
  * System prompt của bước triage. LLM chỉ xếp loại email, không làm gì khác.
- * - Rules             : truyền vào từ ngoài (triageRules trong profile.js, hoặc Store ở bước 06).
- * - Few shot examples : ví dụ mẫu cho các trường hợp khó, bước 05 mới dùng.
- *                       Chưa có ví dụ thì ghi "No examples yet.".
+ *
+ * - Rules: truyền vào từ ngoài (`triageRules` trong `profile.js`, hoặc Store ở bước 06).
+ * - Few shot examples: ví dụ mẫu cho các trường hợp khó, bước 05 mới dùng.
+ *   Chưa có ví dụ thì ghi "No examples yet.".
  */
 function buildTriageSystemPrompt({
   fullName,
@@ -66,7 +67,8 @@ ${examples ?? "No examples yet."}
 
 /**
  * User prompt của bước triage: chỉ chứa nội dung email.
- * Quy tắc phân loại đã nằm ở system prompt.
+ *
+ * - Quy tắc phân loại đã nằm ở system prompt.
  */
 function buildTriageUserPrompt({ author, to, subject, emailThread }) {
   return `Please determine how to handle the below email thread:
@@ -79,8 +81,9 @@ ${emailThread}`;
 
 /**
  * System prompt của agent trả lời email, có quyền gọi tool.
- * Khối Instructions là chỗ tuỳ biến hành vi agent theo từng user.
- * Bước 04-06 dùng bản riêng (buildAgentSystemPromptMemory) vì có thêm 2 memory tool.
+ *
+ * - Khối Instructions là chỗ tuỳ biến hành vi agent theo từng user.
+ * - Bước 04-06 dùng bản riêng (`buildAgentSystemPromptMemory`) vì có thêm 2 memory tool.
  */
 function buildAgentSystemPrompt({ fullName, name, instructions }) {
   return `< Role >

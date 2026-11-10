@@ -18,8 +18,9 @@ const llm = new ChatGoogleGenerativeAI({
 });
 
 /**
- * 1. invoke(): đợi model trả lời xong rồi mới nhận kết quả.
- * Dùng khi chỉ cần 1 câu trả lời, không cần hiển thị dần.
+ * 1. `invoke()`: đợi model trả lời xong rồi mới nhận kết quả.
+ *
+ * - Dùng khi chỉ cần 1 câu trả lời, không cần hiển thị dần.
  */
 async function demoInvoke() {
   const response = await llm.invoke("Give me 4 good books to read");
@@ -29,10 +30,12 @@ async function demoInvoke() {
 }
 
 /**
- * 2. batch(): gửi nhiều input độc lập, xử lý song song.
- * Kết quả là mảng, đúng thứ tự input.
- * Dùng khi có nhiều câu hỏi không phụ thuộc nhau (nhanh hơn gọi invoke() lần lượt).
- * Nhiều input quá -> dễ bị rate limit. Giới hạn số request song song: batch(inputs, { maxConcurrency }).
+ * 2. `batch()`: gửi nhiều input độc lập, xử lý song song.
+ *
+ * - Kết quả là mảng, đúng thứ tự input.
+ * - Dùng khi có nhiều câu hỏi không phụ thuộc nhau (nhanh hơn gọi `invoke()` lần lượt).
+ * - Nhiều input quá → dễ bị rate limit. Giới hạn số request song song:
+ *   `batch(inputs, { maxConcurrency })`.
  */
 async function demoBatch() {
   const responses = await llm.batch(["Hello", "Give me 4 good books to read"]);
@@ -42,9 +45,10 @@ async function demoBatch() {
 }
 
 /**
- * 3. stream(): nhận từng chunk ngay khi model sinh ra.
- * Dùng khi muốn hiển thị chữ chạy dần, người dùng không phải chờ.
- * process.stdout.write() thay console.log(): các chunk nối liền, không xuống dòng sau mỗi chunk.
+ * 3. `stream()`: nhận từng chunk ngay khi model sinh ra.
+ *
+ * - Dùng khi muốn hiển thị chữ chạy dần, người dùng không phải chờ.
+ * - `process.stdout.write()` thay `console.log()`: các chunk nối liền, không xuống dòng sau mỗi chunk.
  */
 async function demoStream() {
   console.log("\n=== llm.stream ===");

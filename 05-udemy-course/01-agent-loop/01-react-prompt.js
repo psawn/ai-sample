@@ -41,12 +41,14 @@ const ollama = new Ollama({
 // ===== 1. KHAI BÁO TOOLS =====
 // Các hàm JS nhận tham số dạng vị trí (positional args) và đều là String (do parse từ Text)
 
+/** Tool giả lập: trả giá sản phẩm theo tên (không có thì trả 0). */
 function getProductPrice(product) {
   console.log(`  >> Executing get_product_price(product='${product}')`);
   const prices = { laptop: 1299.99, headphones: 149.95, keyboard: 89.5 };
   return prices[product] ?? 0;
 }
 
+/** Tool giả lập: giảm giá theo hạng (bronze 5%, silver 12%, gold 23%), làm tròn 2 chữ số. */
 function applyDiscount(price, discount_tier) {
   console.log(
     `  >> Executing apply_discount(price=${price}, discount_tier='${discount_tier}')`,
@@ -109,6 +111,11 @@ const reactPrompt =
   "Thought:";
 
 // ===== 3. AGENT LOOP (VÒNG LẶP XỬ LÝ) =====
+/**
+ * Vòng lặp ReAct bằng prompt: LLM viết Thought / Action, code chạy tool rồi nối Observation.
+ *
+ * - Lặp tới khi LLM ra Final Answer hoặc hết `MAX_ITERATIONS`.
+ */
 async function runAgent(question) {
   console.log(`\nQuestion: ${question}`);
 

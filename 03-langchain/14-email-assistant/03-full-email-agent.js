@@ -100,8 +100,9 @@ const EmailAgentState = Annotation.Root({
 });
 
 /**
- * Node 1: LLM phân loại email, rồi trả về Command để chọn node kế tiếp.
- * Command gồm 2 phần: update ghi vào state, goto chọn node tiếp theo.
+ * Node 1: LLM phân loại email, rồi trả về `Command` để chọn node kế tiếp.
+ *
+ * - `Command` gồm 2 phần: `update` ghi vào state, `goto` chọn node tiếp theo.
  */
 async function triageRouterNode(state) {
   console.log("\n📍 Node: triage_router - đang phân loại email...");

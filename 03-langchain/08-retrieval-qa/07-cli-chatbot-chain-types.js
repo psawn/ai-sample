@@ -93,9 +93,10 @@ async function loadDb(file, k, chainType = "stuff") {
 
 /**
  * Xử lý 1 lượt hỏi-đáp. Trả về:
- * - answer: câu trả lời.
- * - generatedQuestion: câu hỏi đã viết lại (dùng để tìm document).
- * - sourceDocuments: các document đã dùng làm context.
+ *
+ * - `answer`: câu trả lời.
+ * - `generatedQuestion`: câu hỏi đã viết lại (dùng để tìm document).
+ * - `sourceDocuments`: các document đã dùng làm context.
  */
 async function askQuestion(qa, query, chatHistory) {
   const { retriever, rephraseChain, answerChain } = qa;
@@ -133,7 +134,7 @@ async function main() {
     output: process.stdout,
   });
 
-  // Vòng lặp hỏi-đáp: hỏi 1 câu -> trả lời -> hỏi tiếp, tới khi gõ "exit".
+  /** Vòng lặp hỏi-đáp: hỏi 1 câu → trả lời → hỏi tiếp, tới khi gõ `exit`. */
   const askLoop = () => {
     rl.question("User: ", async (query) => {
       if (query.trim().toLowerCase() === "exit") {
