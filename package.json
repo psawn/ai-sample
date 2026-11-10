@@ -11,6 +11,8 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@aws-sdk/client-bedrock": "<3.968.0",
+    "@aws-sdk/client-bedrock-runtime": "<3.968.0",
     "@chroma-core/default-embed": "^0.1.5",
     "@chroma-core/google-gemini": "^0.1.5",
     "@google/generative-ai": "^0.24.1",
