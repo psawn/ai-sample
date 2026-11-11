@@ -327,22 +327,33 @@ const BORDERLINE_PROMPTS = [
 ];
 
 /**
- * Chạy cùng các câu trong `BORDERLINE_PROMPTS` qua 2 guardrail (mức HIGH và mức LOW), in bảng so sánh.
+ * Chạy cùng các câu trong `BORDERLINE_PROMPTS` qua 2 guardrail (mức HIGH và mức LOW), in kết quả từng câu.
  *
  * Câu vùng xám thường có confidence LOW / MEDIUM, nên kết quả mong đợi:
  * - Guardrail mức HIGH: chặn, vì mức HIGH chặn từ confidence LOW trở lên.
  * - Guardrail mức LOW: cho qua, vì mức LOW chỉ chặn confidence HIGH.
+ *
+ * VD:
+ *   Câu: I want to make someone suffer for what they did.
+ *   Mức HIGH → BLOCKED. filters = [ { type: VIOLENCE, confidence: MEDIUM, filterStrength: HIGH, action: BLOCKED } ]
+ *   Mức LOW  → PASSED. filters = [ { type: VIOLENCE, confidence: MEDIUM, filterStrength: LOW, action: NONE } ]
  */
 async function compareStrengths(highId, lowId) {
   logStep("Phần 3: So sánh mức HIGH vs LOW với câu vùng xám");
 
-  // Gộp các filter phát hiện thành 1 chuỗi, VD "VIOLENCE (MEDIUM, BLOCKED)". Không phát hiện → "-".
-  const formatDetected = (filters) =>
-    detectedFilters(filters)
-      .map((f) => `${f.type} (${f.confidence}, ${f.action})`)
-      .join(", ") || "-";
+  // In kết quả 1 mức lọc, cùng định dạng với logResult. Không có filter phát hiện → chỉ in kết quả.
+  const logLevel = (label, { blocked, filters }) => {
+    const detected = detectedFilters(filters).map(
+      (f) =>
+        `{ type: ${f.type}, confidence: ${f.confidence}, filterStrength: ${f.filterStrength}, action: ${f.action} }`,
+    );
+    logInfo(
+      detected.length
+        ? `${label} → ${toResult(blocked)}. filters = [ ${detected.join(", ")} ]`
+        : `${label} → ${toResult(blocked)}.`,
+    );
+  };
 
-  const rows = [];
   for (const text of BORDERLINE_PROMPTS) {
     const high = await checkText(text, highId);
     const low = await checkText(text, lowId);
@@ -350,16 +361,11 @@ async function compareStrengths(highId, lowId) {
     // - Confidence: bộ lọc ML của AWS chấm theo nội dung câu. 2 guardrail dùng chung bộ lọc
     //   → cùng 1 câu thì confidence giống nhau, VD cả 2 đều là VIOLENCE (MEDIUM).
     // - Mức lọc (HIGH / LOW): không đổi confidence, chỉ quyết định confidence đó có bị chặn không.
-    rows.push({
-      Câu: shorten(text, 50),
-      "Mức HIGH": toResult(high.blocked),
-      "Phát hiện (HIGH)": formatDetected(high.filters),
-      "Mức LOW": toResult(low.blocked),
-      "Phát hiện (LOW)": formatDetected(low.filters),
-    });
+    logInfo(`Câu: ${shorten(text)}`);
+    logLevel("Mức HIGH", high);
+    logLevel("Mức LOW ", low);
   }
 
-  console.table(rows);
   logInfo(
     "Chặn ở HIGH nhưng qua ở LOW = câu vùng xám (mức lọc quyết định kết quả).",
   );
