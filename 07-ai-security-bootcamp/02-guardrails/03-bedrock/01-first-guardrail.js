@@ -3,9 +3,12 @@ require("../../../_shared/polyfill");
 // =======================================================================
 // GUARDRAILS 3: AWS BEDROCK GUARDRAILS — TẠO GUARDRAIL ĐẦU TIÊN
 //
+// Mục đích: làm quen Bedrock Guardrails. Tạo guardrail đầu tiên cho chatbot nấu ăn
+// (chặn tư vấn y tế), rồi thử 3 cách chạy: InvokeModel, Converse, ApplyGuardrail.
+//
 // 1. AWS Bedrock Guardrails là gì?
 //    - Bộ lọc an toàn do AWS quản lý: tạo 1 lần trên AWS, rồi gắn vào lời gọi model.
-//      Không phải tự dựng server như NeMo (xem ../02-nemo/).
+//      Không phải tự dựng server.
 //    - Kiểm tra cả input (câu hỏi) lẫn output (câu trả lời). Vi phạm → chặn và trả
 //      câu thông báo soạn sẵn. Câu hỏi bị chặn thì model không được gọi.
 //    - Luồng: App → [Guardrail: input] → Model → [Guardrail: output] → App
@@ -15,6 +18,10 @@ require("../../../_shared/polyfill");
 //      + Topic policy: chặn chủ đề tự định nghĩa (mô tả + câu ví dụ). AWS so theo
 //        nghĩa, nên câu hỏi viết kiểu khác vẫn bị chặn.
 //      + Content filter: bộ lọc làm sẵn (bạo lực, thù ghét, prompt attack...), chỉ cần bật.
+//    - Policy chia 2 nhóm, app thật thường bật cả 2 (như file này):
+//      + AWS định nghĩa sẵn cái gì bị chặn (nội dung độc hại chung). Dev bật và chọn mức lọc.
+//        VD content filter.
+//      + Dev tự định nghĩa cái gì bị chặn (luật riêng của app). VD topic, word filter, PII.
 //    - Trace: báo cáo policy nào đã chặn, để debug. Mặc định tắt, phải bật khi gọi.
 //
 // 3. Tiếng Việt bắt buộc dùng tier STANDARD:
@@ -39,7 +46,7 @@ require("../../../_shared/polyfill");
 // 6. Luồng file (VD: chatbot nấu ăn, chặn tư vấn y tế):
 //    - Phần 1: Kiểm tra kết nối AWS.
 //    - Phần 2: Tạo guardrail (đã có thì cập nhật).
-//    - Phần 3: InvokeModel — cùng câu hỏi y tế, gọi không có rồi có guardrail.
+//    - Phần 3: InvokeModel — cùng câu hỏi y tế, so sánh không guardrail và có guardrail.
 //    - Phần 4: ApplyGuardrail — test nhiều câu, gồm cả câu lai nấu ăn/y tế (vùng xám).
 //    - Phần 5: Converse kèm guardrail — giống Phần 3 nhưng gọn hơn.
 //
@@ -98,7 +105,7 @@ const GUARDRAIL_CONFIG = {
     tierConfig: { tierName: "STANDARD" },
     topicsConfig: [
       {
-        name: "MedicalAdvice", // tên giới hạn ký tự → dùng chữ không dấu
+        name: "MedicalAdvice", // tên chỉ nhận chữ không dấu, số, khoảng trắng và - _ ! ? .
         definition:
           "Câu hỏi xin chẩn đoán bệnh, liều dùng thuốc, cách điều trị, phân tích triệu chứng hoặc lời khuyên về sức khỏe.",
         examples: [
@@ -157,7 +164,7 @@ function logBlockedPolicies(assessment = {}) {
   }
 }
 
-/** In nguyên JSON AWS trả về. JSON dài nên đang tắt, bỏ comment chỗ gọi để xem. */
+/** In nguyên JSON AWS trả về. */
 function logJson(title, data) {
   console.log(`\n----- ${title} -----`);
   console.log(JSON.stringify(data, null, 2));
@@ -245,7 +252,7 @@ async function createOrUpdateGuardrail() {
 // =======================================================================
 
 /**
- * Gửi cùng câu hỏi y tế bằng InvokeModel, không có rồi có guardrail, để thấy khác biệt.
+ * Gửi cùng câu hỏi y tế bằng InvokeModel, so sánh không guardrail và có guardrail.
  *
  * - AWS tự kiểm tra cả câu hỏi lẫn câu trả lời.
  * - Format riêng từng model, response là byte phải tự parse.
@@ -316,7 +323,7 @@ async function compareWithAndWithoutGuardrail(guardrailId) {
  * - Không gọi model → chỉ tốn phí guardrail.
  * - Dùng khi model nằm ngoài Bedrock:
  *   `câu hỏi → ApplyGuardrail (INPUT) → code gọi model → ApplyGuardrail (OUTPUT) → user`
- * - `source` : cho guardrail biết text là câu hỏi (`INPUT`) hay câu trả lời (`OUTPUT`),
+ * - `source`: cho guardrail biết text là câu hỏi (`INPUT`) hay câu trả lời (`OUTPUT`),
  *   để dùng đúng mức lọc.
  */
 async function applyGuardrailOnly(guardrailId) {
