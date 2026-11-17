@@ -69,7 +69,7 @@ require("dotenv").config();
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-const { logInfo, logPrompt, logQuestion, logStep } = require("../helpers/log");
+const { logInfo, logPrompt, logQuestion, logStep } = require("../../helpers/log");
 const { checkOutput, WITHHELD_MESSAGE } = require("../helpers/output-rail");
 const { cosine, createRag, embedTexts } = require("../helpers/rag");
 const { printSummary, TEST_CASES } = require("../helpers/test-cases");

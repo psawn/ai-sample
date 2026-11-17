@@ -1,6 +1,6 @@
 # CONTEXT — LỘ TRÌNH HỌC AI ENGINEER
 
-**Cập nhật: 03/11/2026**
+**Cập nhật: 16/11/2026**
 
 ## 1. Nền tảng hiện tại
 
@@ -148,7 +148,9 @@ Thông tin kiểm tra ngày 03/11/2026: 83h10m, 279 bài, 32 section, cập nh�
 | Guardrails | Bài giới thiệu | 8m |
 | Nemo Guardrails | Cả section (chọn NeMo thay Guardrails AI) | 2h25m |
 | AWS Bedrock Guardrails | Cả section — quan trọng nhất (ngưỡng lọc, false positive/negative, grounding RAG, versioning, test, chi phí) | 4h24m |
-| LLM Gateways + Portkey Gateway | Cả 2 section (retry, timeout, fallback, load balancing, cache) | ~1h54m |
+| LLM Gateways + Portkey Gateway | Cả 2 section (retry, timeout, fallback, load balancing, cache). Bản cloud không đăng nhập được bằng tài khoản cá nhân (xem ghi chú gateway bên dưới) → thực hành bằng bản open source chạy local `npx @portkey-ai/gateway`; bài *User Tracing* chỉ xem video | ~1h54m |
+| TensorZero LLM Gateway | Chỉ xem video *M2 Routing/Fallback* và *M4 A/B Testing and Feedback Loop*: các kiểu routing và A/B testing là ý Portkey không có. Không cài đặt, vì repo đã ngừng phát triển | ? |
+| Bifrost Ai Gateway | *Fallback, streaming and logging*: thay phần tracing/log của Portkey không làm được. *Playing with Virtual keys and MCP*: có thể dạy cách giấu key thật của provider, giới hạn quyền theo key (khớp Ưu tiên 1). Tên bài lấy từ bản tóm tắt, chưa xem video | ? |
 | LLM Evaluations + RAGAS | Cả 2 section | ~1h33m |
 | Deep Eval | Cả section, so với `06-improving-accuracy/04-evaluation.js` | 4h23m |
 | Red Teaming with PyRIT | Bài 01–12 (bỏ 2 bài memory chèn nhầm); kỹ nhất **07_XPIA** | 4h27m |
@@ -162,15 +164,24 @@ Thông tin kiểm tra ngày 03/11/2026: 83h10m, 279 bài, 32 section, cập nh�
 | Project 2: Agentic AI Research Platform (AWS) | Chỉ: 04 Architecture, 09 Retry & Connection Pool, 10 Auth/Guardrails/Caching, 11 Memory & Queueing, 13 LLM Evaluation, 15 TensorZero, 16 PyRIT Dashboard (~1h30m). Bỏ Terraform/CI/deploy |
 | Project 1 | Chỉ *Flash Rank Re-ranking* và *Qdrant and Re-rank Service* (~27m) |
 
-**Bỏ qua:** Langchain, Building AI Agents With LangGraph (đã có trong repo); Observability With Pydantic Logfire; Guardrails AI (nếu dư thời gian xem các bài *OnFailAction*); TensorZero (nếu muốn chỉ xem *M2 Routing/Fallback*, *M4 A/B Testing*), Bifrost, MeshAPI; Basics of Agentic Memory, Mem0, LangMem (đã làm ở `14-email-assistant`); Claude Code For Developers; Building Deep Agents (đã có `15-deep-agents`); Adding AI Governance (nếu muốn chỉ xem 2 bài khái niệm đầu); Project 4 Databricks.
+**Bỏ qua:** Langchain, Building AI Agents With LangGraph (đã có trong repo); Observability With Pydantic Logfire; Guardrails AI (nếu dư thời gian xem các bài *OnFailAction*); phần còn lại của TensorZero và Bifrost (setup tool, trùng Portkey; prompt template, tool calling, mini RAG đã biết); MeshAPI (giới thiệu sản phẩm, RAG/multi-agent đã có trong repo, sinh ảnh/audio/video ngoài mục tiêu, không có ý gateway mới so với Portkey); Basics of Agentic Memory, Mem0, LangMem (đã làm ở `14-email-assistant`); Claude Code For Developers; Building Deep Agents (đã có `15-deep-agents`); Adding AI Governance (nếu muốn chỉ xem 2 bài khái niệm đầu); Project 4 Databricks.
 
 Lưu ý: curriculum có vài bài bị lặp (2 bài memory trong PyRIT, 1 bài Portkey trong TensorZero) — bỏ qua.
+
+**Tình trạng các gateway trong khóa (kiểm tra 16/11/2026):** khóa quay trước các thay đổi này.
+
+| Gateway | Tình trạng | Dùng cho project được không |
+|---|---|---|
+| Portkey | Palo Alto Networks mua lại (hoàn tất 5/2026), gộp vào Prisma AIRS. Nút đăng nhập chuyển sang Strata Cloud Manager, tài khoản cá nhân báo "Insufficient Privileges". Bản open source (MIT) vẫn còn, nhưng Palo Alto chưa cam kết duy trì | Chỉ bản open source, có rủi ro |
+| TensorZero | Repo archived 12/6/2026, website ghi "no longer maintained" | Không |
+| Bifrost | Open source (Apache-2.0, Go), vẫn phát triển. Ranh giới tính năng free/enterprise (virtual key, budget) các nguồn ghi khác nhau | Có |
+| LiteLLM | Không có trong khóa. Open source (Python), phổ biến nhất. 24/3/2026 bị tấn công chuỗi cung ứng: bản 1.82.7, 1.82.8 trên PyPI chứa mã đánh cắp credential → nếu dùng phải pin version và kiểm tra nguồn | Có, cẩn thận |
 
 **Áp dụng vào repo khi học:**
 
 - Sau PyRIT: dùng XPIA tấn công `03-langchain/14-email-assistant/07-security-guardrails.js`, đo guardrail tự viết chặn được bao nhiêu.
 - Sau DeepEval + RAGAS: chấm lại `05-udemy-course/04-agentic-rag`.
-- Bedrock Guardrails, Portkey: đưa vào Level 2 và Level 8 của `plans/text-to-sql-nestjs.md`.
+- Bedrock Guardrails, LLM gateway: đưa vào Level 2 và Level 8 của `plans/text-to-sql-nestjs.md`. Gateway chốt khi làm: so Bifrost với LiteLLM (xem bảng tình trạng ở trên). Không dùng Portkey cloud và TensorZero.
 
 ### Bước 3 — Khóa RAG trên Coursera: học phần nào
 

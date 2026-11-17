@@ -68,7 +68,7 @@ const {
   BedrockRuntimeClient,
 } = require("@aws-sdk/client-bedrock-runtime");
 
-const { logInfo, logStep } = require("../helpers/log");
+const { logInfo, logStep } = require("../../helpers/log");
 
 const AWS_REGION = process.env.AWS_REGION || "us-east-1";
 const GUARDRAIL_VERSION = "DRAFT"; // bản nháp, luôn theo cấu hình mới nhất

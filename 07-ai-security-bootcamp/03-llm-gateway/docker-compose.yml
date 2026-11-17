@@ -1,0 +1,41 @@
+# Bifrost gateway + Redis (Redis dùng cho cache).
+# Chạy từ thư mục gốc repo, cần Docker Desktop đang chạy:
+#   docker compose --env-file .env -f 07-ai-security-bootcamp/03-llm-gateway/docker-compose.yml up -d
+# Tắt:
+#   docker compose -f 07-ai-security-bootcamp/03-llm-gateway/docker-compose.yml down
+
+# Tên project: tiền tố của container, volume (VD llm-gateway-bifrost-1).
+# Không đặt thì Docker lấy tên thư mục (03-llm-gateway).
+name: llm-gateway
+
+services:
+  bifrost:
+    image: maximhq/bifrost:latest # production nên pin version cụ thể
+    ports:
+      - "8090:8080" # cổng máy:cổng container. Cổng 8080 trên máy đang dùng cho Kafka UI
+    volumes:
+      # /app/data: thư mục làm việc của Bifrost, nơi nó tự ghi DB, log.
+      # Lưu trong Docker volume, không nằm trong repo.
+      - bifrost-data:/app/data
+      # Cấu hình do mình viết. Bifrost đọc config.json trong /app/data.
+      # ro (read-only): container chỉ được đọc, không sửa được file này.
+      - ./bifrost-config.json:/app/data/config.json:ro
+    environment:
+      # Chỉ truyền đúng biến gateway cần (đọc từ .env qua --env-file),
+      # không đưa cả file .env vào container
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      # Giá trị 2 virtual key khai báo trong bifrost-config.json
+      BIFROST_VIRTUAL_KEY: ${BIFROST_VIRTUAL_KEY}
+      BIFROST_BUDGET_VK: ${BIFROST_BUDGET_VK}
+      # Mã bí mật tự đặt, nhập 1 lần ở UI để tạo tài khoản admin.
+      # Không có mã này thì UI báo "No setup token is configured".
+      BIFROST_SETUP_TOKEN: ${BIFROST_SETUP_TOKEN}
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:8 # Redis 8 có sẵn tìm kiếm vector, dùng làm vector store cho cache
+
+volumes:
+  bifrost-data:

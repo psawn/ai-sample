@@ -77,7 +77,7 @@ const {
   InvokeModelCommand,
 } = require("@aws-sdk/client-bedrock-runtime");
 
-const { logInfo, logQuestion, logStep } = require("../helpers/log");
+const { logInfo, logQuestion, logStep } = require("../../helpers/log");
 
 const AWS_REGION = process.env.AWS_REGION || "us-east-1"; // us-east-1 hỗ trợ đầy đủ tính năng
 const MODEL_ID = "amazon.nova-lite-v1:0"; // model rẻ của Amazon, hỗ trợ đủ guardrail

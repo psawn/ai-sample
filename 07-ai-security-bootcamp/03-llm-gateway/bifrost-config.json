@@ -1,0 +1,211 @@
+{
+  "$schema": "https://www.getbifrost.ai/schema",
+  "setup_token": "env.BIFROST_SETUP_TOKEN",
+  "config_store": {
+    "enabled": true,
+    "type": "sqlite",
+    "config": { "path": "/app/data/config.db" }
+  },
+  "providers": {
+    "gemini": {
+      "keys": [
+        {
+          "name": "gemini-key",
+          "value": "env.GEMINI_API_KEY",
+          "models": ["*"],
+          "weight": 1.0
+        }
+      ],
+      "network_config": {
+        "default_request_timeout_in_seconds": 30,
+        "max_retries": 3,
+        "retry_backoff_initial": 500,
+        "retry_backoff_max": 5000
+      }
+    },
+    "groq": {
+      "keys": [
+        {
+          "name": "groq-key",
+          "value": "env.GROQ_API_KEY",
+          "models": ["*"],
+          "weight": 1.0
+        }
+      ]
+    },
+    "dead-provider": {
+      "keys": [
+        {
+          "name": "dead-provider-key",
+          "value": "not-used",
+          "models": ["*"],
+          "weight": 1.0
+        }
+      ],
+      "network_config": {
+        "base_url": "http://localhost:9999",
+        "default_request_timeout_in_seconds": 30,
+        "max_retries": 3,
+        "retry_backoff_initial": 500,
+        "retry_backoff_max": 5000
+      },
+      "custom_provider_config": {
+        "base_provider_type": "openai",
+        "allowed_requests": {
+          "chat_completion": true,
+          "chat_completion_stream": true
+        }
+      }
+    }
+  },
+  "governance": {
+    "virtual_keys": [
+      {
+        "id": "vk-main",
+        "name": "BIFROST_VIRTUAL_KEY",
+        "value": "env.BIFROST_VIRTUAL_KEY",
+        "is_active": true,
+        "disable_content_logging": false,
+        "provider_configs": [
+          {
+            "provider": "gemini",
+            "allowed_models": ["*"],
+            "key_ids": ["*"],
+            "weight": 1
+          },
+          {
+            "provider": "groq",
+            "allowed_models": ["*"],
+            "key_ids": ["*"],
+            "weight": 0
+          },
+          {
+            "provider": "dead-provider",
+            "allowed_models": ["*"],
+            "key_ids": ["*"],
+            "weight": 0
+          }
+        ]
+      },
+      {
+        "id": "vk-budget-demo",
+        "name": "BIFROST_BUDGET_VK",
+        "value": "env.BIFROST_BUDGET_VK",
+        "is_active": true,
+        "provider_configs": [
+          {
+            "provider": "gemini",
+            "allowed_models": ["*"],
+            "key_ids": ["*"],
+            "weight": 1
+          },
+          {
+            "provider": "groq",
+            "allowed_models": ["*"],
+            "key_ids": ["*"],
+            "weight": 1
+          }
+        ]
+      }
+    ],
+    "budgets": [
+      {
+        "id": "budget-demo-gemini",
+        "max_limit": 0.0001,
+        "reset_duration": "1h"
+      }
+    ],
+    "model_configs": [
+      {
+        "id": "mc-budget-demo-gemini",
+        "model_name": "*",
+        "provider": "gemini",
+        "scope": "virtual_key",
+        "scope_id": "vk-budget-demo",
+        "budget_ids": ["budget-demo-gemini"]
+      }
+    ],
+    "routing_rules": [
+      {
+        "name": "config-fallback-demo",
+        "description": "Model chính lỗi thì chuyển sang model dự phòng khai báo ở đây, chỉ áp cho request có header x-demo: config-fallback",
+        "enabled": true,
+        "cel_expression": "headers[\"x-demo\"] == \"config-fallback\"",
+        "targets": [
+          {
+            "provider": "gemini",
+            "model": "model-khong-ton-tai",
+            "weight": 1
+          }
+        ],
+        "fallbacks": ["gemini/gemini-3.5-flash-lite"],
+        "scope": "global",
+        "scope_id": null,
+        "priority": 1
+      },
+      {
+        "name": "session-affinity-demo",
+        "description": "Chia 50/50 giữa Gemini và Groq, cùng session thì giữ nguyên model. Chỉ áp cho request có header x-demo: session-affinity",
+        "enabled": true,
+        "cel_expression": "headers[\"x-demo\"] == \"session-affinity\"",
+        "targets": [
+          {
+            "provider": "gemini",
+            "model": "gemini-3.5-flash",
+            "weight": 0.5
+          },
+          {
+            "provider": "groq",
+            "model": "openai/gpt-oss-20b",
+            "weight": 0.5
+          }
+        ],
+        "fallbacks": ["gemini/gemini-3.5-flash", "groq/openai/gpt-oss-20b"],
+        "scope": "global",
+        "scope_id": null,
+        "priority": 2
+      },
+      {
+        "name": "load-balance-demo",
+        "description": "Chia 70/30 giữa 2 model, chỉ áp cho request có header x-demo: load-balance",
+        "enabled": true,
+        "cel_expression": "headers[\"x-demo\"] == \"load-balance\"",
+        "targets": [
+          {
+            "provider": "gemini",
+            "model": "gemini-3.5-flash",
+            "weight": 0.7
+          },
+          {
+            "provider": "gemini",
+            "model": "gemini-3.5-flash-lite",
+            "weight": 0.3
+          }
+        ],
+        "scope": "global",
+        "scope_id": null,
+        "priority": 0
+      }
+    ]
+  },
+  "vector_store": {
+    "enabled": true,
+    "type": "redis",
+    "config": { "addr": "redis:6379" }
+  },
+  "plugins": [
+    {
+      "enabled": true,
+      "name": "semantic_cache",
+      "config": {
+        "provider": "gemini",
+        "embedding_model": "gemini-embedding-001",
+        "dimension": 3072,
+        "threshold": 0.85,
+        "ttl": "5m",
+        "cache_by_model": true,
+        "cache_by_provider": true
+      }
+    }
+  ]
+}

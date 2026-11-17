@@ -19,6 +19,7 @@
 //   - ../../../04-typesafe/03-full-email-agent.js
 //   - ../../../04-typesafe/04a-semantic-memory-agent.js
 //   - ../../../04-typesafe/04b-semantic-memory-multi-node.js
+//   - ../../../07-ai-security-bootcamp/03-llm-gateway/01-bifrost-gateway.js
 // =======================================================================
 
 require("../../../_shared/polyfill");

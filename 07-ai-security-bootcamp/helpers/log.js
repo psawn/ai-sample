@@ -1,5 +1,7 @@
 // =======================================================================
-// GUARDRAILS - IN LOG THEO TỪNG BƯỚC
+// AI SECURITY BOOTCAMP - IN LOG THEO TỪNG BƯỚC
+//
+// Dùng chung cho các bài trong 07-ai-security-bootcamp (guardrails, LLM gateway).
 //
 // Mẫu log của 1 câu hỏi:
 //   ==================================
@@ -13,11 +15,6 @@
 //   ----- Prompt gửi guard LLM -----
 //   Nội dung prompt
 //   ----------------------
-//
-// Các file đang sử dụng:
-//   - ../01-custom-rails/intent-rails-rag.js
-//   - ../02-nemo/call-nemo-server.js
-//   - ./rag.js
 // =======================================================================
 
 const SEPARATOR = "=".repeat(70);

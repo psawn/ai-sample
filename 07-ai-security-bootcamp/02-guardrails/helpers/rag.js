@@ -25,8 +25,9 @@ const dns = require("node:dns");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { RecursiveCharacterTextSplitter } = require("@langchain/textsplitters");
 
+const { logInfo, logPrompt } = require("../../helpers/log");
+
 const { HR_DOCUMENTS } = require("./hr-docs");
-const { logInfo, logPrompt } = require("./log");
 
 const EMBEDDING_MODEL = "gemini-embedding-001";
 // Model sinh câu trả lời: chọn model rẻ, vì câu hỏi đã qua guard

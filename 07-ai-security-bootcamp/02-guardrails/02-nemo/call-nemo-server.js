@@ -61,7 +61,7 @@ require("dotenv").config();
 
 const OpenAI = require("openai");
 
-const { logInfo, logQuestion, logStep } = require("../helpers/log");
+const { logInfo, logQuestion, logStep } = require("../../helpers/log");
 const { checkOutput, WITHHELD_MESSAGE } = require("../helpers/output-rail");
 const { createRag } = require("../helpers/rag");
 const { printSummary, TEST_CASES } = require("../helpers/test-cases");
