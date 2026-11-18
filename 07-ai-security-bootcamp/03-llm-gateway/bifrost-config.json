@@ -106,6 +106,26 @@
             "weight": 1
           }
         ]
+      },
+      {
+        "id": "vk-mcp-demo",
+        "name": "BIFROST_MCP_VK",
+        "value": "env.BIFROST_MCP_VK",
+        "is_active": true,
+        "provider_configs": [
+          {
+            "provider": "gemini",
+            "allowed_models": ["*"],
+            "key_ids": ["*"],
+            "weight": 1
+          }
+        ],
+        "mcp_configs": [
+          {
+            "mcp_client_name": "deepwiki",
+            "tools_to_execute": ["read_wiki_structure", "ask_wiki_question"]
+          }
+        ]
       }
     ],
     "budgets": [
@@ -185,6 +205,18 @@
         "scope": "global",
         "scope_id": null,
         "priority": 0
+      }
+    ]
+  },
+  "mcp": {
+    "client_configs": [
+      {
+        "name": "deepwiki",
+        "connection_type": "http",
+        "connection_string": "https://mcp.deepwiki.com/mcp",
+        "auth_type": "none",
+        "tools_to_execute": ["*"],
+        "tools_to_auto_execute": ["read_wiki_structure"]
       }
     ]
   },

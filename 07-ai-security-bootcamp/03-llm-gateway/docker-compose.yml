@@ -25,9 +25,10 @@ services:
       # không đưa cả file .env vào container
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       GROQ_API_KEY: ${GROQ_API_KEY}
-      # Giá trị 2 virtual key khai báo trong bifrost-config.json
+      # Giá trị 3 virtual key khai báo trong bifrost-config.json
       BIFROST_VIRTUAL_KEY: ${BIFROST_VIRTUAL_KEY}
       BIFROST_BUDGET_VK: ${BIFROST_BUDGET_VK}
+      BIFROST_MCP_VK: ${BIFROST_MCP_VK}
       # Mã bí mật tự đặt, nhập 1 lần ở UI để tạo tài khoản admin.
       # Không có mã này thì UI báo "No setup token is configured".
       BIFROST_SETUP_TOKEN: ${BIFROST_SETUP_TOKEN}

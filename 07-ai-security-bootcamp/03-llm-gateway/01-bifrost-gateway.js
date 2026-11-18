@@ -4,7 +4,7 @@ require("../../_shared/polyfill");
 // LLM GATEWAY 1: BIFROST — GỌI GEMINI QUA GATEWAY
 //
 // Mục đích: gọi Gemini qua Bifrost (LLM gateway open source, tự chạy trên máy) và thử
-// các tính năng: log, retry, fallback, chia tải, cache, streaming, budget, prompt.
+// các tính năng: log, retry, fallback, chia tải, cache, streaming, budget, prompt, MCP.
 //
 // 1. LLM gateway là gì?
 //    - Lớp trung gian giữa app và LLM provider (Gemini, OpenAI, Claude...).
@@ -59,7 +59,7 @@ require("../../_shared/polyfill");
 //        Khởi động gateway sẽ thấy warning `failed to list models` của provider này, không sao.
 //      + network_config: timeout 30s, retry tối đa 3 lần (xem mục 3).
 //        Gemini và dead-provider đặt giống nhau.
-//    - governance.virtual_keys: 2 virtual key, giá trị lấy từ .env.
+//    - governance.virtual_keys: 3 virtual key, giá trị lấy từ .env.
 //      + Mỗi virtual key có luật riêng (provider nào, budget bao nhiêu). Gateway nhìn key
 //        trong request để biết áp luật nào.
 //      + `provider_configs`: các provider key được gọi. Provider không có trong danh sách → bị chặn (403).
@@ -76,6 +76,10 @@ require("../../_shared/polyfill");
 //        Câu hỏi có dữ liệu cá nhân → đặt `true` để log không lưu nội dung.
 //      + `vk-budget-demo` (BIFROST_BUDGET_VK): Phần 13. Dùng được Gemini và Groq.
 //        Cả 2 `weight: 1` nhưng không chia 50/50, vì Phần 13 luôn nói rõ provider.
+//      + `vk-mcp-demo` (BIFROST_MCP_VK): Phần 15. Chỉ dùng Gemini.
+//        `mcp_configs`: key này chỉ được dùng 2 tool của DeepWiki (`read_wiki_structure`, `ask_wiki_question`).
+//        Tool thứ 3 (`read_wiki_contents`) bị chặn để thử ở Phần 15.
+//        2 key kia không có `mcp_configs` → không dùng được tool nào → Phần 1–14 không bị gắn thêm tool.
 //    - governance.budgets + model_configs: Gemini trong `vk-budget-demo` chỉ được $0.0001/giờ.
 //      + Đặt ở model_configs (chỉ Gemini), không đặt ở cả key → Groq không bị chặn theo.
 //      + Tách key riêng → chỉ Phần 13 bị kiểm tra budget, các phần khác không ảnh hưởng.
@@ -92,6 +96,12 @@ require("../../_shared/polyfill");
 //      + threshold: độ giống tối thiểu (0 → 1) để trúng cache.
 //        Thấp quá → trả nhầm đáp án. Cao quá → ít trúng.
 //      + Muốn chỉ cache câu giống hệt: đặt `dimension: 1`, bỏ `provider` và `embedding_model`.
+//    - mcp.client_configs: MCP server gateway kết nối tới (Phần 15).
+//      + MCP (Model Context Protocol): chuẩn chung để LLM gọi tool bên ngoài. MCP server cung cấp tool.
+//      + deepwiki: MCP server công khai, không cần key. Có 3 tool đọc tài liệu repo GitHub.
+//      + `tools_to_execute`: tool nào của server được dùng. `["*"]` = tất cả.
+//      + `tools_to_auto_execute`: tool gateway tự chạy, không cần app duyệt. Chỉ để `read_wiki_structure`.
+//        Tool không có trong danh sách này → gateway trả về app để duyệt (Phần 15, Bước 2).
 //
 // 5. Các phần. main() chạy tất cả. Muốn chạy riêng phần nào thì comment các phần còn lại.
 //    - Cơ bản:
@@ -115,14 +125,16 @@ require("../../_shared/polyfill");
 //    - Quản lý ở gateway:
 //        Phần 13: Budget — hết tiền thì chặn hoặc chuyển provider
 //        Phần 14: Prompt ở gateway — app chỉ gửi câu hỏi
+//    - MCP:
+//        Phần 15: MCP qua gateway — tool tự chạy, tool cần duyệt, tool bị chặn theo virtual key
 //
 // 6. Bật gateway (cần Docker Desktop, chạy lệnh ở thư mục gốc repo):
 //    - .env cần có:
 //      + GEMINI_API_KEY, GROQ_API_KEY: key thật của provider.
 //      + BIFROST_SETUP_TOKEN: mã tự đặt, dùng để tạo tài khoản admin.
 //        Bifrost bắt có mã này, để người lạ không vào UI.
-//      + BIFROST_VIRTUAL_KEY, BIFROST_BUDGET_VK: tự đặt, dạng sk-bf-<chuỗi ngẫu nhiên>.
-//        Bifrost tự tạo 2 virtual key từ config.
+//      + BIFROST_VIRTUAL_KEY, BIFROST_BUDGET_VK, BIFROST_MCP_VK: tự đặt, dạng sk-bf-<chuỗi ngẫu nhiên>.
+//        Bifrost tự tạo 3 virtual key từ config.
 //    - Bật:
 //        docker compose --env-file .env -f 07-ai-security-bootcamp/03-llm-gateway/docker-compose.yml up -d
 //    - Mở http://localhost:8090, nhập BIFROST_SETUP_TOKEN, tạo tài khoản admin. Log cũng xem ở đây.
@@ -180,6 +192,8 @@ const FALLBACK_MODEL = "gemini/gemini-3.5-flash-lite"; // model dự phòng
 // Phần 13: budget chỉ giới hạn Gemini → luôn dùng Gemini, không theo PRIMARY_MODEL
 const BUDGET_GEMINI_MODEL = "gemini/gemini-3.5-flash";
 const GROQ_MODEL = "groq/openai/gpt-oss-20b"; // Phần 13: Gemini hết tiền thì chuyển sang model này
+// Phần 15: key MCP chỉ cho dùng Gemini → luôn dùng Gemini, không theo PRIMARY_MODEL
+const MCP_MODEL = "gemini/gemini-3.5-flash";
 
 const bifrostClient = new OpenAI({
   // baseURL: endpoint định dạng OpenAI của Bifrost, nhận thêm `fallbacks`
@@ -981,6 +995,136 @@ async function gatewayPrompt() {
   }
 }
 
+// =======================================================================
+// PHẦN 15: MCP QUA GATEWAY — TOOL TỰ CHẠY, CẦN DUYỆT, BỊ CHẶN
+// =======================================================================
+
+/**
+ * Gọi tool của MCP server DeepWiki qua gateway, bằng virtual key riêng (BIFROST_MCP_VK).
+ *
+ * - Gateway giữ kết nối tới MCP server, tự gắn tool vào request gửi model.
+ *   → App không cần tự viết MCP client, không cần khai báo `tools` trong body.
+ * - Header `x-bf-mcp-include-tools`: chọn tool cho request này (tên dạng `<server>-<tool>`).
+ *   Không gửi → model nhận mọi tool key được dùng.
+ * - Bước 1: tool tự chạy (`read_wiki_structure`): gateway chạy tool, gửi kết quả cho model,
+ *   lặp tới khi model trả lời xong → app chỉ nhận câu trả lời cuối.
+ * - Bước 2: tool cần duyệt (`ask_wiki_question`): gateway trả `tool_calls` về app, không tự chạy
+ *   → app duyệt → gọi `/v1/mcp/tool/execute` → gửi kết quả lại cho model.
+ * - Bước 3: tool key không được dùng (`read_wiki_contents`), chặn ở 2 lớp:
+ *   + Lúc gửi model: header xin thêm cũng không được → model không thấy tool này.
+ *     Header chỉ thu hẹp được, không mở rộng quyền của key.
+ *   + Lúc chạy: app cố gọi thẳng → gateway trả 403 `mcp_tool_blocked`.
+ * - Bảo mật:
+ *   + Chỉ cho tự chạy tool chỉ đọc. Tool ghi, xóa, gửi mail → bắt duyệt.
+ *   + Kết quả tool là dữ liệu từ ngoài, có thể chứa lệnh giấu (indirect prompt injection).
+ *     Gateway chỉ kiểm soát được tool nào được chạy, không kiểm tra nội dung kết quả.
+ */
+async function mcpTools() {
+  logStep("Phần 15: MCP qua gateway");
+
+  if (!process.env.BIFROST_MCP_VK) {
+    logInfo("Chưa có BIFROST_MCP_VK trong .env (xem mục 6 ở đầu file).");
+    return;
+  }
+  const vkHeader = { "x-bf-vk": process.env.BIFROST_MCP_VK };
+
+  // Bước 1: tool tự chạy → nhận luôn câu trả lời cuối
+  const structureQuestion =
+    "Tài liệu của repo GitHub maximhq/bifrost gồm những phần chính nào? Trả lời 2 câu.";
+  logQuestion(`[Tool tự chạy] ${structureQuestion}`);
+  const step1 = await chatViaBifrost(
+    {
+      model: MCP_MODEL,
+      messages: [{ role: "user", content: structureQuestion }],
+    },
+    { ...vkHeader, "x-bf-mcp-include-tools": "deepwiki-read_wiki_structure" },
+  );
+  logAnswer(step1.answer, step1.latencyMs, "gateway tự chạy tool");
+
+  // Bước 2: tool cần duyệt → gateway trả tool_calls, app tự chạy
+  const askHeaders = {
+    ...vkHeader,
+    "x-bf-mcp-include-tools": "deepwiki-ask_wiki_question",
+  };
+  const askQuestion =
+    "Repo GitHub maximhq/bifrost: virtual key dùng để làm gì? Trả lời 1 câu.";
+  logQuestion(`[Tool cần duyệt] ${askQuestion}`);
+  const messages = [{ role: "user", content: askQuestion }];
+  const first = await bifrostClient.chat.completions.create(
+    { model: MCP_MODEL, messages },
+    { headers: askHeaders },
+  );
+  const modelMessage = first.choices[0].message;
+  if (!modelMessage.tool_calls) {
+    logInfo(`Model không gọi tool, trả lời luôn: ${modelMessage.content}`);
+  } else {
+    // Gửi lại nguyên message của model: có thể chứa chữ ký suy luận Gemini cần để trả lời tiếp
+    messages.push(modelMessage);
+    for (const toolCall of modelMessage.tool_calls) {
+      logInfo(
+        `Model xin chạy: ${toolCall.function.name} ${toolCall.function.arguments.replace(/\s+/g, " ")}`,
+      );
+      // App thật: hỏi user hoặc kiểm tra luật (tool nào, tham số nào) trước khi cho chạy
+      logInfo("✅ Duyệt → app gọi gateway chạy tool");
+      const toolResult = await executeMcpTool(toolCall, vkHeader);
+      messages.push(toolResult.body); // { role: "tool", tool_call_id, content }
+    }
+    // Header rỗng = không đưa tool nào → model phải trả lời, không xin chạy tool lần nữa
+    const second = await chatViaBifrost(
+      { model: MCP_MODEL, messages },
+      { ...vkHeader, "x-bf-mcp-include-tools": "" },
+    );
+    logAnswer(second.answer, second.latencyMs, "app duyệt rồi mới chạy tool");
+  }
+
+  // Bước 3a: header xin tool key không được dùng → model không nhận được tool nào
+  logQuestion(`[Xin tool không có quyền] ${structureQuestion}`);
+  const step3 = await chatViaBifrost(
+    {
+      model: MCP_MODEL,
+      messages: [{ role: "user", content: structureQuestion }],
+    },
+    { ...vkHeader, "x-bf-mcp-include-tools": "deepwiki-read_wiki_contents" },
+  );
+  logAnswer(
+    step3.answer,
+    step3.latencyMs,
+    "không có tool → model tự trả lời từ kiến thức cũ, có thể sai",
+  );
+
+  // Bước 3b: app cố gọi thẳng tool không có quyền → 403
+  const blocked = await executeMcpTool(
+    {
+      id: "call_manual",
+      type: "function",
+      function: {
+        name: "deepwiki-read_wiki_contents",
+        arguments: JSON.stringify({ repoName: "maximhq/bifrost" }),
+      },
+    },
+    vkHeader,
+  );
+  logInfo(
+    `Gọi thẳng deepwiki-read_wiki_contents → ${blocked.status}: ${blocked.body.error?.message}`,
+  );
+}
+
+/**
+ * Nhờ gateway chạy 1 tool call của model.
+ *
+ * - Body: gửi nguyên object tool call model trả về (`id`, `type`, `function`).
+ * - Gateway kiểm tra lại quyền của virtual key trước khi chạy → không có quyền thì 403.
+ * - Gọi bằng fetch: SDK OpenAI không có hàm cho endpoint riêng này của Bifrost.
+ */
+async function executeMcpTool(toolCall, headers) {
+  const response = await fetch(`${BIFROST_URL}/v1/mcp/tool/execute`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...headers },
+    body: JSON.stringify(toolCall),
+  });
+  return { status: response.status, body: await response.json() };
+}
+
 async function main() {
   if (!process.env.GEMINI_API_KEY || !process.env.BIFROST_VIRTUAL_KEY) {
     console.error(
@@ -1016,6 +1160,9 @@ async function main() {
   // Quản lý ở gateway
   await budgetLimits(); // Phần 13: dùng virtual key demo riêng, không ảnh hưởng các phần trên
   await gatewayPrompt(); // Phần 14: cần tạo prompt trên UI trước (mục 6 ở đầu file)
+
+  // MCP
+  await mcpTools(); // Phần 15: dùng virtual key MCP riêng, không ảnh hưởng các phần trên
 }
 
 main().catch((error) => {
