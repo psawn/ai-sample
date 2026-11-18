@@ -124,6 +124,10 @@
           {
             "mcp_client_name": "deepwiki",
             "tools_to_execute": ["read_wiki_structure", "ask_wiki_question"]
+          },
+          {
+            "mcp_client_name": "orders",
+            "tools_to_execute": ["lookup_order", "refund_order"]
           }
         ]
       }
@@ -217,6 +221,14 @@
         "auth_type": "none",
         "tools_to_execute": ["*"],
         "tools_to_auto_execute": ["read_wiki_structure"]
+      },
+      {
+        "name": "orders",
+        "connection_type": "http",
+        "connection_string": "http://order-mcp:3001/mcp",
+        "auth_type": "none",
+        "tools_to_execute": ["*"],
+        "tools_to_auto_execute": ["lookup_order"]
       }
     ]
   },

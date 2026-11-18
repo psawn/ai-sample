@@ -1,4 +1,4 @@
-# Bifrost gateway + Redis (Redis dùng cho cache).
+# Bifrost gateway + Redis (Redis dùng cho cache) + MCP server tự viết (06-mcp.js, Phần 4).
 # Chạy từ thư mục gốc repo, cần Docker Desktop đang chạy:
 #   docker compose --env-file .env -f 07-ai-security-bootcamp/03-llm-gateway/docker-compose.yml up -d
 # Tắt:
@@ -34,9 +34,22 @@ services:
       BIFROST_SETUP_TOKEN: ${BIFROST_SETUP_TOKEN}
     depends_on:
       - redis
+      - order-mcp # Bifrost kết nối MCP server lúc khởi động → bật server trước
 
   redis:
     image: redis:8 # Redis 8 có sẵn tìm kiếm vector, dùng làm vector store cho cache
+
+  # MCP server đơn hàng (servers/order-server.js). Bifrost gọi tới: http://order-mcp:3001/mcp
+  order-mcp:
+    image: node:22-alpine
+    working_dir: /app
+    command: node servers/order-server.js
+    volumes:
+      # Chỉ mount file server và thư viện, không mount cả repo (tránh đưa .env vào container)
+      - ./servers:/app/servers:ro
+      - ../../node_modules:/app/node_modules:ro
+    ports:
+      - "127.0.0.1:3001:3001" # chỉ máy mình gọi được, để test bằng MCP Inspector
 
 volumes:
   bifrost-data:
