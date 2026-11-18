@@ -1,6 +1,6 @@
 # CONTEXT — LỘ TRÌNH HỌC AI ENGINEER
 
-**Cập nhật: 16/11/2026**
+**Cập nhật: 20/11/2026**
 
 ## 1. Nền tảng hiện tại
 
@@ -149,8 +149,8 @@ Thông tin kiểm tra ngày 03/11/2026: 83h10m, 279 bài, 32 section, cập nh�
 | Nemo Guardrails | Cả section (chọn NeMo thay Guardrails AI) | 2h25m |
 | AWS Bedrock Guardrails | Cả section — quan trọng nhất (ngưỡng lọc, false positive/negative, grounding RAG, versioning, test, chi phí) | 4h24m |
 | LLM Gateways + Portkey Gateway | Cả 2 section (retry, timeout, fallback, load balancing, cache). Bản cloud không đăng nhập được bằng tài khoản cá nhân (xem ghi chú gateway bên dưới) → thực hành bằng bản open source chạy local `npx @portkey-ai/gateway`; bài *User Tracing* chỉ xem video | ~1h54m |
-| TensorZero LLM Gateway | Chỉ xem video *M2 Routing/Fallback* và *M4 A/B Testing and Feedback Loop*: các kiểu routing và A/B testing là ý Portkey không có. Không cài đặt, vì repo đã ngừng phát triển | ? |
-| Bifrost Ai Gateway | *Fallback, streaming and logging*: thay phần tracing/log của Portkey không làm được. *Playing with Virtual keys and MCP*: có thể dạy cách giấu key thật của provider, giới hạn quyền theo key (khớp Ưu tiên 1). Tên bài lấy từ bản tóm tắt, chưa xem video | ? |
+| TensorZero LLM Gateway | **Bỏ cả section** (chốt 18/11/2026): repo đã ngừng phát triển; routing/fallback trùng bài Bifrost đã làm. Nếu muốn chỉ xem video *M4 A/B Testing and Feedback Loop* (ý duy nhất chưa có), không cài đặt | 0 (tùy chọn ~M4) |
+| Bifrost Ai Gateway | **Đã học xong** (20/11/2026). Repo đã có `07-ai-security-bootcamp/03-llm-gateway/` (6 file: virtual key, budget, log, metadata, retry, fallback, chia tải, session affinity, cache, streaming, prompt, MCP: tool tự chạy, tool cần duyệt, chặn tool theo virtual key) → *Fallback, streaming and logging* chỉ tua nhanh để đối chiếu. *Playing with Virtual keys and MCP*: xem video đối chiếu với `06-mcp.js`. Bỏ setup, prompt template, tool calling, mini RAG. Tên bài lấy từ bản tóm tắt, chưa đối chiếu video | ? |
 | LLM Evaluations + RAGAS | Cả 2 section | ~1h33m |
 | Deep Eval | Cả section, so với `06-improving-accuracy/04-evaluation.js` | 4h23m |
 | Red Teaming with PyRIT | Bài 01–12 (bỏ 2 bài memory chèn nhầm); kỹ nhất **07_XPIA** | 4h27m |
@@ -161,10 +161,10 @@ Thông tin kiểm tra ngày 03/11/2026: 83h10m, 279 bài, 32 section, cập nh�
 | Project | Cách học |
 |---|---|
 | Project 3: Secure Hybrid RAG with GCP | Học kỹ Phase 1 + 2 (hybrid RAG, *Scope Guardrail & Secure Retrieval*, routing/fallback, semantic cache, red teaming, eval); lướt bài load/chunk và Phase 3 deploy |
-| Project 2: Agentic AI Research Platform (AWS) | Chỉ: 04 Architecture, 09 Retry & Connection Pool, 10 Auth/Guardrails/Caching, 11 Memory & Queueing, 13 LLM Evaluation, 15 TensorZero, 16 PyRIT Dashboard (~1h30m). Bỏ Terraform/CI/deploy |
+| Project 2: Agentic AI Research Platform (AWS) | Chỉ: 04 Architecture, 09 Retry & Connection Pool, 10 Auth/Guardrails/Caching, 11 Memory & Queueing, 13 LLM Evaluation, 16 PyRIT Dashboard (~1h20m; bỏ 15 TensorZero). Bỏ Terraform/CI/deploy |
 | Project 1 | Chỉ *Flash Rank Re-ranking* và *Qdrant and Re-rank Service* (~27m) |
 
-**Bỏ qua:** Langchain, Building AI Agents With LangGraph (đã có trong repo); Observability With Pydantic Logfire; Guardrails AI (nếu dư thời gian xem các bài *OnFailAction*); phần còn lại của TensorZero và Bifrost (setup tool, trùng Portkey; prompt template, tool calling, mini RAG đã biết); MeshAPI (giới thiệu sản phẩm, RAG/multi-agent đã có trong repo, sinh ảnh/audio/video ngoài mục tiêu, không có ý gateway mới so với Portkey); Basics of Agentic Memory, Mem0, LangMem (đã làm ở `14-email-assistant`); Claude Code For Developers; Building Deep Agents (đã có `15-deep-agents`); Adding AI Governance (nếu muốn chỉ xem 2 bài khái niệm đầu); Project 4 Databricks.
+**Bỏ qua:** Langchain, Building AI Agents With LangGraph (đã có trong repo); Observability With Pydantic Logfire; Guardrails AI (nếu dư thời gian xem các bài *OnFailAction*); toàn bộ TensorZero (trừ video M4 nếu muốn); phần còn lại của Bifrost (setup tool, prompt template, tool calling, mini RAG đã biết); MeshAPI (đã bỏ khi tới section này 20/11/2026: giới thiệu sản phẩm, RAG/multi-agent đã có trong repo, sinh ảnh/audio/video ngoài mục tiêu, không có ý gateway mới so với Portkey); Basics of Agentic Memory, Mem0, LangMem (đã làm ở `14-email-assistant`); Claude Code For Developers; Building Deep Agents (đã có `15-deep-agents`); Adding AI Governance (nếu muốn chỉ xem 2 bài khái niệm đầu); Project 4 Databricks.
 
 Lưu ý: curriculum có vài bài bị lặp (2 bài memory trong PyRIT, 1 bài Portkey trong TensorZero) — bỏ qua.
 
@@ -174,7 +174,7 @@ Lưu ý: curriculum có vài bài bị lặp (2 bài memory trong PyRIT, 1 bài 
 |---|---|---|
 | Portkey | Palo Alto Networks mua lại (hoàn tất 5/2026), gộp vào Prisma AIRS. Nút đăng nhập chuyển sang Strata Cloud Manager, tài khoản cá nhân báo "Insufficient Privileges". Bản open source (MIT) vẫn còn, nhưng Palo Alto chưa cam kết duy trì | Chỉ bản open source, có rủi ro |
 | TensorZero | Repo archived 12/6/2026, website ghi "no longer maintained" | Không |
-| Bifrost | Open source (Apache-2.0, Go), vẫn phát triển. Ranh giới tính năng free/enterprise (virtual key, budget) các nguồn ghi khác nhau | Có |
+| Bifrost | Open source (Apache-2.0, Go), vẫn phát triển. Virtual key, budget, semantic cache, MCP gateway, chặn tool theo virtual key đã chạy được trên bản open source (`07-ai-security-bootcamp/03-llm-gateway/`). Theo repo khóa học (github.com/d-hackmt/bifrost): guardrails, SSO/RBAC, audit log, vault, phân quyền tool theo từng identity là enterprise | Có |
 | LiteLLM | Không có trong khóa. Open source (Python), phổ biến nhất. 24/3/2026 bị tấn công chuỗi cung ứng: bản 1.82.7, 1.82.8 trên PyPI chứa mã đánh cắp credential → nếu dùng phải pin version và kiểm tra nguồn | Có, cẩn thận |
 
 **Áp dụng vào repo khi học:**

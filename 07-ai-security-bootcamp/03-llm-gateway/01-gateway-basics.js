@@ -13,12 +13,21 @@ require("../../_shared/polyfill");
 //    - Đổi model, provider: sửa config gateway, không sửa code app.
 //    - Cấu hình chủ yếu nằm ở gateway. Request chỉ gửi thêm `fallbacks` và vài header.
 //
-// 2. Virtual key
-//    - Key gateway cấp cho app, dùng thay key thật của provider.
-//    - Mọi request phải gửi virtual key trong header `x-bf-vk`.
-//    - Lộ virtual key thì key thật vẫn an toàn (chỉ nằm ở gateway), thu hồi lại được.
+// 2. Virtual key và API key của provider
+//        App --(virtual key)--> Bifrost --(API key của provider)--> Gemini
+//    - API key của provider (GEMINI_API_KEY, GROQ_API_KEY): key thật do Google, Groq cấp.
+//      Provider tính tiền theo key này. Chỉ gateway giữ (mục `providers` trong config).
+//    - Virtual key (sk-bf-...): key mình tự đặt, app gửi trong header `x-bf-vk`.
+//      Chỉ Bifrost hiểu, provider không hề biết key này.
+//    - Bifrost nhận request:
+//      + Provider lấy từ tên model trong request (VD `gemini/gemini-3.5-flash`).
+//        Model không ghi provider (VD `gemini-3.5-flash`) → virtual key chọn provider theo `weight`.
+//      + Kiểm tra virtual key: được gọi provider, model này không? Còn budget không?
+//      + Hợp lệ → gọi provider bằng API key của provider đó. Không hợp lệ → chặn.
 //    - Mỗi virtual key có luật riêng (provider nào, budget bao nhiêu, tool nào).
 //      Gateway nhìn key trong request để biết áp luật nào.
+//    - Lộ virtual key → thu hồi riêng key đó, app khác vẫn chạy.
+//      API key của provider không lộ, không phải đổi.
 //
 // 3. Config gateway (bifrost-config.json). Sửa xong phải restart gateway.
 //    Phần dùng chung cho mọi bài (phần riêng giải thích ở file dùng nó):
@@ -34,7 +43,9 @@ require("../../_shared/polyfill");
 //        Có nhiều key Gemini → gateway chia request giữa các key theo `weight` của key.
 //      + groq: key Groq (GROQ_API_KEY).
 //    - governance.virtual_keys: 3 virtual key, giá trị lấy từ .env.
-//      + `provider_configs`: các provider key được gọi. Provider không có trong danh sách → bị chặn (403).
+//      + `provider_configs`: các provider virtual key được gọi. Provider không có trong danh sách → bị chặn (403).
+//        `key_ids`: được dùng API key nào của provider đó (`*` = mọi key).
+//        `weight`: tỉ lệ chọn provider khi model không ghi provider (0 = không chọn).
 //      + `vk-main` (BIFROST_VIRTUAL_KEY): key mặc định, dùng ở hầu hết các bài. Không giới hạn budget.
 //        `disable_content_logging: false` → log lưu cả câu hỏi, câu trả lời.
 //        Câu hỏi có dữ liệu cá nhân → đặt `true` để log không lưu nội dung.
