@@ -1,7 +1,7 @@
 // =======================================================================
 // AI SECURITY BOOTCAMP - IN LOG THEO TỪNG BƯỚC
 //
-// Dùng chung cho các bài trong 07-ai-security-bootcamp (guardrails, LLM gateway).
+// Dùng chung cho các bài trong 07-ai-security-bootcamp (guardrails, LLM gateway, eval).
 //
 // Mẫu log của 1 câu hỏi:
 //   ==================================

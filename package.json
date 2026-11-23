@@ -41,6 +41,7 @@
     "mongodb": "^7.6.0",
     "okapibm25": "^1.4.1",
     "openai": "^6.49.0",
+    "openevals": "^0.2.3",
     "pdf-parse": "^1.1.1",
     "pg": "^8.23.1",
     "youtubei.js": "^18.0.0"
