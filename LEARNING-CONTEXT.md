@@ -1,6 +1,6 @@
 # CONTEXT — LỘ TRÌNH HỌC AI ENGINEER
 
-**Cập nhật: 20/11/2026**
+**Cập nhật: 23/11/2026**
 
 ## 1. Nền tảng hiện tại
 
@@ -109,6 +109,29 @@ Text-to-SQL và Database Agents (ưu tiên áp dụng với PostgreSQL và backe
 - Agent memory và context engineering.
 - MCP và các giao thức kết nối agent.
 - Local LLM và open-source LLM.
+
+### Ưu tiên 4 — Công nghệ còn thiếu ngoài LLM (thêm 23/11/2026)
+
+Lấy từ việc đối chiếu một danh sách 11 sáng kiến AI trong ngân hàng với repo. Chỉ xét công nghệ để xây nên chúng, không xét nghiệp vụ. Phần LLM/GenAI (RAG, agent, tool calling, structured output, Text-to-SQL, guardrails, gateway, MCP, eval) đã có trong repo.
+
+Repo đã có: đọc PDF có sẵn text (`03-langchain/04-document-processing`), tìm ảnh bằng embedding (`02-embeddings/03-chroma/03-image-search.js`), chạy Ollama local và fine-tune LoRA (`06-improving-accuracy`).
+
+| # | Còn thiếu | Cụ thể | Mức cần đạt |
+|---|---|---|---|
+| 1 | OCR / Document AI | PDF scan, ảnh chụp, nhận diện bố cục trang, tách bảng, vision LLM trích field theo schema, đo độ chính xác từng field | Làm được |
+| 2 | Phục vụ LLM on-prem ở mức production | vLLM, quantization, ước lượng GPU, nhiều người dùng cùng lúc. Máy chỉ có GPU Intel → OpenVINO / IPEX-LLM | Làm được |
+| 3 | ML trên dữ liệu bảng | Feature engineering, XGBoost/LightGBM, dữ liệu mất cân bằng (precision/recall, PR-AUC), giải thích model bằng SHAP | Biết cách làm |
+| 4 | Anomaly detection | Tìm bất thường khi không có nhãn (Isolation Forest) | Biết cách làm |
+| 5 | Realtime ML serving | Kafka/Kinesis, feature store, độ trễ vài chục ms, theo dõi drift | Biết khái niệm |
+| 6 | Graph analytics | Neo4j, feature từ quan hệ giữa các thực thể | Biết khái niệm |
+| 7 | Forecasting, recommendation | Dự báo chuỗi thời gian; collaborative filtering, two-tower | Biết khái niệm |
+| 8 | Speech, vision eKYC | Whisper/TTS; so khuôn mặt, kiểm tra người thật (thường mua SDK) | Biết khái niệm |
+
+- "Làm được" = việc thường gặp của Applied/GenAI Engineer, cần thực hành thật.
+- "Biết cách làm" = hiểu kiến trúc, chọn đúng công cụ, làm được prototype. ML cơ bản (overfitting, train/test, precision/recall) hay bị hỏi khi phỏng vấn và giúp làm eval tốt hơn.
+- "Biết khái niệm" = việc của ML Engineer / Data Scientist chuyên mảng: hiểu luồng hoạt động để trao đổi với họ, không cần tự làm.
+
+Thứ tự: mục 1 học cùng hoặc ngay sau bước 3 ở mục 6 (bổ sung trực tiếp cho RAG); mục 2 làm xen kẽ; mục 3–4 sau đó; mục 5–8 chỉ đọc khi cần. Chưa chọn khóa cụ thể: khi tới lượt thì tìm theo mục 8.
 
 ## 6. Lộ trình tiếp theo (chọn ngày 03/11/2026)
 
