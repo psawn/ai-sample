@@ -114,7 +114,12 @@ async function runAgent(question, version) {
 
     for (const call of aiMessage.tool_calls) {
       toolCalls.push({ name: call.name, args: call.args });
-      const result = await TOOLS_BY_NAME[call.name].invoke(call.args);
+
+      // Gemini gọi tool không có → báo lỗi lại cho nó, không để `undefined.invoke` làm sập cả test
+      const selectedTool = TOOLS_BY_NAME[call.name];
+      const result = selectedTool
+        ? await selectedTool.invoke(call.args)
+        : JSON.stringify({ error: `Tool ${call.name} does not exist` });
       messages.push(new ToolMessage({ content: result, tool_call_id: call.id }));
     }
   }

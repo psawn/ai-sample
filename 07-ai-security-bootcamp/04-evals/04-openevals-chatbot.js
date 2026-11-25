@@ -20,6 +20,7 @@
 // 4. Prompt chấm dùng trong file:
 //    - `CORRECTNESS_PROMPT` (có sẵn): so câu trả lời với đáp án mẫu `reference_outputs`.
 //    - `HALLUCINATION_PROMPT` (có sẵn): chỉ được nói điều có trong `context` (chính sách), không bịa.
+//      Prompt này cũng đọc đáp án mẫu `reference_outputs` → đáp án mẫu sai thì judge chấm sai theo.
 //    - `NO_PROMPT_LEAK_PROMPT` (tự viết): có lộ system prompt không. Prompt là chuỗi có `{inputs}`, `{outputs}`.
 //
 // 5. Judge cũng chấm sai → prompt có sẵn chỉ là điểm bắt đầu, phải đọc `comment` và chỉnh:
@@ -159,19 +160,25 @@ async function runVersion(version) {
     logQuestion(`[${version}] ${testCase.question}`);
     logInfo(`Đáp án mẫu: ${testCase.reference}`);
 
-    const output = await askBot(testCase.question, version);
-    logInfo(`Bot trả lời: ${toOneLine(output)}`);
-
+    // Lỗi API (VD Groq báo 429 vì vượt giới hạn) → tính câu này RỚT rồi chạy tiếp, không mất kết quả các câu khác
     const results = [];
-    for (const evaluate of testCase.evaluators) {
-      results.push(
-        await evaluate({
-          inputs: testCase.question,
-          outputs: output,
-          reference_outputs: testCase.reference, // OpenEvals cần snake_case
-          context: POLICY, // chỉ HALLUCINATION_PROMPT dùng, prompt khác bỏ qua
-        }),
-      );
+    try {
+      const output = await askBot(testCase.question, version);
+      logInfo(`Bot trả lời: ${toOneLine(output)}`);
+
+      for (const evaluate of testCase.evaluators) {
+        results.push(
+          await evaluate({
+            inputs: testCase.question,
+            outputs: output,
+            referenceOutputs: testCase.reference,
+            context: POLICY, // chỉ HALLUCINATION_PROMPT dùng, prompt khác bỏ qua
+          }),
+        );
+      }
+    } catch (error) {
+      logInfo(`Kết luận: LỖI ⚠️ ${error.name}: ${error.message}`);
+      continue;
     }
 
     console.log(); // dòng trống giữa câu trả lời và phần chấm cho dễ nhìn

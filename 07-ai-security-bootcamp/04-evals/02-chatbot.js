@@ -28,8 +28,8 @@ Approved refunds are processed within 5 to 7 business days.`;
 // - `strict` (chặt): chỉ dùng chính sách, không có thì trả lời "I don't know."
 // - `loose` (lỏng): bỏ 2 câu đó → bot tự dùng kiến thức bên ngoài, dễ bịa → xem eval có bắt được không
 const SYSTEM_PROMPTS = {
-  strict: `You are a customer support assistant. Answer using ONLY the policy below. 
-  If the policy does not contain the answer, reply exactly: "I don't know."
+  strict: `You are a customer support assistant. Answer using ONLY the policy below.
+If the policy does not contain the answer, reply exactly: "I don't know."
 
 Policy:
 ${POLICY}`,
