@@ -2,30 +2,32 @@
 # =======================================================================
 # EVAL 1: PROMPTFOO — KIỂM TRA 6 METRIC CÓ CHẤM ĐÚNG KHÔNG
 #
-# Mục đích: đưa Promptfoo các câu trả lời viết sẵn (tốt / trung bình / tệ), xem mỗi metric
-# có bắt đúng lỗi không: câu tốt phải đạt, câu trung bình và tệ phải rớt.
+# Mục tiêu: đưa Promptfoo các câu trả lời viết sẵn (tốt / trung bình / tệ), xem mỗi metric
+# chấm có đúng không: câu tốt phải đạt, câu trung bình và tệ phải rớt.
 #
 # 1. Vì sao kiểm tra metric trước?
-#    - App LLM mỗi lần trả lời 1 kiểu chữ → không so chuỗi được → phải nhờ 1 LLM khác (judge) chấm.
+#    - App LLM mỗi lần trả lời câu chữ khác nhau → không so chuỗi được → phải nhờ 1 LLM khác (JUDGE) chấm.
 #    - Metric hoặc judge chấm sai thì mọi điểm số về sau đều vô nghĩa.
 #
-# 2. Provider `echo` không gọi LLM, trả lại nguyên `{{response}}` → "câu trả lời" là câu viết sẵn.
-#    Biết trước câu nào tốt, câu nào tệ → so với điểm chấm là biết metric đúng hay sai.
+# 2. Provider `echo` không gọi LLM, trả lại nguyên `{{response}}` → câu trả lời chính là câu viết sẵn.
+#    Biết trước câu nào tốt, câu nào tệ → so với điểm metric chấm là biết metric đúng hay sai.
 #
-# 3. Judge và embedding:
-#    - Judge: Groq `openai/gpt-oss-120b`. Bản nhỏ `gpt-oss-20b` hay trả lời sai format → bị tính 0 điểm.
-#    - Embedding: Gemini `gemini-embedding-001`, chỉ `answer-relevance` dùng.
-#    - Groq free tier chỉ cho 8.000 token/phút với 120b. Chạm giới hạn → Promptfoo có thể chờ rất lâu.
+# 3. Judge và embedding (khai báo ở `defaultTest` bên dưới):
+#    - Judge: LLM chấm câu trả lời. Model nhỏ quá hay trả lời sai format → bị tính 0 điểm.
+#    - EMBEDDING: model biến câu thành dãy số để đo 2 câu giống nhau bao nhiêu. Chỉ `answer-relevance` dùng.
+#    - Groq free tier giới hạn token/phút. Chạm giới hạn → Promptfoo có thể chờ rất lâu.
 #
-# 4. 6 lỗi và assert tương ứng (điểm 0–1, đạt khi ≥ 0.75):
-#    - Bịa thông tin → `context-faithfulness`: tách câu trả lời thành từng ý, đếm ý có trong context.
-#    - Lạc đề → `answer-relevance`: judge đoán ngược câu hỏi từ câu trả lời, so với câu hỏi thật bằng embedding.
-#    - Context lẫn rác → `context-relevance`: tỷ lệ context liên quan câu hỏi, không xét thứ tự đoạn.
+# 4. 6 metric, mỗi metric phát hiện 1 loại lỗi (điểm 0–1, đạt khi ≥ 0.75):
+#    - Bịa thông tin → `context-faithfulness`: tách câu trả lời thành từng ý.
+#      Điểm = số ý có trong context / tổng số ý.
+#    - Lạc đề → `answer-relevance`: judge đoán ngược câu hỏi từ câu trả lời.
+#      Điểm = câu hỏi đoán ra giống câu hỏi thật bao nhiêu (đo bằng embedding).
+#    - Context lẫn rác → `context-relevance`: điểm = số đoạn context liên quan câu hỏi / tổng số đoạn (không xét thứ tự).
 #      Mẫu TỐT có 1/3 đoạn rác → chỉ được ~0.67 nên rớt. Đúng với cách tính, không phải lỗi.
-#    - Context thiếu ý → `context-recall`: đếm ý của đáp án chuẩn tìm thấy trong context.
-#    - Sai sự thật → `factuality`: so với đáp án chuẩn, mâu thuẫn → 0, còn lại → 1.
-#    - Gọi sai tool → `tool-call-f1`: so tên tool bằng code. F1 phạt cả gọi thừa lẫn gọi thiếu.
-#      VD gọi {set_thermostat, send_notification}, mong đợi {set_thermostat} → F1 ≈ 0.67.
+#    - Context thiếu ý → `context-recall`: điểm = số ý của đáp án mẫu tìm thấy trong context / tổng số ý.
+#    - Sai sự thật → `factuality`: so với đáp án mẫu. Mâu thuẫn → 0 điểm, còn lại → 1 điểm.
+#    - Gọi sai tool → `tool-call-f1`: so tên tool bằng code. F1 trừ điểm cả gọi thừa lẫn gọi thiếu.
+#      VD: gọi {set_thermostat, send_notification}, mong đợi {set_thermostat} → F1 ≈ 0.67.
 #
 # 5. Chạy (PowerShell, ở thư mục gốc repo). Promptfoo cần Node ≥ 22.22 → lệnh đầu đưa Node 24 lên trước,
 #    chỉ áp cho terminal đang mở. `@0.126.0`: ghim version, không tự kéo bản mới chưa kiểm tra.
@@ -44,12 +46,12 @@ prompts:
 providers:
   - echo
 
-# Chạy từng test một, nghỉ 3 giây → không vượt giới hạn token/phút của Groq.
+# Chạy từng test một, nghỉ 3 giây giữa các test, cho đỡ vượt giới hạn token/phút của Groq.
 evaluateOptions:
   maxConcurrency: 1
   delay: 3000
 
-# text: judge. embedding: model embedding cho `answer-relevance`.
+# `text`: judge. `embedding`: model embedding cho `answer-relevance`.
 defaultTest:
   options:
     provider:
@@ -57,14 +59,14 @@ defaultTest:
         id: groq:openai/gpt-oss-120b
         config:
           temperature: 0
-          # Tắt phần "suy nghĩ" của judge, không thì nó lẫn vào câu trả lời → Promptfoo đọc sai.
+          # Tắt phần "suy nghĩ" của judge, vì nó lẫn vào câu trả lời làm Promptfoo đọc sai.
           include_reasoning: false
           reasoning_effort: low
       embedding:
         id: google:embedding:gemini-embedding-001
 
-# scenarios: mỗi metric 1 khối. `tests` = cách chấm (khai báo 1 lần), `config` = 3 mẫu dữ liệu.
-# Promptfoo ghép từng mẫu với cách chấm → 3 test. `{{reference}}` lấy từ `vars` của từng mẫu.
+# `scenarios`: mỗi metric 1 khối. `tests`: cách chấm (khai báo 1 lần). `config`: 3 mẫu tốt / trung bình / tệ.
+# Promptfoo ghép từng mẫu với cách chấm → 3 test. `{{reference}}` (đáp án mẫu) lấy từ `vars` của từng mẫu.
 scenarios:
   # ── 1. Bịa thông tin — chính sách đổi trả ─────────────────────────────
   - description: '1. Faithfulness'
@@ -213,7 +215,7 @@ scenarios:
             metric: tool_correctness
             threshold: 0.75
             value: '{{expected_tools}}'
-    # response: danh sách tool agent đã gọi, đúng định dạng tool call của OpenAI (tool-call-f1 đọc được).
+    # `response`: danh sách tool agent đã gọi, viết theo định dạng tool call của OpenAI để `tool-call-f1` đọc được.
     config:
       - description: '6. Tool call — TỐT: gọi đúng tool bật đèn'
         vars:

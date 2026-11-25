@@ -1,20 +1,20 @@
 // =======================================================================
 // EVAL 3: APP CẦN TEST — AGENT ĐỔI TRẢ CÓ GỌI TOOL
 //
-// Mục đích: agent nhỏ (Gemini) tự gọi tool `get_order` (tra đơn) và `create_return_label` (tạo phiếu trả hàng).
-// 03-promptfoo-agent.yaml chấm cả câu trả lời lẫn các tool đã gọi. Không chạy file này trực tiếp.
+// Mục tiêu: agent nhỏ tự gọi tool `get_order` (tra đơn) và `create_return_label` (tạo phiếu trả hàng).
+// File này không chạy trực tiếp: 03-promptfoo-agent.yaml gọi nó để chấm câu trả lời và các tool đã gọi.
 //
 // 1. Vòng lặp agent:
-//        câu hỏi → Gemini → muốn gọi tool? ─ Có → chạy tool → gửi kết quả lại Gemini → lặp
-//                                          └ Không → câu trả lời cuối
+//        câu hỏi → LLM → muốn gọi tool? ─ Có → chạy tool → gửi kết quả lại LLM → lặp
+//                                       └ Không → câu trả lời cuối
 //    Mọi tool đã gọi (tên + tham số) được ghi lại, trả cho Promptfoo trong `metadata` để chấm.
 //
 // 2. Hai bản system prompt, chỉ khác phần `Rules`:
-//    - `strict`: bắt tra đơn trước, chỉ tạo phiếu khi đơn còn hạn 30 ngày.
-//    - `loose` ("hư"): bỏ `Rules` → xem các check tool có bắt được agent làm sai không.
+//    - `strict`: phải tra đơn trước, chỉ tạo phiếu khi đơn còn trong hạn 30 ngày.
+//    - `loose` ("hư"): bỏ `Rules` → để xem các check tool có phát hiện agent làm sai không.
 //
-// 3. `create_return_label` cố ý KHÔNG tự kiểm tra hạn 30 ngày, để test xem agent có tự tuân thủ
-//    chính sách không. Làm thật thì phải kiểm tra trong code của tool, không tin LLM.
+// 3. `create_return_label` cố ý KHÔNG kiểm tra hạn 30 ngày, để test agent có tự làm đúng chính sách không.
+//    App thật phải kiểm tra trong code của tool, không tin LLM.
 // =======================================================================
 
 require("../../_shared/polyfill");
@@ -25,7 +25,7 @@ const { tool } = require("@langchain/core/tools");
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { z } = require("zod");
 
-// ===== 1. DỮ LIỆU GIẢ VÀ 2 TOOL =====
+// ===== DỮ LIỆU GIẢ VÀ 2 TOOL =====
 
 const ORDERS = {
   A100: { item: "headphones", daysSincePurchase: 5, defective: true },
@@ -63,7 +63,7 @@ const createReturnLabel = tool(
 
 const TOOLS_BY_NAME = { get_order: getOrder, create_return_label: createReturnLabel };
 
-// ===== 2. AGENT =====
+// ===== AGENT =====
 
 const POLICY = `Return policy:
 - Returns are accepted within 30 days of purchase.
@@ -84,9 +84,9 @@ Rules:
 ${POLICY}`,
 };
 
-const MAX_STEPS = 5; // Chặn vòng lặp vô hạn nếu Gemini cứ gọi tool mãi
+const MAX_STEPS = 5; // Chặn vòng lặp vô hạn khi LLM cứ gọi tool mãi
 
-// temperature: 0 → hỏi lại cùng câu thì hành vi gần như giống nhau, chấm mới ổn định
+// `temperature: 0` để agent làm giống nhau mỗi lần hỏi lại → kết quả chấm ổn định
 const llm = new ChatGoogleGenerativeAI({
   apiKey: process.env.GEMINI_API_KEY,
   model: "gemini-3.5-flash",
@@ -107,7 +107,7 @@ async function runAgent(question, version) {
     const aiMessage = await llm.invoke(messages);
     messages.push(aiMessage);
 
-    // Gemini không gọi tool nữa → đây là câu trả lời cuối
+    // LLM không gọi tool nữa → đây là câu trả lời cuối
     if (!aiMessage.tool_calls?.length) {
       return { answer: aiMessage.text, toolCalls };
     }
@@ -115,7 +115,7 @@ async function runAgent(question, version) {
     for (const call of aiMessage.tool_calls) {
       toolCalls.push({ name: call.name, args: call.args });
 
-      // Gemini gọi tool không có → báo lỗi lại cho nó, không để `undefined.invoke` làm sập cả test
+      // LLM gọi tool không tồn tại → trả lỗi lại cho LLM, không để cả test bị sập
       const selectedTool = TOOLS_BY_NAME[call.name];
       const result = selectedTool
         ? await selectedTool.invoke(call.args)
@@ -127,13 +127,13 @@ async function runAgent(question, version) {
   return { answer: `Stopped after ${MAX_STEPS} steps.`, toolCalls };
 }
 
-// ===== 3. PROVIDER CHO PROMPTFOO =====
+// ===== PROVIDER CHO PROMPTFOO =====
 
 /**
  * Provider cho Promptfoo. `options.config.version` lấy từ YAML: `strict` hoặc `loose`.
  *
- * - `output`: câu trả lời → assert chấm chữ dùng.
- * - `metadata`: tool đã gọi → assert `javascript` đọc qua `context.metadata`.
+ * - `output`: câu trả lời → các assert chấm câu chữ (`llm-rubric`, `factuality`) đọc.
+ * - `metadata`: các tool đã gọi → assert `javascript` đọc qua `context.metadata`.
  */
 class AgentProvider {
   constructor(options) {

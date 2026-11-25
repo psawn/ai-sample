@@ -1,15 +1,15 @@
 // =======================================================================
 // EVAL 2: APP CẦN TEST — CHATBOT HỎI ĐÁP CHÍNH SÁCH ĐỔI TRẢ
 //
-// Mục đích: chatbot nhỏ gọi Gemini, có 2 bản prompt, để 02-promptfoo-demo.yaml so bản nào tốt hơn.
-// Không chạy file này trực tiếp, chạy file YAML.
+// Mục tiêu: chatbot nhỏ có 2 bản system prompt, để 02-promptfoo-demo.yaml so bản nào tốt hơn.
+// File này không chạy trực tiếp: chạy file YAML, YAML sẽ gọi file này.
 //
 // 1. Luồng khi Promptfoo test:
-//        Promptfoo → callApi(câu hỏi) → askBot() → Gemini → { output: câu trả lời } → Promptfoo chấm
+//        Promptfoo → callApi(câu hỏi) → askBot() → LLM → { output: câu trả lời } → Promptfoo chấm
 //
-// 2. Hai bản prompt, chỉ khác nhau 2 câu ràng buộc:
+// 2. Hai bản system prompt, chỉ khác nhau 2 câu ràng buộc:
 //    - `strict` (chặt): chỉ được dùng chính sách, không có thì trả lời "I don't know."
-//    - `loose` (lỏng): bỏ 2 câu đó → bot tự dùng kiến thức bên ngoài, dễ bịa.
+//    - `loose` (lỏng): bỏ 2 câu đó → bot dễ dùng kiến thức bên ngoài và bịa.
 // =======================================================================
 
 require("../../_shared/polyfill");
@@ -17,16 +17,14 @@ require("dotenv").config();
 
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 
-// ===== 1. CHÍNH SÁCH VÀ 2 BẢN PROMPT =====
+// ===== CHÍNH SÁCH VÀ 2 BẢN PROMPT =====
 
 const POLICY = `Returns are accepted within 30 days of purchase.
 Items must be unused and in original packaging.
 Customers pay return shipping unless the item is defective.
 Approved refunds are processed within 5 to 7 business days.`;
 
-// 2 bản prompt, chỉ khác 2 câu ràng buộc:
-// - `strict` (chặt): chỉ dùng chính sách, không có thì trả lời "I don't know."
-// - `loose` (lỏng): bỏ 2 câu đó → bot tự dùng kiến thức bên ngoài, dễ bịa → xem eval có bắt được không
+// 2 bản system prompt (xem mục 2 ở đầu file)
 const SYSTEM_PROMPTS = {
   strict: `You are a customer support assistant. Answer using ONLY the policy below.
 If the policy does not contain the answer, reply exactly: "I don't know."
@@ -40,16 +38,16 @@ Policy:
 ${POLICY}`,
 };
 
-// ===== 2. APP =====
+// ===== APP =====
 
-// temperature: 0 → hỏi lại cùng câu thì trả lời gần như giống nhau, so 2 bản prompt mới công bằng
+// `temperature: 0` để bot trả lời ổn định → kết quả 2 bản khác nhau là do system prompt
 const llm = new ChatGoogleGenerativeAI({
   apiKey: process.env.GEMINI_API_KEY,
   model: "gemini-3.5-flash",
   temperature: 0,
 });
 
-/** Gửi Gemini system prompt của bản `version` kèm câu hỏi, trả về câu trả lời. */
+/** Hỏi LLM với system prompt của bản `version`, trả về câu trả lời. */
 async function askBot(question, version) {
   const response = await llm.invoke([
     ["system", SYSTEM_PROMPTS[version]],
@@ -59,7 +57,7 @@ async function askBot(question, version) {
   return response.text;
 }
 
-// ===== 3. PROVIDER CHO PROMPTFOO =====
+// ===== PROVIDER CHO PROMPTFOO =====
 
 /** Provider cho Promptfoo. `options.config.version` lấy từ YAML: `strict` hoặc `loose`. */
 class ChatbotProvider {

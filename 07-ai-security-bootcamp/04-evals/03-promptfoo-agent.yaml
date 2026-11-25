@@ -2,19 +2,23 @@
 # =======================================================================
 # EVAL 3: PROMPTFOO — CHẤM AGENT: GỌI ĐÚNG TOOL, ĐÚNG THAM SỐ, ĐÚNG THỨ TỰ
 #
-# Mục đích: với agent, câu trả lời đúng chưa đủ. Phải chấm cả việc agent ĐÃ LÀM (gọi tool nào).
+# Mục tiêu: với agent, câu trả lời đúng chưa đủ. Phải chấm cả việc agent ĐÃ LÀM (gọi tool nào).
 #
 # 1. Vì sao phải chấm tool call?
-#    - Câu trả lời nghe ổn nhưng tool đã chạy sai. VD tạo phiếu trả hàng cho đơn quá hạn 30 ngày.
-#    - Đọc câu trả lời không thấy được, phải nhìn danh sách tool đã gọi.
+#    - Câu trả lời nghe ổn nhưng tool đã chạy sai. VD: agent tạo phiếu trả hàng cho đơn quá hạn 30 ngày.
+#    - Lỗi này đọc câu trả lời không thấy, phải xem danh sách tool đã gọi.
 #
 # 2. 03-agent.js trả về `output` (câu trả lời) và `metadata` (tool đã gọi, theo thứ tự, kèm tham số).
-#    Assert `javascript` đọc `context.metadata`, chấm bằng code → không tốn token, kết quả không dao động.
 #
-# 3. 2 bản agent: A có phần `Rules` trong system prompt, B bỏ `Rules`.
-#    Với 5 câu hỏi hiện tại B cũng đạt hết → chưa chứng minh được các check tool bắt được lỗi.
+# 3. ASSERT: 1 điều kiện chấm. File dùng 3 loại:
+#    - `javascript`: chấm bằng code, đọc `context.metadata` → không tốn token, kết quả không đổi giữa các lần chạy.
+#    - `llm-rubric`: judge chấm câu trả lời theo mô tả trong `value`.
+#    - `factuality`: judge so câu trả lời với đáp án mẫu trong `value`.
 #
-# 4. Chạy (PowerShell, ở thư mục gốc repo). Promptfoo cần Node ≥ 22.22 → lệnh đầu đưa Node 24 lên trước,
+# 4. 2 bản agent: A có phần `Rules` trong system prompt, B bỏ `Rules`.
+#    Lưu ý: với 5 câu hỏi hiện tại, B cũng đạt hết → chưa chứng minh được các check tool phát hiện được lỗi.
+#
+# 5. Chạy (PowerShell, ở thư mục gốc repo). Promptfoo cần Node ≥ 22.22 → lệnh đầu đưa Node 24 lên trước,
 #    chỉ áp cho terminal đang mở.
 #      $env:Path = "$env:LOCALAPPDATA\nvm\v24.11.1;$env:Path"
 #      $env:PROMPTFOO_DISABLE_TELEMETRY = "1"
@@ -39,19 +43,19 @@ providers:
     config:
       version: loose
 
-# Chạy từng test một, nghỉ 2 giây → không vượt giới hạn token/phút của Groq.
+# Chạy từng test một, nghỉ 2 giây giữa các test, cho đỡ vượt giới hạn token/phút của Groq.
 evaluateOptions:
   maxConcurrency: 1
   delay: 2000
 
-# Judge: LLM chấm cho `factuality`, `llm-rubric`.
+# Judge: LLM chấm các assert `factuality`, `llm-rubric`.
 defaultTest:
   options:
     provider:
       id: groq:openai/gpt-oss-120b
       config:
         temperature: 0
-        # Tắt phần "suy nghĩ" của judge, không thì nó lẫn vào câu trả lời → Promptfoo đọc sai.
+        # Tắt phần "suy nghĩ" của judge, vì nó lẫn vào câu trả lời làm Promptfoo đọc sai.
         include_reasoning: false
         reasoning_effort: low
   # Áp cho mọi test: mỗi câu phải xong trong 30 giây, tính cả các lần gọi tool.
