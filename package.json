@@ -47,6 +47,7 @@
     "youtubei.js": "^18.0.0"
   },
   "devDependencies": {
+    "deepeval": "^0.9.26",
     "eslint": "^9.39.5",
     "eslint-plugin-import": "^2.32.0"
   }
